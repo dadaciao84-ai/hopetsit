@@ -255,7 +255,7 @@ class _PawMapScreenState extends State<PawMapScreen> {
       if (pos == null) {
         CustomSnackbar.showWarning(
           title: 'pawmap_snack_city_not_found'.tr,
-          message: 'Aucune position trouvée pour "$trimmed".',
+          message: 'pawmap_snack_city_not_found_msg'.trParams({'city': trimmed}),
         );
         return;
       }
@@ -271,7 +271,7 @@ class _PawMapScreenState extends State<PawMapScreen> {
       debugPrint('[PawMap] city search failed: $e');
       CustomSnackbar.showError(
         title: 'pawmap_snack_search_failed'.tr,
-        message: 'Vérifiez votre connexion et réessayez.',
+        message: 'pawmap_snack_search_failed_msg'.tr,
       );
     }
   }
@@ -434,7 +434,7 @@ class _PawMapScreenState extends State<PawMapScreen> {
       _liveMap.stopBroadcasting();
       CustomSnackbar.showSuccess(
         title: 'pawmap_snack_tracking_off_title'.tr,
-        message: 'Tes amis ne voient plus ta position.',
+        message: 'pawmap_snack_tracking_off_msg'.tr,
       );
       return;
     }
@@ -460,7 +460,7 @@ class _PawMapScreenState extends State<PawMapScreen> {
     _liveMap.startBroadcasting(() => _currentCenter);
     CustomSnackbar.showSuccess(
       title: 'pawmap_snack_tracking_on_title'.tr,
-      message: 'Tes amis voient ta position et celle de ton animal en live.',
+      message: 'pawmap_snack_tracking_on_msg'.tr,
     );
 
     // Zoom "piéton" (street level ~17) centré sur la position GPS fraîche.
@@ -619,7 +619,7 @@ class _PawMapScreenState extends State<PawMapScreen> {
             position: LatLng(lat, lng),
             icon: BitmapDescriptor.defaultMarkerWithHue(hue),
             infoWindow: InfoWindow(
-              title: '${role == 'walker' ? '🐕' : '🐾'} ${name.isNotEmpty ? name : (role == 'walker' ? 'Walker' : 'Sitter')}'
+              title: '${role == 'walker' ? '🐕' : '🐾'} ${name.isNotEmpty ? name : (role == 'walker' ? 'pawmap_default_walker'.tr : 'pawmap_default_sitter'.tr)}'
                   '${isMapBoosted ? ' ⭐' : (isBoosted ? ' 🚀' : '')}',
               snippet: tierLabel,
             ),
@@ -658,7 +658,7 @@ class _PawMapScreenState extends State<PawMapScreen> {
             infoWindow: InfoWindow(
               title: '${ReportTypes.emoji(r.type)} ${ReportTypes.labelFr(r.type)}',
               snippet:
-                  '${r.liveHoursRemaining.toStringAsFixed(0)}h restantes · ${r.confirmationsCount} confirmation(s)',
+                  '${'pawmap_remaining_hours_label'.trParams({'hours': r.liveHoursRemaining.toStringAsFixed(0)})} · ${'pawmap_confirmations'.trParams({'count': r.confirmationsCount.toString()})}',
             ),
             onTap: () => _showReportBottomSheet(r),
           ),
@@ -698,7 +698,7 @@ class _PawMapScreenState extends State<PawMapScreen> {
               BitmapDescriptor.hueYellow,
             ),
             infoWindow: InfoWindow(
-              title: '📣 ${req.ownerName.isNotEmpty ? req.ownerName : 'Demande'}',
+              title: '📣 ${req.ownerName.isNotEmpty ? req.ownerName : 'pawmap_default_request'.tr}',
               snippet: _requestSnippet(req),
             ),
             onTap: () => _showRequestBottomSheet(req),
@@ -857,9 +857,9 @@ class _PawMapScreenState extends State<PawMapScreen> {
   String _timeAgo(DateTime at) {
     final diff = DateTime.now().difference(at);
     if (diff.inMinutes < 1) return 'pawmap_time_just_now'.tr;
-    if (diff.inMinutes < 60) return '${diff.inMinutes} min';
-    if (diff.inHours < 24) return '${diff.inHours} h';
-    return '${diff.inDays} j';
+    if (diff.inMinutes < 60) return 'pawmap_time_min_short'.trParams({'n': diff.inMinutes.toString()});
+    if (diff.inHours < 24) return 'pawmap_time_hours_short'.trParams({'n': diff.inHours.toString()});
+    return 'pawmap_time_days_short'.trParams({'n': diff.inDays.toString()});
   }
 
   double _hueForPoi(String category) {
@@ -1342,7 +1342,7 @@ class _PawMapScreenState extends State<PawMapScreen> {
           Expanded(
             child: _quickSignalChip(
               emoji: '🔎',
-              label: 'Perdu',
+              label: 'pawmap_filter_lost'.tr,
               type: ReportTypes.lostPet,
               color: const Color(0xFFEC407A), // rose/pink for lost_pet
             ),
@@ -1353,7 +1353,7 @@ class _PawMapScreenState extends State<PawMapScreen> {
           Expanded(
             child: _quickSignalChip(
               emoji: '😾',
-              label: 'Chien méchant',
+              label: 'pawmap_filter_aggressive_dog'.tr,
               type: ReportTypes.aggressiveDog,
               color: const Color(0xFFE53935), // red for aggressive_dog
             ),
@@ -1362,7 +1362,7 @@ class _PawMapScreenState extends State<PawMapScreen> {
           Expanded(
             child: _quickSignalChip(
               emoji: '🚰',
-              label: 'Point d\'eau',
+              label: 'pawmap_filter_water_point'.tr,
               type: ReportTypes.waterActive,
               color: const Color(0xFF26C6DA), // cyan for water_active
             ),
@@ -1531,14 +1531,14 @@ class _PawMapScreenState extends State<PawMapScreen> {
         child: Row(
           children: [
             Obx(() => _LayerToggle(
-                  label: 'POIs',
+                  label: 'pawmap_filter_pois'.tr,
                   emoji: '📍',
                   active: _showPois.value,
                   onTap: () => _showPois.value = !_showPois.value,
                 )),
             SizedBox(width: 8.w),
             Obx(() => _LayerToggle(
-                  label: 'Signalements 48h',
+                  label: 'pawmap_filter_reports_48h'.tr,
                   emoji: '⚠️',
                   active: _showReports.value,
                   // Inline active-count pill — replaces the old side badge
@@ -1556,7 +1556,7 @@ class _PawMapScreenState extends State<PawMapScreen> {
               final active = _showFriends.value;
               final count = _liveMap.friendPositions.length;
               return _LayerToggle(
-                label: 'Amis',
+                label: 'pawmap_filter_friends'.tr,
                 emoji: '👥',
                 active: active,
                 premiumBadge: true,
@@ -1567,7 +1567,7 @@ class _PawMapScreenState extends State<PawMapScreen> {
             if (_isSitterOrWalker) ...[
               SizedBox(width: 8.w),
               Obx(() => _LayerToggle(
-                    label: 'Demandes',
+                    label: 'pawmap_filter_requests'.tr,
                     emoji: '📣',
                     active: _showRequests.value,
                     count: _requests.length,
@@ -1887,7 +1887,7 @@ class _PawMapScreenState extends State<PawMapScreen> {
                       size: 14.sp, color: AppColors.greyText),
                   SizedBox(width: 4.w),
                   InterText(
-                    text: '${report.confirmationsCount} confirmation(s)',
+                    text: 'pawmap_confirmations_inline'.trParams({'count': report.confirmationsCount.toString()}),
                     fontSize: 11.sp,
                     color: AppColors.greyText,
                   ),
@@ -1905,7 +1905,7 @@ class _PawMapScreenState extends State<PawMapScreen> {
                         if (ok) {
                           CustomSnackbar.showSuccess(
                             title: 'pawmap_snack_thanks_title'.tr,
-                            message: 'Signalement prolongé de 12h.',
+                            message: 'pawmap_snack_extended_msg'.tr,
                           );
                         }
                       },
@@ -1933,7 +1933,7 @@ class _PawMapScreenState extends State<PawMapScreen> {
                         if (ok) {
                           CustomSnackbar.showSuccess(
                             title: 'pawmap_snack_reported_title'.tr,
-                            message: 'Merci, un modérateur va vérifier.',
+                            message: 'pawmap_snack_reported_msg'.tr,
                           );
                         }
                       },

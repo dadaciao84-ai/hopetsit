@@ -251,6 +251,14 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
           isReserved: post.reservedBy != null,
           reservedProviderRole: post.reservedBy?.providerRole,
           ownerViewOfOwnPost: true,
+          // v23.1.151 — Daniel : "sur la version 149 le boost sur la page
+          // publication dans le profil owner je vois pas mon annonce avec
+          // cadre urgent comme sur walker et sitter vois". L'owner doit
+          // voir ses propres annonces avec le cadre rouge URGENT + ruban
+          // quand son boost est actif, pour confirmer visuellement que
+          // l'achat a fonctionne.
+          isOwnerBoosted: post.isOwnerBoosted,
+          ownerBoostTier: post.ownerBoostTier,
           onViewPetDetails: null,
           onShare: () {
             () async {
@@ -313,6 +321,10 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
         isReserved: post.reservedBy != null,
         reservedProviderRole: post.reservedBy?.providerRole,
         ownerViewOfOwnPost: true,
+        // v23.1.151 — voir commentaire au-dessus : owner doit voir son
+        // propre post avec ruban URGENT quand boostExpiry > now.
+        isOwnerBoosted: post.isOwnerBoosted,
+        ownerBoostTier: post.ownerBoostTier,
         onShare: () {
           () async {
             try {

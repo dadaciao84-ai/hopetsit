@@ -81,7 +81,7 @@ class _CreateReportSheetState extends State<CreateReportSheet> {
 
   void _showPremiumLockedSnack() {
     CustomSnackbar.showError(
-      title: 'Premium requis',
+      title: 'pawmap_snack_premium_required'.tr,
       message:
           'Ce type de signalement est réservé aux membres Premium. Passe Premium pour débloquer tous les types.',
     );
@@ -90,8 +90,8 @@ class _CreateReportSheetState extends State<CreateReportSheet> {
   Future<void> _submit() async {
     if (_selectedType == null) {
       CustomSnackbar.showError(
-        title: 'Type requis',
-        message: 'Choisis un type de signalement avant d\'envoyer.',
+        title: 'pawmap_snack_type_required_title'.tr,
+        message: 'pawmap_snack_type_required_msg'.tr,
       );
       return;
     }
@@ -115,16 +115,16 @@ class _CreateReportSheetState extends State<CreateReportSheet> {
     if (!mounted) return;
     if (report != null) {
       CustomSnackbar.showSuccess(
-        title: 'Signalement envoyé',
-        message: 'Visible 48h autour de vous. Merci !',
+        title: 'pawmap_snack_sent_title'.tr,
+        message: 'pawmap_snack_sent_msg'.tr,
       );
       Navigator.of(context).pop(true);
     } else if (controller.premiumRequired.value) {
       Navigator.of(context).pop(false);
     } else {
       CustomSnackbar.showError(
-        title: 'Envoi impossible',
-        message: 'Réessaie dans un instant.',
+        title: 'pawmap_snack_send_failed_title'.tr,
+        message: 'pawmap_snack_send_failed_msg'.tr,
       );
     }
   }
@@ -321,7 +321,7 @@ class _CreateReportSheetState extends State<CreateReportSheet> {
                         : Icon(Icons.send_rounded,
                             size: 16.sp, color: Colors.white),
                     label: InterText(
-                      text: submitting ? 'Envoi…' : 'Publier le signalement',
+                      text: submitting ? 'pawmap_btn_submit_sending'.tr : 'pawmap_btn_submit'.tr,
                       fontSize: 13.sp,
                       fontWeight: FontWeight.w700,
                       color: Colors.white,
