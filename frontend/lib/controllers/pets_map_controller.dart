@@ -50,7 +50,11 @@ class PetsMapController extends GetxController {
       }
       final current = userLocation.value;
       if (current == null) {
-        throw Exception('Unable to determine user location');
+        // v23.1.147 — fallback : pas de géoloc → on charge tous les sitters
+        // pour ne pas avoir un écran vide (cohérent avec home_controller).
+        final all = await _ownerRepository.getSitters();
+        sitters.assignAll(all);
+        return;
       }
 
       final int radiusToUseKm = radiusKm ?? selectedRadiusKm.value.round();
@@ -59,16 +63,39 @@ class PetsMapController extends GetxController {
         lng: current.longitude,
         radiusInMeters: radiusToUseKm * 1000,
       );
+      // v23.1.147 — Daniel : "si on met 20 km le paseador disparaît".
+      // Si la liste nearby est vide (cas sitter sans coords GPS exclu par
+      // MongoDB $near), on fallback sur la liste complète pour garder
+      // les sitters visibles.
+      if (list.isEmpty) {
+        final all = await _ownerRepository.getSitters();
+        sitters.assignAll(all);
+        return;
+      }
       sitters.assignAll(list);
     } on ApiException catch (e) {
       AppLogger.logError('Failed to load nearby sitters', error: e.message);
-      CustomSnackbar.showError(title: 'common_error'.tr, message: e.message);
+      // Fallback sur liste complète en cas d'erreur API.
+      try {
+        final all = await _ownerRepository.getSitters();
+        sitters.assignAll(all);
+      } catch (_) {
+        CustomSnackbar.showError(
+          title: 'common_error'.tr,
+          message: e.message,
+        );
+      }
     } catch (e) {
       AppLogger.logError('Failed to load nearby sitters', error: e);
-      CustomSnackbar.showError(
-        title: 'common_error'.tr,
-        message: 'snackbar_text_could_not_load_nearby_sitters_please_try_again',
-      );
+      try {
+        final all = await _ownerRepository.getSitters();
+        sitters.assignAll(all);
+      } catch (_) {
+        CustomSnackbar.showError(
+          title: 'common_error'.tr,
+          message: 'snackbar_text_could_not_load_nearby_sitters_please_try_again',
+        );
+      }
     } finally {
       isLoading.value = false;
     }

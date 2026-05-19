@@ -244,8 +244,14 @@ class _SitterHomescreenState extends State<SitterHomescreen> {
           _userPosition != null) {
         final postLat = post.location?.lat;
         final postLng = post.location?.lng;
+        // v23.1.147 — Daniel : "si on met 20 km le paseador disparaît".
+        // Avant : un post sans coordonnées GPS était EXCLU dès qu'un filtre
+        // distance était actif → frustrant pour les owners qui n'ont pas
+        // saisi leur adresse précise. Maintenant : on garde les posts sans
+        // coords visibles à toutes distances (= équivalent du fallback
+        // côté owner home_controller).
         if (postLat == null || postLng == null) {
-          return false;
+          return true;
         }
 
         final distanceInMeters = Geolocator.distanceBetween(

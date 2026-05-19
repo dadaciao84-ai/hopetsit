@@ -546,12 +546,9 @@ const Map<String, String> ptPTTranslations = <String, String>{
       'profile_switch_role_card_title': 'Mudar para @role',
       'profile_switch_role_card_description': 'Mude sua conta para @role para começar a receber solicitações.',
       'dialog_switch_role_title': 'Mudar de função',
-      'dialog_switch_role_switching': 'Mudando para @role...
-
-Aguarde.',
-      'dialog_switch_role_confirm': 'Tem certeza de que deseja mudar para @role?
-
-Você poderá voltar a qualquer momento.',
+      'dialog_switch_role_switching': 'Mudando para @role... Aguarde.',
+      'dialog_switch_role_confirm':
+          'Tem certeza de que deseja mudar para @role? Você poderá voltar a qualquer momento.',
       'dialog_switch_role_button': 'Mudar para @role',
       'profile_switch_to_sitter': 'Mudar para Pet Sitter',
       'profile_switch_to_owner': 'Mudar para Dono',
@@ -764,7 +761,7 @@ Você poderá voltar a qualquer momento.',
       'owner_no_note_provided': 'Nenhuma nota fornecida.',
       'owner_chat_with_sitter': 'Conversar com a babá',
       'owner_pay_now': 'Pague agora',
-      'owner_pay_with_amount': 'Pagar \\$@amount',
+      'owner_pay_with_amount': 'Pagar \$@amount',
       'owner_cancel_booking': 'Cancelar reserva',
       'owner_time_just_now': 'Agora mesmo',
       'owner_time_mins_ago': '@minutes minutos atrás',
