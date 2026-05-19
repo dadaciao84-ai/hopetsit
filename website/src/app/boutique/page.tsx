@@ -220,15 +220,15 @@ export default function BoutiquePage() {
     <div className="mx-auto max-w-5xl px-4 py-12 md:py-16">
       <div className="mb-6">
         <Link href="/dashboard" className="text-sm text-ink-muted hover:text-ink">
-          ← Dashboard
+          ← {t("nav_dashboard")}
         </Link>
       </div>
 
       <h1 className="font-display text-3xl font-extrabold md:text-4xl">
-        Boutique HoPetSit
+        {t("shop_title")}
       </h1>
       <p className="mt-2 text-ink-muted">
-        Active Premium, mets ton annonce en avant ou apparais sur la carte.
+        {t("shop_subtitle")}
       </p>
 
       {error && (
@@ -240,19 +240,19 @@ export default function BoutiquePage() {
       {/* Tabs sections */}
       <div className="mt-8 inline-flex flex-wrap gap-2 rounded-full bg-ink/5 p-1">
         <SectionTab
-          label="🌟 Premium"
+          label={t("shop_tab_premium")}
           active={section === "premium"}
           onClick={() => setSection("premium")}
         />
         {isProvider && (
           <>
             <SectionTab
-              label="🚀 Boost annonce"
+              label={t("shop_tab_boost")}
               active={section === "boost"}
               onClick={() => setSection("boost")}
             />
             <SectionTab
-              label="📍 PawSpot"
+              label={t("shop_tab_mapboost")}
               active={section === "mapboost"}
               onClick={() => setSection("mapboost")}
             />
@@ -274,8 +274,8 @@ export default function BoutiquePage() {
 
       {section === "boost" && isProvider && (
         <BoostSection
-          title="🚀 Boost annonce"
-          subtitle="Apparais en haut de la liste pour les owners qui cherchent un sitter dans ta zone."
+          title={t("shop_boost_title")}
+          subtitle={t("shop_boost_subtitle")}
           packages={boostPkgs}
           status={boostStatus}
           purposeKey="boost"
@@ -286,8 +286,8 @@ export default function BoutiquePage() {
 
       {section === "mapboost" && isProvider && (
         <BoostSection
-          title="📍 PawSpot — Visibilité carte"
-          subtitle="Ton profil apparaît directement sur la PawMap des owners autour de toi."
+          title={t("shop_mapboost_title")}
+          subtitle={t("shop_mapboost_subtitle")}
           packages={mapBoostPkgs}
           status={mapBoostStatus}
           purposeKey="mapboost"

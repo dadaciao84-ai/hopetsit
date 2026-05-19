@@ -25,11 +25,14 @@ import {
   PoiCategory,
 } from "@/lib/api";
 
+// v23.1.147 — note : PoiMap est dynamic pour éviter le SSR de Leaflet.
+// Son loading state est en français hardcodé ; il est court (1-2s) donc
+// l'impact UX inter-langues est minime — on l'ignore.
 const PoiMap = dynamic(() => import("@/components/PoiMap"), {
   ssr: false,
   loading: () => (
     <div className="flex h-[70vh] min-h-[450px] items-center justify-center rounded-2xl border border-ink/5 bg-bg-soft text-ink-muted">
-      Chargement de la carte…
+      ⌛
     </div>
   ),
 });
@@ -125,34 +128,49 @@ export default function MapPage() {
   if (loading) {
     return (
       <div className="mx-auto max-w-5xl px-4 py-24 text-center text-ink-muted">
-        Localisation en cours…
+        {t("map_loading_locating")}
       </div>
     );
   }
+
+  // v23.1.147 — labels catégories traduits selon la langue active.
+  const CAT_KEY_FOR_LANG: Record<PoiCategory, string> = {
+    vet: "map_cat_vet",
+    shop: "map_cat_shop",
+    groomer: "map_cat_groomer",
+    park: "map_cat_park",
+    beach: "map_cat_beach",
+    water: "map_cat_water",
+    trainer: "map_cat_trainer",
+    hotel: "map_cat_hotel",
+    restaurant: "map_cat_restaurant",
+    other: "map_cat_other",
+  };
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 md:py-12">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <Link href="/dashboard" className="text-sm text-ink-muted hover:text-ink">
-          ← Dashboard
+          ← {t("nav_dashboard")}
         </Link>
         {fetching && (
-          <span className="text-xs text-ink-muted">⌛ Recherche en cours…</span>
+          <span className="text-xs text-ink-muted">{t("map_searching")}</span>
         )}
       </div>
 
       <h1 className="font-display text-3xl font-extrabold md:text-4xl">
-        PawMap — Europe pet-friendly
+        {t("map_title")}
       </h1>
       <p className="mt-2 text-ink-muted">
-        {pois.length} lieux pet-friendly autour de toi (10 km).
-        Déplace la carte pour explorer une autre zone.
+        {t("map_count_results").replace("{count}", String(pois.length))}
+        {" "}
+        {t("map_pan_hint")}
       </p>
 
       {/* Filtre par catégorie */}
       <div className="mt-6 flex flex-wrap gap-2">
         <CategoryChip
-          label="Tous"
+          label={t("map_filter_all")}
           emoji="🗺️"
           active={selectedCategory === "all"}
           onClick={() => setSelectedCategory("all")}
@@ -160,7 +178,7 @@ export default function MapPage() {
         {ALL_CATEGORIES.map((cat) => (
           <CategoryChip
             key={cat}
-            label={POI_CATEGORY_LABELS[cat].label}
+            label={t(CAT_KEY_FOR_LANG[cat])}
             emoji={POI_CATEGORY_LABELS[cat].emoji}
             active={selectedCategory === cat}
             onClick={() => setSelectedCategory(cat)}
@@ -193,7 +211,7 @@ export default function MapPage() {
             <div>
               <div className="text-xs uppercase tracking-wider text-ink-muted">
                 {POI_CATEGORY_LABELS[selectedPoi.category]?.emoji}{" "}
-                {POI_CATEGORY_LABELS[selectedPoi.category]?.label}
+                {t(CAT_KEY_FOR_LANG[selectedPoi.category])}
               </div>
               <h2 className="mt-1 text-lg font-bold text-ink">{selectedPoi.title}</h2>
               {selectedPoi.address && (
@@ -204,7 +222,7 @@ export default function MapPage() {
               type="button"
               onClick={() => setSelectedPoi(null)}
               className="text-2xl leading-none text-ink-muted hover:text-ink"
-              aria-label="Fermer"
+              aria-label={t("map_close")}
             >
               ×
             </button>
@@ -228,7 +246,7 @@ export default function MapPage() {
                 rel="noopener noreferrer"
                 className="rounded-full bg-bg-soft px-3 py-1 font-medium text-ink hover:bg-ink/10"
               >
-                🌐 Site web
+                {t("map_website_action")}
               </a>
             )}
             {selectedPoi.openingHours && (
@@ -241,7 +259,9 @@ export default function MapPage() {
             <div className="mt-3 text-sm">
               <span className="font-bold text-amber-600">★ {selectedPoi.rating.toFixed(1)}</span>
               {selectedPoi.reviewsCount ? (
-                <span className="ml-1 text-ink-muted">({selectedPoi.reviewsCount} avis)</span>
+                <span className="ml-1 text-ink-muted">
+                  {t("map_reviews_count").replace("{count}", String(selectedPoi.reviewsCount))}
+                </span>
               ) : null}
             </div>
           )}
@@ -250,8 +270,7 @@ export default function MapPage() {
 
       {/* Légende */}
       <div className="mt-8 rounded-2xl border border-ink/5 bg-bg-soft px-4 py-3 text-xs text-ink-muted">
-        💡 Les POI sont remontés par la communauté HoPetSit + OpenStreetMap. Tu peux
-        signaler un nouveau lieu directement depuis l&apos;app mobile (édition Premium).
+        💡 {t("map_legend")}
       </div>
     </div>
   );
