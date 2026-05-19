@@ -211,6 +211,9 @@ export const t: Bundle = {
     privacy_title:      "Privacy policy",
     refund_title:       "Refund policy",
     imprint_title:      "Legal notice",
+    // v23.1.147 — disclaimer pour les pages légales auto-traduites.
+    legal_auto_translated_notice:
+      "This document has been auto-translated for your convenience. The English and French versions are the official references — in case of discrepancy, the English version prevails legally.",
 
     // Common
     common_loading:     "Loading…",
@@ -475,6 +478,8 @@ export const t: Bundle = {
     privacy_title:      "Politique de confidentialité",
     refund_title:       "Politique de remboursement",
     imprint_title:      "Mentions légales",
+    legal_auto_translated_notice:
+      "Ce document a été traduit automatiquement pour votre confort. Les versions anglaise et française sont les références officielles — en cas de divergence, la version anglaise prévaut juridiquement.",
 
     common_loading:     "Chargement…",
     common_back:        "Retour",
@@ -668,6 +673,8 @@ export const t: Bundle = {
     pawspot_footer_note: "Cada suscripción PawFollow incluye 1 PawSpot 24h gratis al mes.",
     terms_title: "Términos de Servicio", privacy_title: "Política de privacidad",
     refund_title: "Política de reembolso", imprint_title: "Aviso legal",
+    legal_auto_translated_notice: "Este documento ha sido traducido automáticamente para tu comodidad. Las versiones en inglés y francés son las referencias oficiales — en caso de discrepancia, la versión en inglés prevalece legalmente.",
+    // (above is ES — PT block below has its own entry)
     common_loading: "Cargando…", common_back: "Atrás", common_continue: "Continuar",
     common_close: "Cerrar", common_cancel: "Cancelar", common_save: "Guardar", common_saving: "Guardando…", common_delete: "Eliminar", common_edit: "Editar", common_refresh: "Actualizar",
     map_loading_locating: "Localizando…", map_loading_map: "Cargando mapa…", map_searching: "⌛ Buscando…",
@@ -817,6 +824,7 @@ export const t: Bundle = {
     pawspot_footer_note: "Jedes PawFollow-Abo enthält 1 PawSpot 24h gratis pro Monat.",
     terms_title: "Nutzungsbedingungen", privacy_title: "Datenschutzerklärung",
     refund_title: "Erstattungsrichtlinie", imprint_title: "Impressum",
+    legal_auto_translated_notice: "Dieses Dokument wurde zu deiner Bequemlichkeit automatisch übersetzt. Die englische und französische Version sind die offiziellen Referenzen — bei Abweichungen gilt rechtlich die englische Version.",
     common_loading: "Lädt…", common_back: "Zurück", common_continue: "Weiter",
     common_close: "Schließen", common_cancel: "Abbrechen", common_save: "Speichern", common_saving: "Speichert…", common_delete: "Löschen", common_edit: "Bearbeiten", common_refresh: "Aktualisieren",
     map_loading_locating: "Standort wird ermittelt…", map_loading_map: "Karte wird geladen…", map_searching: "⌛ Suche läuft…",
@@ -966,6 +974,7 @@ export const t: Bundle = {
     pawspot_footer_note: "Ogni abbonamento PawFollow include 1 PawSpot 24h gratis al mese.",
     terms_title: "Termini di servizio", privacy_title: "Politica sulla privacy",
     refund_title: "Politica di rimborso", imprint_title: "Note legali",
+    legal_auto_translated_notice: "Questo documento è stato tradotto automaticamente per tua comodità. Le versioni inglese e francese sono i riferimenti ufficiali — in caso di discrepanze, la versione inglese prevale legalmente.",
     common_loading: "Caricamento…", common_back: "Indietro", common_continue: "Continua",
     common_close: "Chiudi", common_cancel: "Annulla", common_save: "Salva", common_saving: "Salvataggio…", common_delete: "Elimina", common_edit: "Modifica", common_refresh: "Aggiorna",
     map_loading_locating: "Localizzazione in corso…", map_loading_map: "Caricamento mappa…", map_searching: "⌛ Ricerca in corso…",
@@ -1115,6 +1124,7 @@ export const t: Bundle = {
     pawspot_footer_note: "Cada subscrição PawFollow inclui 1 PawSpot 24h grátis por mês.",
     terms_title: "Termos de Serviço", privacy_title: "Política de privacidade",
     refund_title: "Política de reembolso", imprint_title: "Aviso legal",
+    legal_auto_translated_notice: "Este documento foi traduzido automaticamente para o teu conforto. As versões em inglês e francês são as referências oficiais — em caso de divergência, a versão em inglês prevalece legalmente.",
     common_loading: "A carregar…", common_back: "Voltar", common_continue: "Continuar",
     common_close: "Fechar", common_cancel: "Cancelar", common_save: "Guardar", common_saving: "A guardar…", common_delete: "Apagar", common_edit: "Editar", common_refresh: "Atualizar",
     map_loading_locating: "A localizar…", map_loading_map: "A carregar o mapa…", map_searching: "⌛ A procurar…",
