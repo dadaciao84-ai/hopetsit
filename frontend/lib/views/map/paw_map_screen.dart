@@ -268,28 +268,39 @@ class _PawMapScreenState extends State<PawMapScreen> {
   }
 
   Future<void> _bootstrap() async {
-    // Fire nearby loads immediately using the Paris fallback set in initState
-    // so users see POIs/reports without waiting on geolocation.
+    // v23.1.148 — Daniel : "fais que la paw map souvre sur notre geoloc pas a
+    // paris". Avant : on attendait que `_mapCtl.isCompleted` soit true au
+    // moment où la géoloc resolved, ce qui ratait souvent (la 1re frame du
+    // GoogleMap n'a pas encore eu le temps de fire onMapCreated). Résultat :
+    // la carte restait sur le fallback Paris. Maintenant : on attend
+    // explicitement que le controller soit prêt avant d'animer, et on bump
+    // le timeout géoloc à 8s (4s était trop court sur GPS lent / iOS au
+    // démarrage).
     unawaited(_reloadAtCenter());
 
-    // Then try to upgrade to the real user location with a hard timeout
-    // (geolocation can hang forever on some devices / permission states).
     try {
       final loc = await LocationService()
           .getCurrentLocation()
-          .timeout(const Duration(seconds: 4), onTimeout: () => null);
+          .timeout(const Duration(seconds: 8), onTimeout: () => null);
       if (loc == null) return;
       final center = LatLng(loc.latitude, loc.longitude);
       if (!mounted) return;
       setState(() => _currentCenter = center);
-      // Try to re-center the actual GoogleMap camera if it has already been
-      // created (Completer resolves on onMapCreated).
+
+      // Wait for the GoogleMap controller to be ready — _mapCtl resolves
+      // when onMapCreated fires. Hard timeout to avoid hanging forever if
+      // the map widget never builds (e.g. user switched tabs immediately).
       try {
-        if (_mapCtl.isCompleted) {
-          final ctl = await _mapCtl.future;
-          await ctl.animateCamera(CameraUpdate.newLatLng(center));
-        }
-      } catch (_) {}
+        final ctl = await _mapCtl.future.timeout(
+          const Duration(seconds: 6),
+          onTimeout: () => throw TimeoutException('map controller not ready'),
+        );
+        await ctl.animateCamera(CameraUpdate.newLatLngZoom(center, 13));
+      } catch (_) {
+        // Controller never came up — _currentCenter is updated so the
+        // next frame's initialCameraPosition is correct anyway.
+      }
+
       await _reloadAtCenter();
     } catch (e) {
       debugPrint('[PawMap] bootstrap error: $e');

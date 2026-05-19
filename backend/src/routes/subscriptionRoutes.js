@@ -149,8 +149,13 @@ router.post('/subscribe', requireAuth, async (req, res) => {
     const userId = req.user.id;
     const role = req.user.role;
 
-    // v20.0.2 — Staff users get Premium FREE forever. Just return success;
-    // the /status endpoint already returns a synthetic Premium payload for them.
+    // v20.0.2 — Staff users get Premium FREE forever.
+    // v23.1.148 — Daniel : "pawfollow ne saffiche pas". Avant on retournait
+    // juste {staff:true, activated:true} sans persister. Conséquence :
+    // /users/me/benefits (qui alimente ActiveBenefitsRow) renvoyait
+    // isPremium:false car ni UserSubscription ni Owner.isPremium n'étaient
+    // marqués → le badge ⭐ Premium disparaissait. Maintenant on upsert une
+    // vraie UserSubscription active pour que le badge apparaisse.
     const StaffModel = role === 'walker'
       ? require('../models/Walker')
       : role === 'sitter'
@@ -158,7 +163,37 @@ router.post('/subscribe', requireAuth, async (req, res) => {
         : require('../models/Owner');
     const staffUser = await StaffModel.findById(userId).select('isStaff').lean();
     if (staffUser && staffUser.isStaff) {
-      logger.info(`[subscription/staff] ${role} ${userId} — Premium free (staff)`);
+      try {
+        const userModelName = userModelFromRole(role);
+        let sub = await UserSubscription.findOne({ userId, userModel: userModelName });
+        const now = new Date();
+        const startFrom = sub?.currentPeriodEnd && new Date(sub.currentPeriodEnd) > now
+          ? new Date(sub.currentPeriodEnd)
+          : now;
+        const newPeriodEnd = new Date(startFrom.getTime() + pricing.intervalDays * 86_400_000);
+        if (!sub) sub = new UserSubscription({ userId, userModel: userModelName });
+        sub.plan = plan;
+        sub.status = 'active';
+        sub.currentPeriodStart = sub.currentPeriodStart || now;
+        sub.currentPeriodEnd = newPeriodEnd;
+        sub.cancelAtPeriodEnd = false;
+        sub.features = { ...PREMIUM_FEATURES_DEFAULT };
+        sub.payments = sub.payments || [];
+        sub.payments.push({
+          plan,
+          amount: 0,
+          currency: pricing.currency,
+          paidAt: now,
+          paymentProvider: 'staff_free',
+          paymentIntentId: '',
+          periodStart: startFrom,
+          periodEnd: newPeriodEnd,
+        });
+        await sub.save();
+      } catch (persistErr) {
+        logger.warn(`[subscription/staff] persist failed: ${persistErr.message}`);
+      }
+      logger.info(`[subscription/staff] ${role} ${userId} — Premium free (staff) — persisted`);
       return res.json({
         staff: true,
         activated: true,

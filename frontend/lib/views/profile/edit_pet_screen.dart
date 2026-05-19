@@ -8,6 +8,7 @@ import 'package:hopetsit/controllers/edit_pet_controller.dart';
 import 'package:hopetsit/models/pet_model.dart';
 import 'package:hopetsit/utils/app_colors.dart';
 import 'package:hopetsit/utils/app_images.dart';
+import 'package:hopetsit/widgets/address_autocomplete_field.dart';
 import 'package:hopetsit/widgets/app_text.dart';
 import 'package:hopetsit/widgets/custom_text_field.dart';
 import 'package:hopetsit/widgets/rounded_text_button.dart' show CustomButton;
@@ -573,7 +574,15 @@ class EditPetScreen extends StatelessWidget {
             tf(controller.regularVetPhoneController, 'common_phone'.tr,
                 kb: TextInputType.phone),
             const SizedBox(height: 8),
-            tf(controller.regularVetAddressController, 'common_address'.tr),
+            // v23.1.148 — Daniel : "regler adresse auto ds modifier animal".
+            // Champ adresse vétérinaire avec autocomplétion Nominatim. La
+            // sélection remplit le champ avec l'adresse complète + remonte
+            // les coordonnées au caller (non sauvegardées en DB pour l'instant
+            // mais dispo si on veut afficher le véto sur la PawMap plus tard).
+            AddressAutocompleteField(
+              controller: controller.regularVetAddressController,
+              label: 'common_address'.tr,
+            ),
           ],
         ),
         ExpansionTile(
@@ -584,7 +593,10 @@ class EditPetScreen extends StatelessWidget {
             tf(controller.emergencyVetPhoneController, 'common_phone'.tr,
                 kb: TextInputType.phone),
             const SizedBox(height: 8),
-            tf(controller.emergencyVetAddressController, 'common_address'.tr),
+            AddressAutocompleteField(
+              controller: controller.emergencyVetAddressController,
+              label: 'common_address'.tr,
+            ),
           ],
         ),
         Obx(
