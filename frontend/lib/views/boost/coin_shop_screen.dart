@@ -270,7 +270,7 @@ class _BoostTabState extends State<_BoostTab> with AutomaticKeepAliveClientMixin
           actions: [
             TextButton(
               onPressed: () => Get.back(result: false),
-              child: const Text('Annuler'),
+              child: Text('common_cancel'.tr),
             ),
             ElevatedButton(
               onPressed: () => Get.back(result: true),
@@ -278,7 +278,7 @@ class _BoostTabState extends State<_BoostTab> with AutomaticKeepAliveClientMixin
                 backgroundColor: AppColors.primaryColor,
                 foregroundColor: Colors.white,
               ),
-              child: const Text('Confirmer'),
+              child: Text('common_confirm'.tr),
             ),
           ],
         ),
@@ -1374,15 +1374,15 @@ class _PremiumTabState extends State<_PremiumTab> with AutomaticKeepAliveClientM
       if (!mounted) return;
       if (ok) {
         CustomSnackbar.showSuccess(
-          title: 'Premium activé !',
-          message: 'Profitez de toutes les fonctionnalités.',
+          title: 'premium_activated_title'.tr,
+          message: 'premium_activated_msg'.tr,
         );
       }
     } catch (e) {
       if (!mounted) return;
       String msg = e.toString();
       if (msg.contains('<!DOCTYPE') || msg.contains('<html')) {
-        msg = 'Service indisponible.';
+        msg = 'common_service_unavailable'.tr;
       }
       CustomSnackbar.showError(title: 'common_error'.tr, message: msg);
     }
@@ -1453,8 +1453,7 @@ class _MapBoostTabState extends State<_MapBoostTab> with AutomaticKeepAliveClien
                         SizedBox(width: 8.w),
                         Expanded(
                           child: InterText(
-                            text:
-                                'Ton PawSpot est visible par les owners qui regardent la map à cet endroit. Passe en mode Propriétaire et ouvre la map pour le vérifier toi-même.',
+                            text: 'mapboost_info_visibility'.tr,
                             fontSize: 11.sp,
                             color: AppColors.textPrimary(context),
                           ),
@@ -1787,7 +1786,7 @@ class _MapBoostTabState extends State<_MapBoostTab> with AutomaticKeepAliveClien
     if (ok) {
       CustomSnackbar.showSuccess(
         title: 'common_success'.tr,
-        message: 'PawSpot mis à jour : $label',
+        message: 'mapboost_location_updated'.trParams({'label': label}),
       );
     } else {
       CustomSnackbar.showError(
@@ -2003,7 +2002,7 @@ class _MapBoostTabState extends State<_MapBoostTab> with AutomaticKeepAliveClien
                           ),
                           child: InterText(
                             text:
-                                '${pkg.days} jour${pkg.days > 1 ? "s" : ""}',
+                                'mapboost_days_count'.trParams({'count': pkg.days.toString()}),
                             fontSize: 11.sp,
                             fontWeight: FontWeight.w600,
                             color: tierAccent,
@@ -2094,14 +2093,14 @@ class _MapBoostTabState extends State<_MapBoostTab> with AutomaticKeepAliveClien
   String _mapBoostTierDescription(String tier) {
     switch (tier.toLowerCase()) {
       case 'bronze':
-        return 'Testez la visibilité carte';
+        return 'mapboost_desc_bronze'.tr;
       case 'silver':
-        return 'Pin surligné, portée moyenne';
+        return 'mapboost_desc_silver'.tr;
       case 'gold':
-        return 'Pin doré, top des résultats carte';
+        return 'mapboost_desc_gold'.tr;
       case 'platinum':
       case 'diamond':
-        return 'Pin doré + halo animé permanent';
+        return 'mapboost_desc_platinum'.tr;
       default:
         return '';
     }
@@ -2222,15 +2221,15 @@ class _MapBoostTabState extends State<_MapBoostTab> with AutomaticKeepAliveClien
     final priceLabel = pkg != null
         ? '${pkg.amount.toStringAsFixed(2)} ${pkg.currency}'
         : '?';
-    final daysLabel = pkg != null ? '${pkg.days} jours' : '?';
+    final daysLabel = pkg != null ? 'mapboost_days_count'.trParams({'count': pkg.days.toString()}) : '?';
     final confirmed = await Get.dialog<bool>(
       AlertDialog(
-        title: Text('Acheter PawSpot ${tier.toUpperCase()} ?'),
+        title: Text('mapboost_confirm_title'.trParams({'tier': tier.toUpperCase()})),
         content: Text(
-          'Tier : ${tier.toUpperCase()}\n'
-          'Durée : $daysLabel\n'
-          'Prix : $priceLabel\n\n'
-          'Ton PawSpot sera mis en avant pendant la durée choisie.',
+          '${'mapboost_confirm_tier_label'.tr} : ${tier.toUpperCase()}\n'
+          '${'mapboost_confirm_duration_label'.tr} : $daysLabel\n'
+          '${'mapboost_confirm_price_label'.tr} : $priceLabel\n\n'
+          '${'mapboost_confirm_description'.tr}',
         ),
         actions: [
           TextButton(

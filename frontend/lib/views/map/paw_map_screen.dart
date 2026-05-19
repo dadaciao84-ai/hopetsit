@@ -606,12 +606,12 @@ class _PawMapScreenState extends State<PawMapScreen> {
         }
         final tierLabel = isMapBoosted
             ? ({
-                'bronze': 'Visible (24h)',
-                'silver': 'Pin surligné (7j)',
-                'gold': 'Pin doré (15j)',
-                'platinum': 'Pin doré + halo (30j)',
-              }[mapTier] ?? 'PawSpot actif')
-            : (isBoosted ? 'Profil boosté' : '');
+                'bronze': 'mapboost_marker_bronze'.tr,
+                'silver': 'mapboost_marker_silver'.tr,
+                'gold': 'mapboost_marker_gold'.tr,
+                'platinum': 'mapboost_marker_platinum'.tr,
+              }[mapTier] ?? 'mapboost_marker_active'.tr)
+            : (isBoosted ? 'mapboost_marker_profile_boosted'.tr : '');
 
         markers.add(
           Marker(
