@@ -254,7 +254,7 @@ class _PawMapScreenState extends State<PawMapScreen> {
       final pos = await LocationService().getCoordinatesFromCity(trimmed);
       if (pos == null) {
         CustomSnackbar.showWarning(
-          title: 'Ville introuvable',
+          title: 'pawmap_snack_city_not_found'.tr,
           message: 'Aucune position trouvée pour "$trimmed".',
         );
         return;
@@ -270,7 +270,7 @@ class _PawMapScreenState extends State<PawMapScreen> {
     } catch (e) {
       debugPrint('[PawMap] city search failed: $e');
       CustomSnackbar.showError(
-        title: 'Recherche impossible',
+        title: 'pawmap_snack_search_failed'.tr,
         message: 'Vérifiez votre connexion et réessayez.',
       );
     }
@@ -433,7 +433,7 @@ class _PawMapScreenState extends State<PawMapScreen> {
     if (_liveMap.broadcasting.value) {
       _liveMap.stopBroadcasting();
       CustomSnackbar.showSuccess(
-        title: 'Suivi désactivé',
+        title: 'pawmap_snack_tracking_off_title'.tr,
         message: 'Tes amis ne voient plus ta position.',
       );
       return;
@@ -459,7 +459,7 @@ class _PawMapScreenState extends State<PawMapScreen> {
 
     _liveMap.startBroadcasting(() => _currentCenter);
     CustomSnackbar.showSuccess(
-      title: 'Suivi activé',
+      title: 'pawmap_snack_tracking_on_title'.tr,
       message: 'Tes amis voient ta position et celle de ton animal en live.',
     );
 
@@ -819,14 +819,13 @@ class _PawMapScreenState extends State<PawMapScreen> {
                 onPressed: () {
                   Navigator.of(context).pop();
                   CustomSnackbar.showSuccess(
-                    title: 'Demande ouverte',
-                    message:
-                        'Retrouve l\'annonce complète dans l\'onglet Accueil.',
+                    title: 'pawmap_snack_post_opened_title'.tr,
+                    message: 'pawmap_snack_post_opened_msg'.tr,
                   );
                 },
                 icon: const Icon(Icons.open_in_new, color: Colors.white),
                 label: InterText(
-                  text: 'Voir l\'annonce',
+                  text: 'pawmap_btn_view_post'.tr,
                   fontSize: 13.sp,
                   fontWeight: FontWeight.w700,
                   color: Colors.white,
@@ -857,7 +856,7 @@ class _PawMapScreenState extends State<PawMapScreen> {
 
   String _timeAgo(DateTime at) {
     final diff = DateTime.now().difference(at);
-    if (diff.inMinutes < 1) return "à l'instant";
+    if (diff.inMinutes < 1) return 'pawmap_time_just_now'.tr;
     if (diff.inMinutes < 60) return '${diff.inMinutes} min';
     if (diff.inHours < 24) return '${diff.inHours} h';
     return '${diff.inDays} j';
@@ -969,7 +968,7 @@ class _PawMapScreenState extends State<PawMapScreen> {
                         ),
                         SizedBox(width: 5.w),
                         InterText(
-                          text: on ? 'Live' : 'Suivre',
+                          text: on ? 'pawmap_appbar_live'.tr : 'pawmap_appbar_follow'.tr,
                           fontSize: 12.sp,
                           fontWeight: FontWeight.w800,
                           color: Colors.white,
@@ -1013,7 +1012,7 @@ class _PawMapScreenState extends State<PawMapScreen> {
                       ),
                       SizedBox(width: 4.w),
                       InterText(
-                        text: 'Amis',
+                        text: 'pawmap_appbar_friends'.tr,
                         fontSize: 12.sp,
                         fontWeight: FontWeight.w700,
                         color: AppColors.primaryColor,
@@ -1025,7 +1024,7 @@ class _PawMapScreenState extends State<PawMapScreen> {
             ),
           ),
           IconButton(
-            tooltip: 'Rafraîchir',
+            tooltip: 'pawmap_appbar_refresh'.tr,
             icon: const Icon(Icons.refresh),
             onPressed: _reloadAtCenter,
           ),
@@ -1157,7 +1156,7 @@ class _PawMapScreenState extends State<PawMapScreen> {
                             ),
                             SizedBox(width: 8.w),
                             InterText(
-                              text: 'Chargement…',
+                              text: 'pawmap_loading'.tr,
                               fontSize: 12.sp,
                               color: Colors.white,
                             ),
@@ -1309,8 +1308,8 @@ class _PawMapScreenState extends State<PawMapScreen> {
           .timeout(const Duration(seconds: 4), onTimeout: () => null);
       if (loc == null) {
         CustomSnackbar.showWarning(
-          title: 'Localisation indisponible',
-          message: 'Activez le GPS et les permissions.',
+          title: 'pawmap_snack_no_loc_title'.tr,
+          message: 'pawmap_snack_no_loc_msg'.tr,
         );
         return;
       }
@@ -1679,14 +1678,14 @@ class _PawMapScreenState extends State<PawMapScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   InterText(
-                    text: 'Tu es en direct',
+                    text: 'pawmap_live_banner_title'.tr,
                     fontSize: 13.sp,
                     fontWeight: FontWeight.w800,
                     color: Colors.white,
                   ),
                   SizedBox(height: 1.h),
                   InterText(
-                    text: 'Tes amis & ta famille voient ta position',
+                    text: 'pawmap_live_banner_msg'.tr,
                     fontSize: 11.sp,
                     fontWeight: FontWeight.w500,
                     color: Colors.white.withValues(alpha: 0.95),
@@ -1703,7 +1702,7 @@ class _PawMapScreenState extends State<PawMapScreen> {
                   borderRadius: BorderRadius.circular(14.r),
                 ),
                 child: InterText(
-                  text: 'Stop',
+                  text: 'pawmap_btn_stop'.tr,
                   fontSize: 11.sp,
                   fontWeight: FontWeight.w700,
                   color: Colors.white,
@@ -1736,7 +1735,7 @@ class _PawMapScreenState extends State<PawMapScreen> {
         elevation: 6,
         icon: Icon(Icons.add_alert_rounded, color: Colors.white, size: 22.sp),
         label: InterText(
-          text: 'Signaler',
+          text: 'pawmap_btn_send'.tr,
           fontSize: 14.sp,
           color: Colors.white,
           fontWeight: FontWeight.w800,
@@ -1905,14 +1904,14 @@ class _PawMapScreenState extends State<PawMapScreen> {
                         Navigator.of(sheetContext).pop();
                         if (ok) {
                           CustomSnackbar.showSuccess(
-                            title: 'Merci !',
+                            title: 'pawmap_snack_thanks_title'.tr,
                             message: 'Signalement prolongé de 12h.',
                           );
                         }
                       },
                       icon: Icon(Icons.check_circle_outline, size: 16.sp),
                       label: InterText(
-                        text: 'Confirmer +12h',
+                        text: 'pawmap_btn_confirm_extend'.tr,
                         fontSize: 12.sp,
                         fontWeight: FontWeight.w600,
                       ),
@@ -1933,7 +1932,7 @@ class _PawMapScreenState extends State<PawMapScreen> {
                         Navigator.of(sheetContext).pop();
                         if (ok) {
                           CustomSnackbar.showSuccess(
-                            title: 'Signalé',
+                            title: 'pawmap_snack_reported_title'.tr,
                             message: 'Merci, un modérateur va vérifier.',
                           );
                         }
@@ -1941,7 +1940,7 @@ class _PawMapScreenState extends State<PawMapScreen> {
                       icon: Icon(Icons.flag_outlined,
                           size: 16.sp, color: Colors.red),
                       label: InterText(
-                        text: 'Signaler abus',
+                        text: 'pawmap_btn_report_abuse'.tr,
                         fontSize: 12.sp,
                         fontWeight: FontWeight.w600,
                         color: Colors.red,

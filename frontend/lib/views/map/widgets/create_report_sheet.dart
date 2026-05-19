@@ -178,7 +178,7 @@ class _CreateReportSheetState extends State<CreateReportSheet> {
                   SizedBox(width: 8.w),
                   Expanded(
                     child: PoppinsText(
-                      text: 'Signaler autour de moi',
+                      text: 'pawmap_signal_title'.tr,
                       fontSize: 16.sp,
                       fontWeight: FontWeight.w700,
                       color: AppColors.textPrimary(context),
@@ -189,8 +189,8 @@ class _CreateReportSheetState extends State<CreateReportSheet> {
               SizedBox(height: 2.h),
               InterText(
                 text: _isPremium
-                    ? 'Visible 48h par les utilisateurs à proximité.'
-                    : '${freeTypes.length} types gratuits. Les autres réservés Premium.',
+                    ? 'pawmap_signal_subtitle_premium'.tr
+                    : 'pawmap_signal_subtitle_free'.trParams({'count': freeTypes.length.toString()}),
                 fontSize: 11.sp,
                 color: AppColors.textSecondary(context),
               ),
@@ -238,7 +238,7 @@ class _CreateReportSheetState extends State<CreateReportSheet> {
               // Note field — 2 lignes par défaut, maxLength retiré du
               // bas visuel pour gagner de la place.
               InterText(
-                text: 'Note (optionnel)',
+                text: 'pawmap_note_label'.tr,
                 fontSize: 11.sp,
                 fontWeight: FontWeight.w600,
                 color: AppColors.textSecondary(context),
@@ -250,7 +250,7 @@ class _CreateReportSheetState extends State<CreateReportSheet> {
                 maxLength: 500,
                 style: TextStyle(fontSize: 13.sp),
                 decoration: InputDecoration(
-                  hintText: 'Un détail utile pour les autres…',
+                  hintText: 'pawmap_note_hint'.tr,
                   hintStyle: TextStyle(fontSize: 12.sp),
                   filled: true,
                   fillColor: AppColors.scaffold(context),
@@ -357,14 +357,14 @@ class _CreateReportSheetState extends State<CreateReportSheet> {
                   size: 14.sp, color: AppColors.greenColor),
               SizedBox(width: 4.w),
               InterText(
-                text: 'Gratuits',
+                text: 'pawmap_section_free'.tr,
                 fontSize: 12.sp,
                 fontWeight: FontWeight.w700,
                 color: AppColors.greenColor,
               ),
               SizedBox(width: 6.w),
               InterText(
-                text: '· accessible à tous',
+                text: 'pawmap_section_free_subtitle'.tr,
                 fontSize: 10.sp,
                 color: AppColors.textSecondary(context),
               ),
@@ -405,7 +405,7 @@ class _CreateReportSheetState extends State<CreateReportSheet> {
             ),
             SizedBox(width: 4.w),
             InterText(
-              text: 'Premium',
+              text: 'pawmap_section_premium'.tr,
               fontSize: 12.sp,
               fontWeight: FontWeight.w700,
               color: AppColors.textPrimary(context),
@@ -413,8 +413,8 @@ class _CreateReportSheetState extends State<CreateReportSheet> {
             SizedBox(width: 6.w),
             InterText(
               text: _isPremium
-                  ? '· ${types.length} types débloqués'
-                  : '· ${types.length} types réservés',
+                  ? 'pawmap_section_premium_unlocked'.trParams({'count': types.length.toString()})
+                  : 'pawmap_section_premium_locked'.trParams({'count': types.length.toString()}),
               fontSize: 10.sp,
               color: AppColors.textSecondary(context),
             ),
