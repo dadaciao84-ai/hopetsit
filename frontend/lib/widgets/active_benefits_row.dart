@@ -38,6 +38,14 @@ class ActiveBenefitsRow extends StatefulWidget {
   // après un changement (achat, KYC submit, etc.).
   // ignore: prefer_const_declarations
   static RxInt get refreshTickAccessor => _refreshTick;
+
+  // v23.1.149 — Daniel : "le boost sur owner ne saffiche pas". On expose
+  // l'état boost actif comme un Rx<bool> partagé, observable par les
+  // autres widgets (notamment le hero du profil owner qui affiche un
+  // cadre doré quand le boost est actif). Mis à jour par _ActiveBenefitsRowState
+  // à chaque /users/me/benefits.
+  static final RxBool _boostActive = false.obs;
+  static RxBool get boostActiveAccessor => _boostActive;
 }
 
 class _ActiveBenefitsRowState extends State<ActiveBenefitsRow> {
@@ -69,6 +77,12 @@ class _ActiveBenefitsRowState extends State<ActiveBenefitsRow> {
           _benefits = Map<String, dynamic>.from(r);
           _loaded = true;
         });
+        // v23.1.149 — synchronise le Rx<bool> boostActive partagé pour
+        // que les autres widgets (cadre doré sur le hero owner, etc.)
+        // se rebuilent automatiquement.
+        final expiry = _toDate(_benefits['boostExpiry']);
+        final active = expiry != null && expiry.isAfter(DateTime.now());
+        ActiveBenefitsRow._boostActive.value = active;
       }
     } catch (_) {
       // best-effort, on cache simplement la row.

@@ -47,6 +47,15 @@ class _PawMapScreenState extends State<PawMapScreen> {
   // by IndexedStack keeping the screen built-but-hidden.
   LatLng _currentCenter = const LatLng(48.8566, 2.3522);
 
+  /// v23.1.149 — Daniel : "paw map rien napparait le point de geolocolisation
+  /// ou le halo nest pas la". `myLocationEnabled: true` du GoogleMap dépend
+  /// d'une permission OS qui peut être refusée silencieusement → aucun point
+  /// bleu visible. Pour garantir la visibilité, on superpose notre propre
+  /// marker + halo dès que la géolocalisation a été résolue avec succès
+  /// (LocationService.getCurrentLocation OK). Null = pas encore résolu, on
+  /// n'affiche rien.
+  LatLng? _userPosition;
+
   /// Layer toggles — by default all visible. The Demandes toggle is only
   /// rendered for sitter/walker roles (it stays true internally but the UI
   /// hides it for owners).
@@ -285,7 +294,13 @@ class _PawMapScreenState extends State<PawMapScreen> {
       if (loc == null) return;
       final center = LatLng(loc.latitude, loc.longitude);
       if (!mounted) return;
-      setState(() => _currentCenter = center);
+      // v23.1.149 — on stocke aussi _userPosition pour pouvoir overlay
+      // notre propre point bleu + halo (au cas où myLocationEnabled du
+      // GoogleMap ne fonctionne pas — permission OS refusée etc.).
+      setState(() {
+        _currentCenter = center;
+        _userPosition = center;
+      });
 
       // Wait for the GoogleMap controller to be ready — _mapCtl resolves
       // when onMapCreated fires. Hard timeout to avoid hanging forever if
@@ -465,6 +480,42 @@ class _PawMapScreenState extends State<PawMapScreen> {
   // 5fps which is enough for a peaceful beacon feel without thrashing GL.
   Set<Circle> _buildHaloCircles() {
     final Set<Circle> circles = {};
+
+    // v23.1.149 — Daniel : "paw map rien napparait le point de
+    // geolocolisation ou le halo nest pas la". On dessine notre propre
+    // halo bleu pulsant autour de la position user dès qu'elle est
+    // résolue (indépendant de myLocationEnabled qui peut échouer
+    // silencieusement selon la permission OS).
+    final userPos = _userPosition;
+    if (userPos != null) {
+      final phase = _haloPhase.value;
+      final userRadius = 25.0 + 75.0 * phase; // 25 → 100 m
+      final userOpacity = (0.55 * (1.0 - phase)).clamp(0.0, 1.0);
+      const userBlue = Color(0xFF1A73E8);
+      circles.add(
+        Circle(
+          circleId: const CircleId('user_halo_outer'),
+          center: userPos,
+          radius: userRadius,
+          fillColor: userBlue.withValues(alpha: userOpacity * 0.4),
+          strokeColor: userBlue.withValues(alpha: userOpacity),
+          strokeWidth: 2,
+        ),
+      );
+      // Solid inner dot (radius 8m) so on est sûr de voir un point bleu
+      // même quand le pulse est à son apex (opacity faible).
+      circles.add(
+        Circle(
+          circleId: const CircleId('user_halo_dot'),
+          center: userPos,
+          radius: 8,
+          fillColor: userBlue,
+          strokeColor: Colors.white,
+          strokeWidth: 2,
+        ),
+      );
+    }
+
     if (_isSitterOrWalker) return circles; // owner-only feature
     if (!_showProviders.value) return circles;
     final phase = _haloPhase.value; // 0..1
@@ -1265,7 +1316,11 @@ class _PawMapScreenState extends State<PawMapScreen> {
       }
       final center = LatLng(loc.latitude, loc.longitude);
       if (!mounted) return;
-      setState(() => _currentCenter = center);
+      // v23.1.149 — synchronise _userPosition pour le halo bleu custom.
+      setState(() {
+        _currentCenter = center;
+        _userPosition = center;
+      });
       if (_mapCtl.isCompleted) {
         final ctl = await _mapCtl.future;
         await ctl.animateCamera(CameraUpdate.newLatLng(center));

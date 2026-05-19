@@ -40,7 +40,30 @@ class ProfileScreen extends StatelessWidget {
         child: Column(
           children: [
             // ── OWNER HERO HEADER ──────────────────────
-            _buildOwnerHero(controller),
+            // v23.1.149 — Daniel : "le boost sur owner ne saffiche pas". On
+            // wrap le hero dans un Obx qui ajoute un cadre doré + glow dès
+            // que `ActiveBenefitsRow.boostActiveAccessor` passe à true. Ça
+            // se rebuild auto quand l'ActiveBenefitsRow interne fetch ses
+            // /users/me/benefits.
+            Obx(() {
+              final isBoosted = ActiveBenefitsRow.boostActiveAccessor.value;
+              const boostGold = Color(0xFFD4AF37);
+              return Container(
+                decoration: isBoosted
+                    ? BoxDecoration(
+                        border: Border.all(color: boostGold, width: 3),
+                        boxShadow: [
+                          BoxShadow(
+                            color: boostGold.withValues(alpha: 0.45),
+                            blurRadius: 18,
+                            spreadRadius: 2,
+                          ),
+                        ],
+                      )
+                    : null,
+                child: _buildOwnerHero(controller),
+              );
+            }),
 
             Padding(
               padding: EdgeInsets.fromLTRB(16.w, 0, 16.w, 100.h),
