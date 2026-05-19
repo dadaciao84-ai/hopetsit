@@ -575,29 +575,30 @@ class _PawMapScreenState extends State<PawMapScreen> {
         final isBoosted = p['isBoosted'] == true;
         final mapTier = (p['mapBoostTier'] ?? '').toString();
 
-        // v23.1 part 74 — Daniel : "il yas que celuis a 1.99 qui marche
-        // ... pin dore et pin dore + halo marche pas". Different tiers
-        // now get distinct hues so the user sees the difference :
-        //   bronze   (€1.99)  → blue (Visible)
-        //   silver   (€8.99)  → violet (Pin surligné)
-        //   gold     (€14.99) → yellow (Pin doré)
-        //   platinum (€24.99) → orange (Pin doré + halo)
-        // non-boosted falls back to role color.
+        // v23.1.152 — Daniel : "tout marche sauf la couluer des paw spot,
+        // pawspot dore etc". Avant : hueYellow (60) etait pale et hueAzure
+        // (210) pour bronze ne ressemblait pas a du bronze. Refondu avec
+        // des hues bruts pour avoir des pins visuellement coherents avec
+        // leur nom :
+        //   bronze   (24h)   → 15  (rouge-cuivre, evoque bronze)
+        //   silver   (7j)    → 195 (gris-bleu, evoque argent)
+        //   gold     (15j)   → 45  (ambre dore, vraiment dore)
+        //   platinum (30j)   → 30  (orange chaud) + halo anime
         double hue;
         if (isMapBoosted) {
           switch (mapTier) {
             case 'platinum':
-              hue = BitmapDescriptor.hueOrange;
+              hue = 30.0; // orange chaud
               break;
             case 'gold':
-              hue = BitmapDescriptor.hueYellow;
+              hue = 45.0; // ambre dore (vrai gold)
               break;
             case 'silver':
-              hue = BitmapDescriptor.hueViolet;
+              hue = 195.0; // bleu-gris argent
               break;
             case 'bronze':
             default:
-              hue = BitmapDescriptor.hueAzure;
+              hue = 15.0; // rouge-cuivre
           }
         } else {
           hue = role == 'walker'

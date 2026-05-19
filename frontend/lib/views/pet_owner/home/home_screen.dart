@@ -480,6 +480,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     isReserved: post.reservedBy != null,
                     reservedProviderRole: post.reservedBy?.providerRole,
                     ownerViewOfOwnPost: true,
+                    // v23.1.152 — Daniel : "pour la 5eme fois ds owner le
+                    // cadre urgend sur ma publication naparait pa". CETTE
+                    // page (home owner tab "Mes publications") etait celle
+                    // qu'il regardait, pas MyPostsScreen. Fix : forwarder
+                    // les flags boost au PetPostCard ici aussi.
+                    isOwnerBoosted: post.isOwnerBoosted,
+                    ownerBoostTier: post.ownerBoostTier,
                     onDelete: () => _confirmAndDeletePost(context, post.id),
                     onEdit: () {
                       Get.to(() => EditPostScreen(post: post));
