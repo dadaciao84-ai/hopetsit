@@ -102,11 +102,11 @@ class HomeController extends GetxController {
       final locationService = LocationService();
       final position = await locationService.getCurrentLocation();
       if (position == null) {
-        CustomSnackbar.showError(
-          title: 'common_error'.tr,
-          message: 'Could not detect your location. Please enable location services.',
-        );
-        isLoadingSitters.value = false;
+        // v23.1.147 — Daniel : "si on met 20 km le paseador disparaît".
+        // Avant : on affichait juste une erreur, la liste restait vide.
+        // Maintenant : fallback sur la liste complète pour ne pas frustrer
+        // l'utilisateur dont la géoloc n'est pas dispo.
+        await loadSitters();
         return;
       }
 
@@ -115,17 +115,24 @@ class HomeController extends GetxController {
         lng: position.longitude,
         radiusInMeters: radiusKm * 1000,
       );
+      // v23.1.147 — fallback si la liste nearby est vide. C'est typique
+      // pour les sitters sans coordonnées GPS en DB (MongoDB $near les
+      // exclut systématiquement). Plutôt qu'un écran vide, on affiche la
+      // liste complète pour que l'utilisateur les voie quand même.
+      if (list.isEmpty) {
+        await loadSitters();
+        return;
+      }
       sitters.assignAll(list);
       offersNearMeEnabled.value = true;
       nearMeRadiusKm.value = radiusKm.toDouble();
     } on ApiException catch (error) {
-      CustomSnackbar.showError(title: 'common_error'.tr, message: error.message);
+      AppLogger.logError('Failed to load nearby sitters', error: error.message);
+      // Fallback sur la liste complète en cas d'erreur API.
+      await loadSitters();
     } catch (error) {
       AppLogger.logError('Failed to load nearby sitters', error: error);
-      CustomSnackbar.showError(
-        title: 'common_error'.tr,
-        message: 'Could not load nearby sitters. Please try again.',
-      );
+      await loadSitters();
     } finally {
       isLoadingSitters.value = false;
     }
@@ -160,11 +167,9 @@ class HomeController extends GetxController {
       final locationService = LocationService();
       final position = await locationService.getCurrentLocation();
       if (position == null) {
-        CustomSnackbar.showError(
-          title: 'common_error'.tr,
-          message: 'Could not detect your location. Please enable location services.',
-        );
-        isLoadingWalkers.value = false;
+        // v23.1.147 — Daniel : "si on met 20 km le paseador disparaît".
+        // Fallback sur la liste complète au lieu d'écran vide + erreur.
+        await loadWalkers();
         return;
       }
 
@@ -173,15 +178,20 @@ class HomeController extends GetxController {
         lng: position.longitude,
         radiusInMeters: radiusKm * 1000,
       );
+      // v23.1.147 — fallback si la liste nearby est vide (cas walker sans
+      // coordonnées GPS en DB → exclu par MongoDB $near). Affiche tous
+      // les walkers au lieu d'écran vide.
+      if (list.isEmpty) {
+        await loadWalkers();
+        return;
+      }
       walkers.assignAll(list);
     } on ApiException catch (error) {
-      CustomSnackbar.showError(title: 'common_error'.tr, message: error.message);
+      AppLogger.logError('Failed to load nearby walkers', error: error.message);
+      await loadWalkers();
     } catch (error) {
       AppLogger.logError('Failed to load nearby walkers', error: error);
-      CustomSnackbar.showError(
-        title: 'common_error'.tr,
-        message: 'Could not load nearby walkers. Please try again.',
-      );
+      await loadWalkers();
     } finally {
       isLoadingWalkers.value = false;
     }

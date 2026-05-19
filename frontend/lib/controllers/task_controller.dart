@@ -91,4 +91,30 @@ class TaskController extends GetxController {
       isLoading.value = false;
     }
   }
+
+  /// v23.1.147 — Daniel : "Cómo se pueden eliminar las tareas?".
+  /// Optimistic removal : on retire immédiatement de la liste pour une
+  /// réaction UI instantanée, puis on rollback si l'appel backend échoue.
+  Future<void> deleteTask(TaskModel task) async {
+    final removedIndex = tasks.indexWhere((t) => t.id == task.id);
+    if (removedIndex < 0) return;
+
+    // Optimistic remove
+    tasks.removeAt(removedIndex);
+
+    try {
+      await _ownerRepository.deleteTask(taskId: task.id);
+      CustomSnackbar.showSuccess(
+        title: 'common_success'.tr,
+        message: 'task_delete_success'.tr,
+      );
+    } catch (e) {
+      // Rollback en cas d'échec backend
+      tasks.insert(removedIndex, task);
+      CustomSnackbar.showError(
+        title: 'common_error'.tr,
+        message: 'task_delete_failed'.tr,
+      );
+    }
+  }
 }

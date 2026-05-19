@@ -1038,6 +1038,15 @@ class OwnerRepository {
     throw ApiException('Unexpected create task response.', details: response);
   }
 
+  /// v23.1.147 — Delete a task by id. Backend route DELETE /tasks/:id
+  /// (owner-only, restricted to own tasks).
+  Future<void> deleteTask({required String taskId}) async {
+    await _apiClient.delete(
+      '${ApiEndpoints.tasks}/$taskId',
+      requiresAuth: true,
+    );
+  }
+
   /// Blocks a sitter.
   Future<Map<String, dynamic>> blockSitter({required String sitterId}) async {
     final response = await _apiClient.post(

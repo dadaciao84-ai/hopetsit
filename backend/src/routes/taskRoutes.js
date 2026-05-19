@@ -1,6 +1,6 @@
 const express = require('express');
 
-const { createTask, getTasks } = require('../controllers/taskController');
+const { createTask, getTasks, deleteTask } = require('../controllers/taskController');
 const { requireAuth, requireRole } = require('../middleware/auth');
 
 const router = express.Router();
@@ -69,6 +69,27 @@ router.get('/', requireAuth, requireRole('owner'), getTasks);
  *         description: Only owners can create tasks
  */
 router.post('/', requireAuth, requireRole('owner'), createTask);
+
+/**
+ * @swagger
+ * /tasks/{id}:
+ *   delete:
+ *     summary: Delete a task by id (Owner only — own tasks)
+ *     tags: [Tasks]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200: { description: Task deleted }
+ *       404: { description: Task not found or not owned by user }
+ *
+ * v23.1.147 — Daniel : "Cómo se pueden eliminar las tareas?".
+ */
+router.delete('/:id', requireAuth, requireRole('owner'), deleteTask);
 
 module.exports = router;
 

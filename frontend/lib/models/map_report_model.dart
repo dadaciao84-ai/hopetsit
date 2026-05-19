@@ -1,3 +1,8 @@
+// v23.1.147 — i18n : labelFr/hintFr retournent désormais des strings
+// traduites via .tr (étaient hardcodés FR avant). Les clés i18n sont
+// `map_report_label_<type>` et `map_report_hint_<type>`.
+import 'package:get/get.dart';
+
 /// Ephemeral 48h map report (Couche 2) — Premium feature.
 ///
 /// Mirrors the backend MapReport schema. Reports auto-expire after 48h
@@ -223,103 +228,17 @@ class ReportTypes {
     }
   }
 
+  // v23.1.147 — labels traduits dynamiquement via .tr. Le nom `labelFr`
+  // est conservé pour ne pas casser les appelants (paw_map_screen,
+  // create_report_sheet). Les clés sont définies dans les 6 fichiers
+  // localization/translations/<lang>.dart.
   static String labelFr(String t) {
-    switch (t) {
-      case poop:
-        return 'Caca';
-      case pee:
-        return 'Pipi';
-      case waterActive:
-        return 'Point d\'eau OK';
-      case waterBroken:
-        return 'Point d\'eau cassé';
-      case hazard:
-        return 'Danger';
-      case aggressiveDog:
-        return 'Chien méchant';
-      case lostPet:
-        return 'Animal perdu';
-      case foundPet:
-        return 'Animal trouvé';
-      case deadAnimal:
-        return 'Animal décédé';
-      case trap:
-        return 'Piège repéré';
-      case poison:
-        return 'Appât empoisonné';
-      case strayPet:
-        return 'Animal errant';
-      case construction:
-        return 'Travaux';
-      // Session v3.4 — 7 nouveaux Premium.
-      case busyTraffic:
-        return 'Circulation dense';
-      case fireSmoke:
-        return 'Incendie / Fumée';
-      case flood:
-        return 'Inondation';
-      case fallenTree:
-        return 'Arbre tombé';
-      case chemical:
-        return 'Produits chimiques';
-      case wildlife:
-        return 'Faune sauvage';
-      case noDogsZone:
-        return 'Zone interdite aux chiens';
-      case other:
-      default:
-        return 'Autre';
-    }
+    return 'map_report_label_$t'.tr;
   }
 
   /// Hint / placeholder text shown under each report type option in the
-  /// CreateReportSheet. Short French description — keep under 80 chars.
+  /// CreateReportSheet. Now translated dynamically via .tr.
   static String hintFr(String t) {
-    switch (t) {
-      case poop:
-        return 'Tas non ramassé à signaler';
-      case pee:
-        return 'Marquage gênant à éviter';
-      case waterActive:
-        return 'Point d\'eau en état de marche';
-      case waterBroken:
-        return 'Fontaine hors service';
-      case hazard:
-        return 'Zone dangereuse (verre, trou, etc.)';
-      case aggressiveDog:
-        return 'Chien agressif repéré dans le quartier';
-      case lostPet:
-        return 'Animal perdu — aide à la recherche';
-      case foundPet:
-        return 'Animal trouvé — en attente de son propriétaire';
-      case deadAnimal:
-        return 'Animal décédé sur la voie publique';
-      case trap:
-        return 'Piège repéré — attention';
-      case poison:
-        return 'Appât empoisonné — danger immédiat';
-      case strayPet:
-        return 'Animal errant sans propriétaire apparent';
-      case construction:
-        return 'Zone de travaux à éviter';
-      // Session v3.4 — 7 nouveaux Premium.
-      case busyTraffic:
-        return 'Circulation dense — rester vigilant';
-      case fireSmoke:
-        return 'Incendie ou fumée dense — éviter la zone';
-      case flood:
-        return 'Inondation — passage impraticable';
-      case fallenTree:
-        return 'Arbre tombé sur le chemin';
-      case chemical:
-        return 'Produits chimiques ou résidus dangereux';
-      case wildlife:
-        return 'Faune sauvage aperçue (sanglier, serpent…)';
-      case noDogsZone:
-        return 'Zone interdite aux chiens — amende possible';
-      case other:
-      default:
-        return 'Autre signalement';
-    }
+    return 'map_report_hint_$t'.tr;
   }
 }

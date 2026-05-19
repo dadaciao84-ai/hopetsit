@@ -211,16 +211,16 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 SizedBox(height: 16.h),
+                // v23.1.147 — fix i18n : strings hardcodées FR remplacées par .tr.
                 PoppinsText(
-                  text: 'Aucun promeneur disponible',
+                  text: 'home_no_walkers_title'.tr,
                   fontSize: 15.sp,
                   fontWeight: FontWeight.w700,
                   color: AppColors.textPrimary(context),
                 ),
                 SizedBox(height: 6.h),
                 InterText(
-                  text:
-                      'Aucun promeneur dans votre zone pour le moment. Vous pouvez publier une demande de promenade — elle sera visible par les promeneurs à proximité.',
+                  text: 'home_no_walkers_body'.tr,
                   fontSize: 12.sp,
                   color: AppColors.textSecondary(context),
                   textAlign: TextAlign.center,

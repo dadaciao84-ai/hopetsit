@@ -169,17 +169,23 @@ class _CustomSegmentedControlState extends State<CustomSegmentedControl>
                           child: Center(
                             child: Padding(
                               padding: EdgeInsets.symmetric(horizontal: 6.w),
-                              child: FittedBox(
-                                fit: BoxFit.scaleDown,
-                                child: InterText(
-                                  text: widget.leftText,
-                                  textAlign: TextAlign.center,
-                                  fontSize: 14.sp,
-                                  fontWeight: FontWeight.w600,
-                                  color: _selectedIndex == 0
-                                      ? AppColors.whiteColor
-                                      : AppColors.grey500Color,
-                                ),
+                              // v23.1.147 — Daniel : "El tamaño del texto debe
+                              // de ser igual". Avant : FittedBox(scaleDown)
+                              // réduisait chaque segment indépendamment selon
+                              // la longueur du texte → tailles inégales.
+                              // Maintenant : fontSize fixe + ellipsis si trop
+                              // long → les 3 segments ont visuellement la
+                              // même taille de police.
+                              child: InterText(
+                                text: widget.leftText,
+                                textAlign: TextAlign.center,
+                                fontSize: 11.sp,
+                                fontWeight: FontWeight.w700,
+                                color: _selectedIndex == 0
+                                    ? AppColors.whiteColor
+                                    : AppColors.grey500Color,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                           ),
@@ -207,17 +213,17 @@ class _CustomSegmentedControlState extends State<CustomSegmentedControl>
                             child: Center(
                               child: Padding(
                                 padding: EdgeInsets.symmetric(horizontal: 6.w),
-                                child: FittedBox(
-                                  fit: BoxFit.scaleDown,
-                                  child: InterText(
-                                    text: widget.middleText!,
-                                    textAlign: TextAlign.center,
-                                    fontSize: 14.sp,
-                                    fontWeight: FontWeight.w600,
-                                    color: _selectedIndex == 1
-                                        ? AppColors.whiteColor
-                                        : AppColors.grey500Color,
-                                  ),
+                                // v23.1.147 — cohérent avec leftText.
+                                child: InterText(
+                                  text: widget.middleText!,
+                                  textAlign: TextAlign.center,
+                                  fontSize: 11.sp,
+                                  fontWeight: FontWeight.w700,
+                                  color: _selectedIndex == 1
+                                      ? AppColors.whiteColor
+                                      : AppColors.grey500Color,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                             ),
@@ -245,18 +251,18 @@ class _CustomSegmentedControlState extends State<CustomSegmentedControl>
                           child: Center(
                             child: Padding(
                               padding: EdgeInsets.symmetric(horizontal: 6.w),
-                              child: FittedBox(
-                                fit: BoxFit.scaleDown,
-                                child: InterText(
-                                  text: widget.rightText,
-                                  textAlign: TextAlign.center,
-                                  fontSize: 14.sp,
-                                  fontWeight: FontWeight.w600,
-                                  color: _selectedIndex ==
-                                          (hasMiddle ? 2 : 1)
-                                      ? AppColors.whiteColor
-                                      : AppColors.grey500Color,
-                                ),
+                              // v23.1.147 — cohérent avec leftText/middleText.
+                              child: InterText(
+                                text: widget.rightText,
+                                textAlign: TextAlign.center,
+                                fontSize: 11.sp,
+                                fontWeight: FontWeight.w700,
+                                color: _selectedIndex ==
+                                        (hasMiddle ? 2 : 1)
+                                    ? AppColors.whiteColor
+                                    : AppColors.grey500Color,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                           ),

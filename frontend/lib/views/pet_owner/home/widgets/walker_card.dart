@@ -49,6 +49,12 @@ class WalkerCard extends StatelessWidget {
     final hourRate = _hourlyRate;
     final hasAnyRate = halfHourRate != null || hourRate != null;
 
+    // v23.1.147 — cadre doré + glow pour les walkers avec boost actif payé.
+    // Demande Daniel : "lorsque l'option boost est payée je veux que la
+    // publication apparaisse avec le cadre boost sur les 3 profils".
+    final bool isBoosted = walker.isBoosted;
+    const Color boostGold = Color(0xFFD4AF37);
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -57,7 +63,16 @@ class WalkerCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.card(context),
           borderRadius: BorderRadius.circular(14.r),
+          border: isBoosted
+              ? Border.all(color: boostGold, width: 2.5)
+              : null,
           boxShadow: [
+            if (isBoosted)
+              BoxShadow(
+                color: boostGold.withValues(alpha: 0.35),
+                blurRadius: 14,
+                spreadRadius: 1,
+              ),
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 8,

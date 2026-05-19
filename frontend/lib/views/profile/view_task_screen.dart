@@ -63,7 +63,7 @@ class ViewTaskScreen extends StatelessWidget {
             itemCount: controller.tasks.length,
             itemBuilder: (context, index) {
               final task = controller.tasks[index];
-              return _buildTaskCard(task);
+              return _buildTaskCard(task, controller);
             },
           );
         }),
@@ -71,7 +71,11 @@ class ViewTaskScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTaskCard(TaskModel task) {
+  // v23.1.147 — Daniel : "Cómo se pueden eliminar las tareas?".
+  // Ajout d'un IconButton trash à droite du titre, avec dialog de
+  // confirmation avant suppression. Le controller gère l'optimistic
+  // removal + rollback côté API failure.
+  Widget _buildTaskCard(TaskModel task, TaskController controller) {
     // Parse date
     DateTime? createdAt;
     try {
@@ -102,12 +106,34 @@ class ViewTaskScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Title
-            PoppinsText(
-              text: task.title,
-              fontSize: 16.sp,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary(context),
+            // Title + bouton supprimer
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: PoppinsText(
+                    text: task.title,
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary(context),
+                  ),
+                ),
+                IconButton(
+                  icon: Icon(
+                    Icons.delete_outline,
+                    size: 22.sp,
+                    color: AppColors.textSecondary(context),
+                  ),
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  constraints: BoxConstraints(
+                    minWidth: 32.w,
+                    minHeight: 32.h,
+                  ),
+                  tooltip: 'task_delete_button'.tr,
+                  onPressed: () => _confirmDelete(context, task, controller),
+                ),
+              ],
             ),
             SizedBox(height: 8.h),
             // Description
@@ -138,6 +164,54 @@ class ViewTaskScreen extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  /// v23.1.147 — Dialog de confirmation avant suppression d'une tâche.
+  /// Évite les delete accidentels et donne un feedback clair.
+  void _confirmDelete(
+    BuildContext context,
+    TaskModel task,
+    TaskController controller,
+  ) {
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        title: PoppinsText(
+          text: 'task_delete_confirm_title'.tr,
+          fontSize: 16.sp,
+          fontWeight: FontWeight.w700,
+          color: AppColors.textPrimary(dialogCtx),
+        ),
+        content: InterText(
+          text: 'task_delete_confirm_message'.tr.replaceAll('@title', task.title),
+          fontSize: 14.sp,
+          color: AppColors.textSecondary(dialogCtx),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogCtx).pop(),
+            child: InterText(
+              text: 'common_cancel'.tr,
+              fontSize: 14.sp,
+              fontWeight: FontWeight.w500,
+              color: AppColors.textSecondary(dialogCtx),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(dialogCtx).pop();
+              controller.deleteTask(task);
+            },
+            child: InterText(
+              text: 'common_delete'.tr,
+              fontSize: 14.sp,
+              fontWeight: FontWeight.w700,
+              color: AppColors.primaryColor,
+            ),
+          ),
+        ],
       ),
     );
   }

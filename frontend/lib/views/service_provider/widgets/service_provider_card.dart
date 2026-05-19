@@ -169,10 +169,23 @@ class _ServiceProviderCardState extends State<ServiceProviderCard> {
       child: Container(
         margin: EdgeInsets.only(bottom: 16.h),
         padding: EdgeInsets.all(16.w),
+        // v23.1.147 — cadre doré + glow pour les service providers boostés
+        // (cohérent avec sitter_card / walker_card).
         decoration: BoxDecoration(
           color: AppColors.card(context),
           borderRadius: BorderRadius.circular(11.r),
-          boxShadow: AppColors.cardShadow(context),
+          border: widget.isBoosted
+              ? Border.all(color: const Color(0xFFD4AF37), width: 2.5)
+              : null,
+          boxShadow: [
+            if (widget.isBoosted)
+              BoxShadow(
+                color: const Color(0xFFD4AF37).withValues(alpha: 0.35),
+                blurRadius: 14,
+                spreadRadius: 1,
+              ),
+            ...AppColors.cardShadow(context),
+          ],
         ),
         child: Stack(
           children: [

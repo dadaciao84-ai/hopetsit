@@ -196,7 +196,7 @@ class _PawMapScreenState extends State<PawMapScreen> {
                 color: AppColors.textPrimary(context),
               ),
               decoration: InputDecoration(
-                hintText: 'Chercher une ville…',
+                hintText: 'paw_map_search_city_hint'.tr,
                 hintStyle: TextStyle(
                   color: AppColors.textSecondary(context),
                   fontSize: 13.sp,
@@ -1007,7 +1007,8 @@ class _PawMapScreenState extends State<PawMapScreen> {
                   if (i == 0) {
                     final isAll = active.isEmpty;
                     return _Chip(
-                      label: 'Tous',
+                      // v23.1.147 — fix i18n : "Tous" hardcodé FR → .tr.
+                      label: 'paw_map_filter_all'.tr,
                       emoji: '✨',
                       selected: isAll,
                       onTap: _poiController.clearFilters,
