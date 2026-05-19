@@ -22,16 +22,20 @@ type Offer = {
 export default function PawMapPage() {
   const { t } = useT();
 
+  // v23.1.147 — fix traduction : on réutilise les clés map_cat_* qui sont
+  // déjà définies dans translations.ts pour les 6 langues (EN/FR/ES/DE/IT/PT).
+  // Avant : labels hardcodés en anglais → restait "Vets, Pet shops..." même
+  // quand l'utilisateur choisissait espagnol/italien/etc.
   const cats = [
-    { emoji: "🩺", label: "Vets" },
-    { emoji: "🛒", label: "Pet shops" },
-    { emoji: "✂️", label: "Groomers" },
-    { emoji: "🌳", label: "Dog parks" },
-    { emoji: "🏖️", label: "Pet beaches" },
-    { emoji: "💧", label: "Water points" },
-    { emoji: "🎓", label: "Trainers" },
-    { emoji: "🏨", label: "Pet-friendly hotels" },
-    { emoji: "🍽️", label: "Pet-friendly restaurants" },
+    { emoji: "🩺", label: t("map_cat_vet") },
+    { emoji: "🛒", label: t("map_cat_shop") },
+    { emoji: "✂️", label: t("map_cat_groomer") },
+    { emoji: "🌳", label: t("map_cat_park") },
+    { emoji: "🏖️", label: t("map_cat_beach") },
+    { emoji: "💧", label: t("map_cat_water") },
+    { emoji: "🎓", label: t("map_cat_trainer") },
+    { emoji: "🏨", label: t("map_cat_hotel") },
+    { emoji: "🍽️", label: t("map_cat_restaurant") },
   ];
 
   const pawfollowPlans: Plan[] = [
