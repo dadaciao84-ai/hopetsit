@@ -261,13 +261,13 @@ router.post('/purchase', requireAuth, async (req, res) => {
           logger.warn(`[mapBoost] customer ensure failed: ${custErr?.message || custErr}`);
         }
 
-        // v23.1.156 — Daniel : "le paiement est tjr bloquer". customer_id
-        // retire — voir bookingController.js v23.1.156 + subscriptionRoutes.js
-        // + boostRoutes.js pour le rationale. Resume : guest checkout clean
-        // qui marche toujours, sans dependre du status des consents Airwallex.
+        // v23.1.158 — Daniel : "sa ne prend pas en compte ma carte cb
+        // enregistrer". customer_id restaure pour lister les cartes
+        // sauvegardees sur achat PawSpot.
         const intent = await airwallex.createPlatformPaymentIntent({
           amount: amountCents,
           currency: pricing.currency,
+          ...(airwallexCustomerId ? { customer_id: airwallexCustomerId } : {}),
           metadata: {
             type: 'map_boost_purchase',
             userId: String(req.user.id),

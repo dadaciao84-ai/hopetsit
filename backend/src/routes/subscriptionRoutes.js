@@ -269,16 +269,15 @@ router.post('/subscribe', requireAuth, async (req, res) => {
           logger.warn(`[subscription] customer ensure failed: ${custErr?.message || custErr}`);
         }
 
-        // v23.1.156 — Daniel : "le paiement est tjr bloquer". customer_id
-        // est retire par defaut sur les achats one-off (subscription, boost,
-        // map_boost) — voir bookingController.js v23.1.156 pour le rationale
-        // complet. Resume : si le customer a des consents PENDING_VERIFICATION
-        // (defaut quand AIRWALLEX_WEBHOOK_SECRET n'est pas set sur Render),
-        // Airwallex HPP affiche une page blanche. Sans customer_id : guest
-        // checkout clean qui marche toujours.
+        // v23.1.158 — Daniel : "sa ne prend pas en compte ma carte cb
+        // enregistrer". v156 retirait customer_id ; on le restaure pour
+        // que Airwallex liste les cartes sauvegardees sur l'achat
+        // subscription. Le vrai bug bloquant (PI cancelled reutilise)
+        // est fixe en v157.
         const intent = await airwallex.createPlatformPaymentIntent({
           amount: amountCents,
           currency: pricing.currency,
+          ...(airwallexCustomerId ? { customer_id: airwallexCustomerId } : {}),
           metadata: {
             type: 'subscription_purchase',
             userId: String(userId),

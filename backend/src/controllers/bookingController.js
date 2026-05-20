@@ -2507,25 +2507,18 @@ const createBookingPaymentIntent = async (req, res) => {
       //                           the "Save my card" checkbox.
       //   - selectedConsentId   → don't add payment_consent (card already
       //                           saved).
-      // v23.1.156 — Daniel : "le paiement est tjr bloquer jpeux pas payer".
-      // Apres v23.1.61, le PI etait toujours cree avec customer_id pour
-      // permettre la liste des cartes sauvegardees. Probleme : si le
-      // customer a des consents PENDING_VERIFICATION (de tests precedents,
-      // ou parce que AIRWALLEX_WEBHOOK_SECRET n'est pas configure cote
-      // Render), Airwallex HPP retourne une page blanche — il ne sait
-      // pas s'il doit lister les consents pending ou afficher une nouvelle
-      // carte.
+      // v23.1.158 — Daniel : "sa c debloquer mais sa ne prend pas en
+      // compte ma carte cb enregistrer". v156 retirait customer_id par
+      // defaut pour debloquer HPP, mais ca empechait Airwallex de
+      // lister les cartes sauvegardees. Le VRAI bug bloquant etait le
+      // PI CANCELLED reutilise (fixe en v157), pas le customer_id.
       //
-      // Fix : on n'attache customer_id QUE quand l'utilisateur veut
-      // vraiment du comportement "saved card" :
-      //   - selectedConsentId set : il veut utiliser une carte sauvegardee
-      //   - wantsSaveCard true    : il veut sauvegarder CETTE carte
-      // Sinon, paiement one-shot sans customer_id → Airwallex affiche
-      // toujours le formulaire de carte clean. Le seul trade-off : si
-      // l'utilisateur a deja des cartes sauvees, elles n'apparaissent
-      // pas par defaut — il doit cliquer le toggle "Utiliser une carte
-      // sauvegardee" avant de payer pour les voir.
-      ...(airwallexCustomerId && (wantsSaveCard || selectedConsentId) ? {
+      // On restaure donc customer_id PAR DEFAUT (comportement v23.1.61) :
+      //   - customer_id toujours attache si dispo → HPP liste les cartes
+      //     sauvegardees + permet d'en ajouter une nouvelle.
+      //   - payment_consent UNIQUEMENT si l'user tique "save card" sur
+      //     un nouveau paiement (jamais sur un saved card reuse).
+      ...(airwallexCustomerId ? {
         customer_id: airwallexCustomerId,
         ...(wantsSaveCard && !selectedConsentId ? {
           payment_consent: {

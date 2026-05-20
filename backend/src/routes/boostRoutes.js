@@ -249,14 +249,13 @@ router.post('/purchase', requireAuth, async (req, res) => {
           );
         }
 
-        // v23.1.156 — Daniel : "le paiement est tjr bloquer". customer_id
-        // retire — voir bookingController.js v23.1.156 + subscriptionRoutes.js
-        // pour le rationale. Resume : si AIRWALLEX_WEBHOOK_SECRET n'est pas
-        // configure sur Render, les consents restent PENDING et HPP affiche
-        // une page blanche. Sans customer_id : guest checkout clean.
+        // v23.1.158 — Daniel : "sa ne prend pas en compte ma carte cb
+        // enregistrer". customer_id restaure pour lister les cartes
+        // sauvegardees sur achat Boost.
         const intent = await airwallex.createPlatformPaymentIntent({
           amount: amountCents,
           currency: pricing.currency,
+          ...(airwallexCustomerId ? { customer_id: airwallexCustomerId } : {}),
           metadata: {
             type: 'boost_purchase',
             userId,
