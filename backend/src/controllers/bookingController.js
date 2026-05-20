@@ -2314,18 +2314,57 @@ const createBookingPaymentIntent = async (req, res) => {
       );
     }
 
-    // Check if payment already exists
+    // v23.1.156 — Daniel : payment bloque sur page blanche Airwallex.
+    // Cause : si le PI existant est en status CANCELLED (apres un
+    // tap "Annuler" precedent ou un timeout webhook), on le renvoyait
+    // au frontend → bridge ouvrait Airwallex HPP sur un PI mort →
+    // page blanche. Maintenant : on detecte les statuts non-utilisables
+    // et on cree un nouveau PI a la place.
     if (booking.airwallexPaymentIntentId) {
-      const existingPaymentIntent = await airwallex.retrievePaymentIntent(booking.airwallexPaymentIntentId);
-      if ((existingPaymentIntent.status || '').toUpperCase() === 'SUCCEEDED') {
-        return res.status(400).json({ error: 'Payment already completed for this booking.' });
+      try {
+        const existingPaymentIntent = await airwallex.retrievePaymentIntent(
+          booking.airwallexPaymentIntentId,
+        );
+        const existingStatus = (existingPaymentIntent.status || '').toUpperCase();
+        if (existingStatus === 'SUCCEEDED') {
+          return res.status(400).json({
+            error: 'Payment already completed for this booking.',
+          });
+        }
+        // Statut REUTILISABLE : on renvoie le PI existant.
+        // Airwallex docs : 'REQUIRES_PAYMENT_METHOD' / 'REQUIRES_CONFIRMATION'
+        // sont les seuls statuts qu'on peut continuer a confirmer.
+        const reusableStatuses = new Set([
+          'REQUIRES_PAYMENT_METHOD',
+          'REQUIRES_CONFIRMATION',
+          'REQUIRES_CUSTOMER_ACTION',
+        ]);
+        if (reusableStatuses.has(existingStatus)) {
+          return res.json({
+            paymentIntentId: existingPaymentIntent.id,
+            clientSecret: existingPaymentIntent.client_secret,
+            booking: sanitizeBooking(booking),
+          });
+        }
+        // Sinon (CANCELLED, REQUIRES_CAPTURE, EXPIRED, etc.) : on
+        // detache le PI pourri du booking et on continue vers la
+        // creation d'un nouveau ci-dessous.
+        logger.info(
+          `[createPaymentIntent] existing PI ${booking.airwallexPaymentIntentId} ` +
+          `is in non-reusable status ${existingStatus} → creating fresh PI`,
+        );
+        booking.airwallexPaymentIntentId = null;
+        await booking.save();
+      } catch (e) {
+        // Si retrievePaymentIntent echoue (PI introuvable, network), on
+        // detache aussi et on cree un nouveau plutot que de bloquer.
+        logger.warn(
+          `[createPaymentIntent] retrievePaymentIntent failed for ` +
+          `${booking.airwallexPaymentIntentId}: ${e.message} → creating fresh PI`,
+        );
+        booking.airwallexPaymentIntentId = null;
+        await booking.save();
       }
-      // Return existing PaymentIntent client secret
-      return res.json({
-        paymentIntentId: existingPaymentIntent.id,
-        clientSecret: existingPaymentIntent.client_secret,
-        booking: sanitizeBooking(booking),
-      });
     }
 
     // Create PaymentIntent - validate amount is a valid number
@@ -4084,7 +4123,14 @@ const cancelBookingPaymentIntent = async (req, res) => {
       // Airwallex returns 400 if PI is already in a final state — treat as soft success.
       logger.warn(`[cancelBookingPaymentIntent] Airwallex cancel returned ${e?.status}: ${e?.message}`);
     }
-    booking.paymentStatus = 'cancelled_by_user';
+    // v23.1.156 — Daniel : logs Render montraient Error 500 sur cette
+    // route (enum 'cancelled_by_user' rejete par le model Booking — enum
+    // valid: pending/paid/failed/refunded/cancelled/refund). Resultat :
+    // l'app ne pouvait pas annuler proprement le PI et le booking
+    // restait avec un airwallexPaymentIntentId CANCELLED qu'on
+    // reutilisait au prochain "Pay" → page blanche Airwallex.
+    // Fix : on utilise l'enum 'cancelled' (sans suffix) qui est valide.
+    booking.paymentStatus = 'cancelled';
     booking.airwallexPaymentIntentId = null;
     await booking.save();
     return res.status(200).json({ ok: true, bookingId: booking._id.toString(), paymentStatus: booking.paymentStatus });
