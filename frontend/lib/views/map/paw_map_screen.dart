@@ -601,7 +601,28 @@ class _PawMapScreenState extends State<PawMapScreen> {
       final lat = (coords[1] as num).toDouble();
       final id = (p['id'] ?? p['_id'] ?? '').toString();
       if (id.isEmpty) continue;
-      // Color + radius depend on tier
+      // v23.1.159 — Daniel : "assure toi que le halo est aussi dune
+      // differente couleur pour le voir vert si walker, bleu si sitter".
+      // En plus du halo tier-color (pulsant), on dessine un anneau STATIQUE
+      // role-color (vert walker / bleu sitter) en dessous pour signaler
+      // visuellement le role meme quand le halo tier est presque transparent.
+      final role = (p['_role'] ?? '').toString().toLowerCase();
+      final roleColor = role == 'walker'
+          ? const Color(0xFF16A34A) // vert walker
+          : role == 'sitter'
+              ? const Color(0xFF2563EB) // bleu sitter
+              : const Color(0xFFEF4324); // orange owner (fallback)
+      circles.add(
+        Circle(
+          circleId: CircleId('halo_role_$id'),
+          center: LatLng(lat, lng),
+          radius: 20,
+          fillColor: roleColor.withValues(alpha: 0.18),
+          strokeColor: roleColor.withValues(alpha: 0.8),
+          strokeWidth: 2,
+        ),
+      );
+      // Halo tier (pulsant) - couleur + rayon depend du tier
       final color = tierColor(mapTier);
       final maxRadius = tierMaxRadius(mapTier);
       final radius = 30.0 + (maxRadius - 30.0) * phase;

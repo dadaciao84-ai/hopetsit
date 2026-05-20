@@ -9,7 +9,7 @@ import 'package:hopetsit/repositories/owner_repository.dart';
 import 'package:hopetsit/utils/app_colors.dart';
 import 'package:hopetsit/utils/app_images.dart';
 import 'package:hopetsit/views/boost/coin_shop_screen.dart';
-import 'package:hopetsit/views/map/paw_map_screen.dart';
+import 'package:hopetsit/views/pet_owner/walk/live_walk_map_screen.dart';
 import 'package:hopetsit/widgets/app_text.dart';
 import 'package:hopetsit/widgets/custom_snackbar_widget.dart';
 import 'package:hopetsit/widgets/report_dialog.dart';
@@ -220,9 +220,15 @@ class _IndividualChatScreenState extends State<IndividualChatScreen> {
         );
         return;
       }
-      // 3. Open PawMap (the existing screen — it shows the user's location
-      //    + nearby providers so the live position will appear once shared).
-      Get.to(() => const PawMapScreen());
+      // v23.1.159 — Daniel : "quand jappuis suivre sa me renvoi sur ma map
+      // au lieu de voir sa geoloclation a lui". Avant : on ouvrait PawMap
+      // (la carte generale de l'utilisateur) qui ne montre PAS la position
+      // live du walker — juste les POIs / providers a proximite. Maintenant :
+      // on ouvre LiveWalkMapScreen qui :
+      //   - fetch /walks/active?bookingId=X
+      //   - subscribe au socket event 'walk.position' du walker
+      //   - anime la camera pour suivre la position live
+      Get.to(() => LiveWalkMapScreen(bookingId: bookingId));
     } catch (e) {
       CustomSnackbar.showError(
         title: 'Suivi indisponible',
