@@ -149,7 +149,8 @@ const buildEmailLinkFromNotification = (notifType, data = {}) => {
   // Map les types de notification specifiques vers le type de lien
   // approprie. Cette table de routage encapsule les bonnes URL.
   if (t.startsWith('booking_paid') || t === 'booking_accepted' ||
-      t === 'booking_canceled' || t === 'booking_new') {
+      t === 'booking_canceled' || t === 'booking_new' ||
+      t === 'booking_cancelled_by_owner' || t === 'booking_cancelled_by_provider') {
     return buildEmailLink('booking', { bookingId: data.bookingId || data.id });
   }
   if (t === 'application_new' || t === 'application_accepted' ||

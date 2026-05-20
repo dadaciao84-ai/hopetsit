@@ -124,5 +124,17 @@
     "body": "Deine Zahlung ist registriert. Die Buchung ist aktiv — sprich mit deinem Anbieter, um die Details zu vereinbaren.",
     "emailSubject": "Deine Zahlung ist bestätigt — HoPetSit",
     "emailBody": "<p>Deine Zahlung wurde gerade bestätigt. Deine Buchung ist jetzt <strong>aktiv</strong>. Öffne die HoPetSit-App, um mit deinem Anbieter zu chatten und die letzten Details zu vereinbaren.</p><p><a href=\"{{emailLink}}\" style=\"display:inline-block;padding:12px 24px;background:#16A34A;color:#FFFFFF;text-decoration:none;border-radius:8px;font-weight:700;font-family:sans-serif;\">Buchung ansehen</a></p><p style=\"color:#666;font-size:12px;\">Falls der Button nicht funktioniert, öffne die HoPetSit-App manuell.</p>"
+  },
+  "booking_cancelled_by_owner": {
+    "title": "Buchung storniert",
+    "body": "Der Besitzer hat die Buchung gerade storniert (>72 Std. vor Service). Keine Aktion erforderlich.",
+    "emailSubject": "Buchung storniert — HoPetSit",
+    "emailBody": "<p>Hallo,</p><p>Der Besitzer hat eine Buchung mehr als 72 Std. vor dem Service storniert. <strong>Du erhältst keine Bezahlung für diesen Auftrag</strong>, aber es entstehen dir keine Nachteile.</p><p><a href=\"{{emailLink}}\" style=\"display:inline-block;padding:12px 24px;background:#DC2626;color:#FFFFFF;text-decoration:none;border-radius:8px;font-weight:700;font-family:sans-serif;\">Buchung ansehen</a></p><p style=\"color:#666;font-size:12px;\">Wenn der Button nicht funktioniert, kopiere diesen Link in deinen Browser: {{emailLink}}</p>"
+  },
+  "booking_cancelled_by_provider": {
+    "title": "Dienst vom Anbieter storniert",
+    "body": "Der Anbieter hat die Buchung gerade storniert. Du erhältst eine vollständige Rückerstattung innerhalb von 5-10 Tagen.",
+    "emailSubject": "Deine Buchung wurde storniert — HoPetSit",
+    "emailBody": "<p>Hallo,</p><p>Der Anbieter hat deine Buchung mehr als 72 Std. vor dem Service storniert. <strong>Eine vollständige Rückerstattung wird bearbeitet</strong> (5-10 Tage je nach Bank). Du kannst einen anderen Anbieter in der App buchen.</p><p><a href=\"{{emailLink}}\" style=\"display:inline-block;padding:12px 24px;background:#EF4324;color:#FFFFFF;text-decoration:none;border-radius:8px;font-weight:700;font-family:sans-serif;\">Anderen Anbieter finden</a></p><p style=\"color:#666;font-size:12px;\">Wenn der Button nicht funktioniert, kopiere diesen Link in deinen Browser: {{emailLink}}</p>"
   }
 }

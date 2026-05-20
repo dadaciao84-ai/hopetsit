@@ -124,5 +124,17 @@
     "body": "Tu pago ha sido registrado. La reserva está activa — habla con tu prestador para acordar los detalles.",
     "emailSubject": "Tu pago está confirmado — HoPetSit",
     "emailBody": "<p>Tu pago acaba de ser confirmado. Tu reserva está ahora <strong>activa</strong>. Abre la app HoPetSit para hablar con tu prestador y acordar los últimos detalles.</p><p><a href=\"{{emailLink}}\" style=\"display:inline-block;padding:12px 24px;background:#16A34A;color:#FFFFFF;text-decoration:none;border-radius:8px;font-weight:700;font-family:sans-serif;\">Ver reserva</a></p><p style=\"color:#666;font-size:12px;\">Si el botón no funciona, abra la app HoPetSit manualmente.</p>"
+  },
+  "booking_cancelled_by_owner": {
+    "title": "Reserva cancelada",
+    "body": "El propietario acaba de cancelar la reserva (>72h antes del servicio). No se requiere acción.",
+    "emailSubject": "Reserva cancelada — HoPetSit",
+    "emailBody": "<p>Hola,</p><p>El propietario acaba de cancelar una reserva con más de 72h de antelación. <strong>No recibirás pago por esta misión</strong>, pero no se aplica ninguna penalización.</p><p><a href=\"{{emailLink}}\" style=\"display:inline-block;padding:12px 24px;background:#DC2626;color:#FFFFFF;text-decoration:none;border-radius:8px;font-weight:700;font-family:sans-serif;\">Ver reserva</a></p><p style=\"color:#666;font-size:12px;\">Si el botón no funciona, copia este enlace en tu navegador: {{emailLink}}</p>"
+  },
+  "booking_cancelled_by_provider": {
+    "title": "Servicio cancelado por el prestador",
+    "body": "El prestador acaba de cancelar la reserva. Recibirás un reembolso íntegro en 5-10 días.",
+    "emailSubject": "Tu reserva ha sido cancelada — HoPetSit",
+    "emailBody": "<p>Hola,</p><p>El prestador acaba de cancelar tu reserva con más de 72h de antelación. <strong>Se está procesando un reembolso íntegro</strong> (5-10 días según tu banco). Puedes reservar a otro prestador en la app.</p><p><a href=\"{{emailLink}}\" style=\"display:inline-block;padding:12px 24px;background:#EF4324;color:#FFFFFF;text-decoration:none;border-radius:8px;font-weight:700;font-family:sans-serif;\">Buscar otro prestador</a></p><p style=\"color:#666;font-size:12px;\">Si el botón no funciona, copia este enlace en tu navegador: {{emailLink}}</p>"
   }
 }

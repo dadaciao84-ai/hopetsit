@@ -124,5 +124,17 @@
     "body": "Il tuo pagamento è stato registrato. La prenotazione è attiva — chatta con il tuo prestatore per concordare i dettagli.",
     "emailSubject": "Il tuo pagamento è confermato — HoPetSit",
     "emailBody": "<p>Il tuo pagamento è appena stato confermato. La tua prenotazione è ora <strong>attiva</strong>. Apri l'app HoPetSit per chattare con il tuo prestatore e concordare gli ultimi dettagli.</p><p><a href=\"{{emailLink}}\" style=\"display:inline-block;padding:12px 24px;background:#16A34A;color:#FFFFFF;text-decoration:none;border-radius:8px;font-weight:700;font-family:sans-serif;\">Vedi prenotazione</a></p><p style=\"color:#666;font-size:12px;\">Se il pulsante non funziona, copia questo link nel tuo browser: {{emailLink}}</p>"
+  },
+  "booking_cancelled_by_owner": {
+    "title": "Prenotazione annullata",
+    "body": "Il proprietario ha appena annullato la prenotazione (>72h prima del servizio). Nessuna azione richiesta.",
+    "emailSubject": "Prenotazione annullata — HoPetSit",
+    "emailBody": "<p>Ciao,</p><p>Il proprietario ha annullato una prenotazione con più di 72h di anticipo. <strong>Non riceverai il pagamento per questo lavoro</strong>, ma non ci sono penalità per te.</p><p><a href=\"{{emailLink}}\" style=\"display:inline-block;padding:12px 24px;background:#DC2626;color:#FFFFFF;text-decoration:none;border-radius:8px;font-weight:700;font-family:sans-serif;\">Vedi prenotazione</a></p><p style=\"color:#666;font-size:12px;\">Se il pulsante non funziona, copia questo link nel tuo browser: {{emailLink}}</p>"
+  },
+  "booking_cancelled_by_provider": {
+    "title": "Servizio annullato dal prestatore",
+    "body": "Il prestatore ha appena annullato la prenotazione. Riceverai un rimborso completo entro 5-10 giorni.",
+    "emailSubject": "La tua prenotazione è stata annullata — HoPetSit",
+    "emailBody": "<p>Ciao,</p><p>Il prestatore ha annullato la tua prenotazione con più di 72h di anticipo. <strong>È in corso un rimborso completo</strong> (5-10 giorni a seconda della banca). Puoi prenotare un altro prestatore nell'app.</p><p><a href=\"{{emailLink}}\" style=\"display:inline-block;padding:12px 24px;background:#EF4324;color:#FFFFFF;text-decoration:none;border-radius:8px;font-weight:700;font-family:sans-serif;\">Trova un altro prestatore</a></p><p style=\"color:#666;font-size:12px;\">Se il pulsante non funziona, copia questo link nel tuo browser: {{emailLink}}</p>"
   }
 }

@@ -1584,9 +1584,17 @@ const selfCancelWithRefund = async (req, res) => {
       return res.status(401).json({ error: 'Authentication required.' });
     }
 
+    // v23.1.160 — Daniel : "car owner walker au sitter peuvent annuler
+    // jusqua 72h avant c les regles du paiement". Avant : seuls owner +
+    // sitter pouvaient self-cancel ; walker n'avait AUCUN endpoint pour
+    // annuler. Asymetrie critique → walker bloque dans un booking qu'il
+    // peut plus honorer. Maintenant : owner + sitter + walker tous les 3
+    // peuvent annuler jusqu'a 72h avant le service start, avec refund
+    // automatique a l'owner.
     const booking = await Booking.findById(id)
       .populate('ownerId')
       .populate('sitterId')
+      .populate('walkerId')
       .populate('petIds');
 
     if (!booking) {
@@ -1599,11 +1607,15 @@ const selfCancelWithRefund = async (req, res) => {
     const bookingSitterId = booking.sitterId?._id
       ? booking.sitterId._id.toString()
       : booking.sitterId?.toString();
+    const bookingWalkerId = booking.walkerId?._id
+      ? booking.walkerId._id.toString()
+      : booking.walkerId?.toString();
 
     const isOwner = bookingOwnerId === userId;
     const isSitter = bookingSitterId === userId;
+    const isWalker = bookingWalkerId === userId;
 
-    if (!isOwner && !isSitter) {
+    if (!isOwner && !isSitter && !isWalker) {
       return res
         .status(403)
         .json({ error: 'You do not have permission to cancel this booking.' });
@@ -1634,12 +1646,13 @@ const selfCancelWithRefund = async (req, res) => {
     }
 
     // Mark cancelled + refund the pet owner (escrow release back).
+    const cancellerRole = isOwner ? 'owner' : isSitter ? 'sitter' : 'walker';
     booking.status = 'cancelled';
     booking.paymentStatus = 'refunded';
     booking.cancellationReason =
-      req.body?.reason || (isOwner ? 'owner_self_cancel_72h' : 'sitter_self_cancel_72h');
+      req.body?.reason || `${cancellerRole}_self_cancel_72h`;
     booking.cancelledAt = new Date();
-    booking.cancelledBy = isOwner ? 'owner' : 'sitter';
+    booking.cancelledBy = cancellerRole;
 
     // If a payout was scheduled, cancel it — money stays in escrow & will be refunded.
     if (booking.payoutStatus === 'scheduled') {
@@ -1666,6 +1679,42 @@ const selfCancelWithRefund = async (req, res) => {
     } catch (refundErr) {
       logger.error('⚠️  Self-cancel refund failed', refundErr);
       // Do not fail the cancellation — the booking is marked and admin can retry.
+    }
+
+    // v23.1.160 — Notif aux 2 parties. L'owner doit savoir si le walker/sitter
+    // annule (et qu'il sera rembourse) ; le walker/sitter doit savoir si l'owner
+    // annule (et qu'il ne sera pas paye). Avant : silence radio total, les users
+    // decouvraient l'annulation par hasard dans la liste des bookings.
+    try {
+      const { sendNotification } = require('../services/notificationSender');
+      const providerType = bookingWalkerId ? 'walker' : 'sitter';
+      const providerId = bookingWalkerId || bookingSitterId;
+      const notifData = {
+        bookingId: booking._id.toString(),
+        cancelledBy: cancellerRole,
+      };
+      // Notif a l'AUTRE partie. Si l'owner annule -> notif provider.
+      // Si provider annule -> notif owner.
+      if (isOwner && providerId) {
+        await sendNotification({
+          userId: providerId,
+          role: providerType,
+          type: 'booking_cancelled_by_owner',
+          data: notifData,
+          actor: { role: 'owner', id: bookingOwnerId },
+        });
+      } else if ((isSitter || isWalker) && bookingOwnerId) {
+        await sendNotification({
+          userId: bookingOwnerId,
+          role: 'owner',
+          type: 'booking_cancelled_by_provider',
+          data: { ...notifData, providerType: cancellerRole },
+          actor: { role: cancellerRole, id: userId },
+        });
+      }
+    } catch (notifErr) {
+      logger.warn(`[selfCancelWithRefund] notification failed: ${notifErr?.message || notifErr}`);
+      // Best-effort — never block the cancel because a notif failed.
     }
 
     return res.json({

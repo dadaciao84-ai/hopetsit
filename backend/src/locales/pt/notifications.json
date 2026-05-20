@@ -124,5 +124,17 @@
     "body": "O seu pagamento foi registado. A reserva está ativa — converse com o seu prestador para combinar os detalhes.",
     "emailSubject": "O seu pagamento está confirmado — HoPetSit",
     "emailBody": "<p>O seu pagamento acaba de ser confirmado. A sua reserva está agora <strong>ativa</strong>. Abra a app HoPetSit para conversar com o seu prestador e combinar os últimos detalhes.</p><p><a href=\"{{emailLink}}\" style=\"display:inline-block;padding:12px 24px;background:#16A34A;color:#FFFFFF;text-decoration:none;border-radius:8px;font-weight:700;font-family:sans-serif;\">Ver reserva</a></p><p style=\"color:#666;font-size:12px;\">Se o botão não funcionar, copia este link no teu navegador: {{emailLink}}</p>"
+  },
+  "booking_cancelled_by_owner": {
+    "title": "Reserva cancelada",
+    "body": "O proprietário acabou de cancelar a reserva (>72h antes do serviço). Nenhuma ação necessária.",
+    "emailSubject": "Reserva cancelada — HoPetSit",
+    "emailBody": "<p>Olá,</p><p>O proprietário acabou de cancelar uma reserva com mais de 72h de antecedência. <strong>Não receberás pagamento por este trabalho</strong>, mas não há penalidade para ti.</p><p><a href=\"{{emailLink}}\" style=\"display:inline-block;padding:12px 24px;background:#DC2626;color:#FFFFFF;text-decoration:none;border-radius:8px;font-weight:700;font-family:sans-serif;\">Ver reserva</a></p><p style=\"color:#666;font-size:12px;\">Se o botão não funcionar, copia este link no teu navegador: {{emailLink}}</p>"
+  },
+  "booking_cancelled_by_provider": {
+    "title": "Serviço cancelado pelo prestador",
+    "body": "O prestador acabou de cancelar a reserva. Receberás um reembolso integral em 5-10 dias.",
+    "emailSubject": "A tua reserva foi cancelada — HoPetSit",
+    "emailBody": "<p>Olá,</p><p>O prestador acabou de cancelar a tua reserva com mais de 72h de antecedência. <strong>Está em curso um reembolso integral</strong> (5-10 dias dependendo do banco). Podes reservar outro prestador na app.</p><p><a href=\"{{emailLink}}\" style=\"display:inline-block;padding:12px 24px;background:#EF4324;color:#FFFFFF;text-decoration:none;border-radius:8px;font-weight:700;font-family:sans-serif;\">Encontrar outro prestador</a></p><p style=\"color:#666;font-size:12px;\">Se o botão não funcionar, copia este link no teu navegador: {{emailLink}}</p>"
   }
 }

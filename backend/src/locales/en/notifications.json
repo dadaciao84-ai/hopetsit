@@ -166,5 +166,17 @@
     "body": "Your withdrawal could not be processed. Your wallet balance has been restored.",
     "emailSubject": "HoPetSit withdrawal failed",
     "emailBody": "<p>Your HoPetSit withdrawal failed. Reason: {{reason}}. Your wallet balance was restored, you can retry.</p>"
+  },
+  "booking_cancelled_by_owner": {
+    "title": "Booking cancelled",
+    "body": "The owner just cancelled the booking (>72h before service). No action needed on your side.",
+    "emailSubject": "Booking cancelled — HoPetSit",
+    "emailBody": "<p>Hi,</p><p>The owner just cancelled a booking more than 72h before service. <strong>You will not be paid for this mission</strong>, but no penalty applies on your side.</p><p><a href=\"{{emailLink}}\" style=\"display:inline-block;padding:12px 24px;background:#DC2626;color:#FFFFFF;text-decoration:none;border-radius:8px;font-weight:700;font-family:sans-serif;\">View booking</a></p><p style=\"color:#666;font-size:12px;\">If the button doesn't work, copy this link into your browser: {{emailLink}}</p>"
+  },
+  "booking_cancelled_by_provider": {
+    "title": "Service cancelled by provider",
+    "body": "The provider just cancelled the booking. You will be fully refunded within 5-10 days.",
+    "emailSubject": "Your booking has been cancelled — HoPetSit",
+    "emailBody": "<p>Hi,</p><p>The provider just cancelled your booking more than 72h before service. <strong>A full refund is in progress</strong> (5-10 days depending on your bank). You can book another provider on the app.</p><p><a href=\"{{emailLink}}\" style=\"display:inline-block;padding:12px 24px;background:#EF4324;color:#FFFFFF;text-decoration:none;border-radius:8px;font-weight:700;font-family:sans-serif;\">Find another provider</a></p><p style=\"color:#666;font-size:12px;\">If the button doesn't work, copy this link into your browser: {{emailLink}}</p>"
   }
 }
