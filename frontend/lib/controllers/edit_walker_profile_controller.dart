@@ -71,6 +71,13 @@ class EditWalkerProfileController extends GetxController {
   /// Stored as WalkRate{duration:60, basePrice:X, enabled:true}.
   final hourlyRateController = TextEditingController();
 
+  /// v23.1.153 — Daniel : "Faltarían las tarifas para 90 y 120 minutos".
+  /// Backend Walker.walkRates accepte deja n'importe quelle duree multiple
+  /// de 15min (15-300). On ajoute 2 controllers pour les durees populaires
+  /// 90 et 120 min (promenade longue / demi-journee).
+  final ninetyMinRateController = TextEditingController();
+  final twoHourRateController = TextEditingController();
+
   // Observable state
   final Rx<File?> profileImage = Rx<File?>(null);
   final RxBool isLoading = false.obs;
@@ -111,6 +118,8 @@ class EditWalkerProfileController extends GetxController {
     languageController.dispose();
     halfHourRateController.dispose();
     hourlyRateController.dispose();
+    ninetyMinRateController.dispose();
+    twoHourRateController.dispose();
     super.onClose();
   }
 
@@ -169,19 +178,28 @@ class EditWalkerProfileController extends GetxController {
         }
       }
 
-      // Load the two standard walk durations (30 min + 60 min). Either can
-      // be empty — the UI shows "Tarif à confirmer" when neither is set.
+      // Load the four standard walk durations (30/60/90/120 min). Any can
+      // be empty — the UI shows "Tarif à confirmer" when none is set.
+      // v23.1.153 — ajout 90min + 120min (promenade longue / demi-journee).
       final rates = await _walkerRepository.getMyWalkerRates();
       WalkRate? thirtyMin;
       WalkRate? sixtyMin;
+      WalkRate? ninetyMin;
+      WalkRate? oneTwentyMin;
       for (final r in rates) {
         if (r.durationMinutes == 30 && r.enabled) thirtyMin = r;
         if (r.durationMinutes == 60 && r.enabled) sixtyMin = r;
+        if (r.durationMinutes == 90 && r.enabled) ninetyMin = r;
+        if (r.durationMinutes == 120 && r.enabled) oneTwentyMin = r;
       }
       halfHourRateController.text =
           thirtyMin != null ? thirtyMin.basePrice.toStringAsFixed(2) : '';
       hourlyRateController.text =
           sixtyMin != null ? sixtyMin.basePrice.toStringAsFixed(2) : '';
+      ninetyMinRateController.text =
+          ninetyMin != null ? ninetyMin.basePrice.toStringAsFixed(2) : '';
+      twoHourRateController.text =
+          oneTwentyMin != null ? oneTwentyMin.basePrice.toStringAsFixed(2) : '';
     } on ApiException catch (error) {
       AppLogger.logError('Failed to load walker profile',
           error: error.message);
@@ -463,11 +481,19 @@ class EditWalkerProfileController extends GetxController {
       final thirtyText =
           halfHourRateController.text.trim().replaceAll(',', '.');
       final sixtyText = hourlyRateController.text.trim().replaceAll(',', '.');
+      final ninetyText =
+          ninetyMinRateController.text.trim().replaceAll(',', '.');
+      final twoHourText =
+          twoHourRateController.text.trim().replaceAll(',', '.');
       final thirtyParsed = double.tryParse(thirtyText);
       final sixtyParsed = double.tryParse(sixtyText);
+      final ninetyParsed = double.tryParse(ninetyText);
+      final twoHourParsed = double.tryParse(twoHourText);
 
-      if ((thirtyParsed == null || thirtyParsed <= 0) &&
-          (sixtyParsed == null || sixtyParsed <= 0)) {
+      // v23.1.153 — au moins UN des 4 rates doit etre rempli.
+      final hasAny = [thirtyParsed, sixtyParsed, ninetyParsed, twoHourParsed]
+          .any((v) => v != null && v > 0);
+      if (!hasAny) {
         CustomSnackbar.showError(
           title: 'common_error'.tr,
           message: 'walker_rate_invalid'.tr,
@@ -485,22 +511,26 @@ class EditWalkerProfileController extends GetxController {
       final existingCurrency =
           existing.isNotEmpty ? existing.first.currency : 'EUR';
 
-      if (thirtyParsed != null && thirtyParsed > 0) {
-        byDuration[30] = WalkRate(
-          durationMinutes: 30,
-          basePrice: thirtyParsed,
-          currency: byDuration[30]?.currency ?? existingCurrency,
-          enabled: true,
-        );
+      // v23.1.153 — helper pour eviter la duplication. Si l'utilisateur vide
+      // un champ existant (parsed == null/0), on retire le rate de la map.
+      void upsertOrRemove(int duration, double? parsed) {
+        if (parsed != null && parsed > 0) {
+          byDuration[duration] = WalkRate(
+            durationMinutes: duration,
+            basePrice: parsed,
+            currency: byDuration[duration]?.currency ?? existingCurrency,
+            enabled: true,
+          );
+        } else {
+          byDuration.remove(duration);
+        }
       }
-      if (sixtyParsed != null && sixtyParsed > 0) {
-        byDuration[60] = WalkRate(
-          durationMinutes: 60,
-          basePrice: sixtyParsed,
-          currency: byDuration[60]?.currency ?? existingCurrency,
-          enabled: true,
-        );
-      }
+
+      upsertOrRemove(30, thirtyParsed);
+      upsertOrRemove(60, sixtyParsed);
+      upsertOrRemove(90, ninetyParsed);
+      upsertOrRemove(120, twoHourParsed);
+
       final sorted = byDuration.values.toList()
         ..sort((a, b) => a.durationMinutes.compareTo(b.durationMinutes));
       await _walkerRepository.updateMyWalkerRates(sorted);

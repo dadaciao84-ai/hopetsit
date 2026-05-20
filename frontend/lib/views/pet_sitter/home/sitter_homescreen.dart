@@ -1107,43 +1107,56 @@ class _SitterHomescreenState extends State<SitterHomescreen> {
                               onViewPetDetails: petId != null
                                   ? () async => _handleCardTap(petId)
                                   : null,
-                              onSendRequest:
-                                  ownerId.isNotEmpty &&
-                                      petId != null &&
-                                      post.serviceTypes.isNotEmpty
-                                  ? () async {
-                                      if (isCancelMode) {
-                                        await _handleCancelRequest(
-                                          requestKey: post.id,
-                                          applicationId: pendingApplicationId,
-                                        );
-                                      } else {
-                                        await _handleSendRequest(
-                                          requestKey: post.id,
-                                          ownerId: ownerId,
-                                          petId: petId,
-                                          serviceType: post.serviceTypes.first,
-                                          serviceDate: _serviceDateForPost(
-                                            post,
-                                          ),
-                                          startDate: _startDateForPost(post),
-                                          endDate: _endDateForPost(post),
-                                          timeSlot: _defaultTimeSlotForPost(
-                                            post,
-                                          ),
-                                          houseSittingVenue:
-                                              post.houseSittingVenue,
-                                          duration: _durationForPostService(
-                                            post,
-                                            post.serviceTypes.first,
-                                          ),
-                                          // v17.1 — forward the post id so the
-                                          // backend stores Application.postId.
-                                          postId: post.id,
-                                        );
-                                      }
-                                    }
-                                  : null,
+                              // v23.1.153 — Daniel : "le bouton demande
+                                  // direct n'apparait pas". Avant : si
+                                  // ownerId/petId/serviceTypes manquaient
+                                  // dans le post (cas owner sans pet, ou
+                                  // post sans serviceType), le callback
+                                  // etait null → bouton invisible →
+                                  // sitter/walker ne pouvait plus envoyer
+                                  // de demande. Maintenant : on TOUJOURS
+                                  // passe un callback (le bouton est visible)
+                                  // et on valide les donnees a l'interieur,
+                                  // avec snackbar explicite si quelque
+                                  // chose manque.
+                                  onSendRequest: () async {
+                                if (ownerId.isEmpty ||
+                                    petId == null ||
+                                    post.serviceTypes.isEmpty) {
+                                  CustomSnackbar.showError(
+                                    title: 'common_error'.tr,
+                                    message: 'post_incomplete_for_request'.tr,
+                                  );
+                                  return;
+                                }
+                                if (isCancelMode) {
+                                  await _handleCancelRequest(
+                                    requestKey: post.id,
+                                    applicationId: pendingApplicationId,
+                                  );
+                                } else {
+                                  await _handleSendRequest(
+                                    requestKey: post.id,
+                                    ownerId: ownerId,
+                                    petId: petId,
+                                    serviceType: post.serviceTypes.first,
+                                    serviceDate: _serviceDateForPost(post),
+                                    startDate: _startDateForPost(post),
+                                    endDate: _endDateForPost(post),
+                                    timeSlot:
+                                        _defaultTimeSlotForPost(post),
+                                    houseSittingVenue:
+                                        post.houseSittingVenue,
+                                    duration: _durationForPostService(
+                                      post,
+                                      post.serviceTypes.first,
+                                    ),
+                                    // v17.1 — forward the post id so the
+                                    // backend stores Application.postId.
+                                    postId: post.id,
+                                  );
+                                }
+                              },
                               requestButtonText: isCancelMode
                                   ? 'request_cancel_button'.tr
                                   : 'send_request_button'.tr,

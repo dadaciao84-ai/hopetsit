@@ -96,6 +96,10 @@ class _WalkerRates extends StatelessWidget {
                   ),
                 ),
                 SizedBox(height: 16.h),
+                // v23.1.153 — Daniel : "Faltarían las tarifas para 90 y 120
+                // minutos". Walker rate form etend de 2 a 4 durees (30/60/90/120).
+                // Backend Walker.walkRates accepte deja n'importe quel multiple
+                // de 15min entre 15 et 300 — pas besoin de changement schema.
                 _RateField(
                   label: 'walker_rate_30min_label'.tr,
                   hint: 'walker_rate_hint_8'.tr,
@@ -108,6 +112,22 @@ class _WalkerRates extends StatelessWidget {
                   label: 'walker_rate_60min_label'.tr,
                   hint: 'walker_rate_hint_15'.tr,
                   controller: controller.hourlyRateController,
+                  accent: accent,
+                  errorText: 'walker_rate_invalid'.tr,
+                ),
+                SizedBox(height: 16.h),
+                _RateField(
+                  label: 'walker_rate_90min_label'.tr,
+                  hint: 'walker_rate_hint_22'.tr,
+                  controller: controller.ninetyMinRateController,
+                  accent: accent,
+                  errorText: 'walker_rate_invalid'.tr,
+                ),
+                SizedBox(height: 16.h),
+                _RateField(
+                  label: 'walker_rate_120min_label'.tr,
+                  hint: 'walker_rate_hint_30'.tr,
+                  controller: controller.twoHourRateController,
                   accent: accent,
                   errorText: 'walker_rate_invalid'.tr,
                 ),

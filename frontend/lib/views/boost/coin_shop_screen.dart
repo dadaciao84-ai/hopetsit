@@ -1097,7 +1097,7 @@ class _PremiumTabState extends State<_PremiumTab> with AutomaticKeepAliveClientM
     // / Famille 👨‍👩‍👧‍👦 (bleu — partage 5 membres).
     final isYearly = plan.plan == 'yearly';
     final isFamily = plan.plan == 'family';
-    final savings = isYearly ? ' (35% off)' : '';
+    final savings = isYearly ? 'pawfollow_yearly_savings'.tr : '';
     final currentPlan = controller.status.value?.plan;
     final isCurrent = currentPlan == plan.plan && controller.isPremium;
 
@@ -1159,7 +1159,7 @@ class _PremiumTabState extends State<_PremiumTab> with AutomaticKeepAliveClientM
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         InterText(
-                          text: '${plan.label}$savings',
+                          text: '${('pawfollow_plan_${plan.plan}').tr}$savings',
                           fontSize: 16.sp,
                           fontWeight: FontWeight.w700,
                           color: AppColors.textPrimary(context),
@@ -1167,10 +1167,10 @@ class _PremiumTabState extends State<_PremiumTab> with AutomaticKeepAliveClientM
                         SizedBox(height: 4.h),
                         InterText(
                           text: isFamily
-                              ? "Jusqu'à 5 membres • mensuel"
+                              ? 'pawfollow_subtitle_family'.tr
                               : isYearly
-                                  ? 'Facturé 1x par an'
-                                  : 'Facturé tous les mois',
+                                  ? 'pawfollow_subtitle_yearly'.tr
+                                  : 'pawfollow_subtitle_monthly'.tr,
                           fontSize: 12.sp,
                           color: AppColors.greyText,
                         ),
@@ -1187,7 +1187,7 @@ class _PremiumTabState extends State<_PremiumTab> with AutomaticKeepAliveClientM
                         color: const Color(0xFFFF9500),
                       ),
                       InterText(
-                        text: '${CurrencyHelper.format(plan.currency, plan.amountPerDay)}/jour',
+                        text: '${CurrencyHelper.format(plan.currency, plan.amountPerDay)}${'pawfollow_per_day_suffix'.tr}',
                         fontSize: 10.sp,
                         color: AppColors.greyText,
                       ),
