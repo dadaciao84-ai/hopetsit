@@ -41,17 +41,23 @@ void main() async {
     debugPrint = (String? message, {int? wrapWidth}) {};
   }
 
-  // v23.1 part 29 — RADICAL : edge-to-edge mode forcé. Notre app peint
-  // jusqu'au pixel TOUT en bas. Système Samsung devient transparent et
-  // overlay au-dessus → notre Container blanc explicite se voit dans toute
-  // la zone, plus de "carré gris" possible.
-  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  // v23.1.161 — Daniel : "les bouton menu de samsung sont blanc met les
+  // orange". Avant : edge-to-edge avec systemNavigationBarColor transparent
+  // → sur Samsung les 3 boutons Home/Back/Recent apparaissaient en blanc
+  // sur fond blanc → invisibles. Maintenant : on garde edge-to-edge mais
+  // on force la couleur de la barre nav en orange app + icones blanches.
+  SystemChrome.setEnabledSystemUIMode(
+    SystemUiMode.manual,
+    overlays: SystemUiOverlay.values,
+  );
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
     statusBarIconBrightness: Brightness.dark,
-    systemNavigationBarColor: Colors.transparent,
-    systemNavigationBarIconBrightness: Brightness.dark,
-    systemNavigationBarDividerColor: Colors.transparent,
+    // v23.1.161 — Orange app (#EF4324) avec icones blanches pour les
+    // 3 boutons Samsung. Visible sur tous les fonds (clair / sombre).
+    systemNavigationBarColor: Color(0xFFEF4324),
+    systemNavigationBarIconBrightness: Brightness.light,
+    systemNavigationBarDividerColor: Color(0xFFEF4324),
     systemNavigationBarContrastEnforced: false,
   ));
 

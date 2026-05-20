@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 import 'package:hopetsit/controllers/bookings_controller.dart';
 import 'package:hopetsit/models/booking_model.dart';
 import 'package:hopetsit/utils/app_colors.dart';
@@ -323,6 +324,51 @@ class _OwnerBookingsScreenState extends State<OwnerBookingsScreen> {
     );
   }
 
+  /// v23.1.161 — Daniel : "dans reservation il manque le bouton annuler
+  /// apres 72h le client ou sitter ne peux annuler". Helper qui retourne
+  /// true si le booking est dans la fenetre 72h+ (donc annulable avec
+  /// refund integral).
+  bool _isWithinSelfCancelWindow(BookingModel booking) {
+    final dateStr = booking.date.trim();
+    if (dateStr.isEmpty) return false;
+    try {
+      // booking.date est typiquement "yyyy-MM-dd" ou "dd/MM/yyyy".
+      final parsed = DateTime.tryParse(dateStr) ??
+          DateFormat('dd/MM/yyyy').tryParse(dateStr);
+      if (parsed == null) return false;
+      final hoursUntilStart = parsed.difference(DateTime.now()).inHours;
+      return hoursUntilStart > 72;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<void> _confirmSelfCancel(BookingModel booking) async {
+    final confirmed = await Get.dialog<bool>(
+      AlertDialog(
+        title: Text('cancel_72h_dialog_title'.tr),
+        content: Text('cancel_72h_dialog_message'.tr),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(result: false),
+            child: Text('common_cancel'.tr),
+          ),
+          ElevatedButton(
+            onPressed: () => Get.back(result: true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFDC2626),
+              foregroundColor: Colors.white,
+            ),
+            child: Text('cancel_72h_dialog_confirm'.tr),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      await _bookingsController.selfCancelBooking(bookingId: booking.id);
+    }
+  }
+
   Widget _buildActionButtons(BookingModel booking) {
     final statusLower = booking.status.toLowerCase();
     final paymentStatusLower = booking.paymentStatus?.toLowerCase();
@@ -332,6 +378,13 @@ class _OwnerBookingsScreenState extends State<OwnerBookingsScreen> {
         (paymentStatusLower == null ||
             paymentStatusLower.isEmpty ||
             paymentStatusLower != 'paid');
+
+    // v23.1.161 — Bouton "Annuler" pour reservations payees >72h avant
+    // le service (cancellation gratuite avec refund integral).
+    final isCancellable = paymentStatusLower == 'paid' &&
+        statusLower != 'cancelled' &&
+        statusLower != 'completed' &&
+        _isWithinSelfCancelWindow(booking);
 
     return Row(
       children: [
@@ -394,6 +447,28 @@ class _OwnerBookingsScreenState extends State<OwnerBookingsScreen> {
                 fontSize: 12.sp,
                 fontWeight: FontWeight.w500,
                 color: AppColors.whiteColor,
+              ),
+            ),
+          ),
+        ],
+        // v23.1.161 — Bouton "Annuler" pour reservations payees a >72h.
+        if (isCancellable) ...[
+          SizedBox(width: 12.w),
+          Expanded(
+            child: OutlinedButton(
+              onPressed: () => _confirmSelfCancel(booking),
+              style: OutlinedButton.styleFrom(
+                padding: EdgeInsets.symmetric(vertical: 10.h),
+                side: const BorderSide(color: Color(0xFFDC2626), width: 1),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8.r),
+                ),
+              ),
+              child: InterText(
+                text: 'cancel_72h_button'.tr,
+                fontSize: 12.sp,
+                fontWeight: FontWeight.w500,
+                color: const Color(0xFFDC2626),
               ),
             ),
           ),

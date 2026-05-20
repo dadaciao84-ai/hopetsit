@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 import 'package:hopetsit/controllers/sitter_bookings_controller.dart';
 import 'package:hopetsit/models/booking_model.dart';
 import 'package:hopetsit/utils/app_colors.dart';
@@ -513,12 +514,58 @@ class _SitterBookingsScreenState extends State<SitterBookingsScreen> {
     );
   }
 
+  /// v23.1.161 — true si on est encore dans la fenetre 72h+ avant le service.
+  bool _isWithinSelfCancelWindow(BookingModel booking) {
+    final dateStr = booking.date.trim();
+    if (dateStr.isEmpty) return false;
+    try {
+      final parsed = DateTime.tryParse(dateStr) ??
+          DateFormat('dd/MM/yyyy').tryParse(dateStr);
+      if (parsed == null) return false;
+      return parsed.difference(DateTime.now()).inHours > 72;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<void> _confirmSelfCancel(BookingModel booking) async {
+    final confirmed = await Get.dialog<bool>(
+      AlertDialog(
+        title: Text('cancel_72h_dialog_title'.tr),
+        content: Text('cancel_72h_dialog_message'.tr),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(result: false),
+            child: Text('common_cancel'.tr),
+          ),
+          ElevatedButton(
+            onPressed: () => Get.back(result: true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFDC2626),
+              foregroundColor: Colors.white,
+            ),
+            child: Text('cancel_72h_dialog_confirm'.tr),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      await _bookingsController.selfCancelBooking(bookingId: booking.id);
+    }
+  }
+
   Widget _buildActionButtons(BookingModel booking) {
     final statusLower = booking.status.toLowerCase();
+    final paymentStatusLower = booking.paymentStatus?.toLowerCase();
+    // v23.1.161 — self-cancel pour reservations PAYEES a >72h (refund integral).
+    final isCancellable = paymentStatusLower == 'paid' &&
+        statusLower != 'cancelled' &&
+        statusLower != 'completed' &&
+        _isWithinSelfCancelWindow(booking);
 
     return Row(
       children: [
-        // Cancel Button (for pending and agreed statuses)
+        // Cancel Button (for pending and agreed statuses) — calls requestCancellation
         if (statusLower == 'pending' || statusLower == 'agreed') ...[
           Expanded(
             child: OutlinedButton(
@@ -537,6 +584,28 @@ class _SitterBookingsScreenState extends State<SitterBookingsScreen> {
                 fontSize: 12.sp,
                 fontWeight: FontWeight.w500,
                 color: AppColors.errorColor,
+              ),
+            ),
+          ),
+        ],
+        // v23.1.161 — self-cancel for PAID bookings >72h (different from
+        // requestCancellation which is for pending/agreed). Refund integral.
+        if (isCancellable) ...[
+          Expanded(
+            child: OutlinedButton(
+              onPressed: () => _confirmSelfCancel(booking),
+              style: OutlinedButton.styleFrom(
+                padding: EdgeInsets.symmetric(vertical: 10.h),
+                side: const BorderSide(color: Color(0xFFDC2626), width: 1),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8.r),
+                ),
+              ),
+              child: InterText(
+                text: 'cancel_72h_button'.tr,
+                fontSize: 12.sp,
+                fontWeight: FontWeight.w500,
+                color: const Color(0xFFDC2626),
               ),
             ),
           ),

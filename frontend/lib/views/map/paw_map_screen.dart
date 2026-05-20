@@ -588,10 +588,6 @@ class _PawMapScreenState extends State<PawMapScreen> {
     if (_isSitterOrWalker) return circles; // owner-only feature
     if (!_showProviders.value) return circles;
     for (final p in _nearbyProviders) {
-      final isMapBoosted = p['isMapBoosted'] == true;
-      if (!isMapBoosted) continue;
-      final mapTier = (p['mapBoostTier'] ?? '').toString();
-      // v23.1.154 — tous les tiers ont un halo (pas seulement platinum).
       final loc = p['location'] is Map ? p['location'] as Map : null;
       final coords = loc != null && loc['coordinates'] is List
           ? loc['coordinates'] as List
@@ -601,11 +597,12 @@ class _PawMapScreenState extends State<PawMapScreen> {
       final lat = (coords[1] as num).toDouble();
       final id = (p['id'] ?? p['_id'] ?? '').toString();
       if (id.isEmpty) continue;
-      // v23.1.159 — Daniel : "assure toi que le halo est aussi dune
-      // differente couleur pour le voir vert si walker, bleu si sitter".
-      // En plus du halo tier-color (pulsant), on dessine un anneau STATIQUE
-      // role-color (vert walker / bleu sitter) en dessous pour signaler
-      // visuellement le role meme quand le halo tier est presque transparent.
+      // v23.1.161 — Daniel : "la couleur des halo marche pas". v159 mettait
+      // l'anneau role-color DANS le if(isMapBoosted), donc seuls les
+      // providers avec PawSpot actif l'avaient. Maintenant on dessine
+      // l'anneau role-color pour TOUS les providers visibles → Daniel
+      // voit toujours vert (walker) / bleu (sitter) autour de chaque pin
+      // sur la map, meme quand personne a PawSpot autour de lui.
       final role = (p['_role'] ?? '').toString().toLowerCase();
       final roleColor = role == 'walker'
           ? const Color(0xFF16A34A) // vert walker
@@ -616,13 +613,18 @@ class _PawMapScreenState extends State<PawMapScreen> {
         Circle(
           circleId: CircleId('halo_role_$id'),
           center: LatLng(lat, lng),
-          radius: 20,
-          fillColor: roleColor.withValues(alpha: 0.18),
-          strokeColor: roleColor.withValues(alpha: 0.8),
-          strokeWidth: 2,
+          radius: 25,
+          fillColor: roleColor.withValues(alpha: 0.22),
+          strokeColor: roleColor.withValues(alpha: 0.9),
+          strokeWidth: 3,
         ),
       );
-      // Halo tier (pulsant) - couleur + rayon depend du tier
+
+      // Halo tier (pulsant) - couleur + rayon depend du tier - seulement
+      // pour les providers avec PawSpot actif (par-dessus l'anneau role).
+      final isMapBoosted = p['isMapBoosted'] == true;
+      if (!isMapBoosted) continue;
+      final mapTier = (p['mapBoostTier'] ?? '').toString();
       final color = tierColor(mapTier);
       final maxRadius = tierMaxRadius(mapTier);
       final radius = 30.0 + (maxRadius - 30.0) * phase;

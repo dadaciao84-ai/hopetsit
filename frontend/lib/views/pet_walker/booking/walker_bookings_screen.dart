@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 import 'package:hopetsit/controllers/walker_bookings_controller.dart';
 import 'package:hopetsit/models/booking_model.dart';
 import 'package:hopetsit/utils/app_colors.dart';
@@ -309,9 +310,82 @@ class _WalkerBookingsScreenState extends State<WalkerBookingsScreen> {
               );
             }),
           ],
+          // v23.1.161 — Daniel : "dans reservation il manque le bouton
+          // annuler apres 72h le client ou sitter ne peux annuler dc
+          // verifier les 3 profile". Walker n'avait AUCUN bouton annuler
+          // — ajout du bouton self-cancel pour bookings payes >72h avant
+          // le service. Calls selfCancelBooking endpoint qui refund
+          // l'owner integralement et bloque le payout futur du walker.
+          if (_isWithinSelfCancelWindow(booking) &&
+              booking.paymentStatus?.toLowerCase() == 'paid' &&
+              booking.status.toLowerCase() != 'cancelled' &&
+              booking.status.toLowerCase() != 'completed') ...[
+            SizedBox(height: 12.h),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: () => _confirmSelfCancel(booking),
+                style: OutlinedButton.styleFrom(
+                  padding: EdgeInsets.symmetric(vertical: 10.h),
+                  side: const BorderSide(color: Color(0xFFDC2626), width: 1),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8.r),
+                  ),
+                ),
+                child: InterText(
+                  text: 'cancel_72h_button'.tr,
+                  fontSize: 12.sp,
+                  fontWeight: FontWeight.w500,
+                  color: const Color(0xFFDC2626),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
+  }
+
+  /// v23.1.161 — true si le booking est a plus de 72h du service (fenetre
+  /// self-cancel avec refund integral).
+  bool _isWithinSelfCancelWindow(BookingModel booking) {
+    final dateStr = booking.date.trim();
+    if (dateStr.isEmpty) return false;
+    try {
+      final parsed = DateTime.tryParse(dateStr) ??
+          DateFormat('dd/MM/yyyy').tryParse(dateStr);
+      if (parsed == null) return false;
+      return parsed.difference(DateTime.now()).inHours > 72;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<void> _confirmSelfCancel(BookingModel booking) async {
+    final confirmed = await Get.dialog<bool>(
+      AlertDialog(
+        title: Text('cancel_72h_dialog_title'.tr),
+        content: Text('cancel_72h_dialog_message'.tr),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(result: false),
+            child: Text('common_cancel'.tr),
+          ),
+          ElevatedButton(
+            onPressed: () => Get.back(result: true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFDC2626),
+              foregroundColor: Colors.white,
+            ),
+            child: Text('cancel_72h_dialog_confirm'.tr),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      await Get.find<WalkerBookingsController>()
+          .selfCancelBooking(bookingId: booking.id);
+    }
   }
 
   Widget _statusBadge(String status) {
