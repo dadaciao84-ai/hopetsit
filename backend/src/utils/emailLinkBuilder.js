@@ -1,0 +1,196 @@
+/**
+ * v23.1.155 — Email CTA link builder.
+ *
+ * Daniel : "connecte les boutons quon recois par mail a lapp ou le web".
+ *
+ * Avant cette session, tous les templates de mail pointaient vers des liens
+ * custom-scheme `hopetsit://...`. Resultat : sur desktop, click = navigateur
+ * affiche une erreur "app non trouvee" et l'utilisateur perd le lien. Sur
+ * mobile sans l'app installee : meme erreur.
+ *
+ * Solution : universal links / app links. Le format `https://hopetsit.com/...`
+ * est intercepte par iOS Universal Links (via apple-app-site-association)
+ * ET par Android App Links (via assetlinks.json + autoVerify=true) =>
+ * ouverture automatique dans l'app. Si l'app n'est pas installee, le
+ * navigateur charge naturellement le site web. UN seul lien, deux comportements.
+ *
+ * Configuration requise cote app (deja en place) :
+ *   - iOS : Runner.entitlements declare `webcredentials:hopetsit.com`,
+ *     `applinks:hopetsit.com`, `applinks:www.hopetsit.com`,
+ *     `applinks:app.hopetsit.com`. Voir v23.1 part 146.
+ *   - Android : AndroidManifest.xml a un intent-filter avec
+ *     `android:autoVerify="true"` pour `https://hopetsit.com/*`.
+ *   - Le site web a un fichier `.well-known/apple-app-site-association`
+ *     et `.well-known/assetlinks.json` servis en HTTPS.
+ *
+ * Le frontend (deep_link_service.dart lines 155-224) handle deja les
+ * routes /bookings/:id, /pay, /chat[/:id], /notifications, /auth?ott=
+ * Pour les nouvelles routes (/application/:id, /post/:id), voir v23.1.155
+ * patch deep_link_service.
+ *
+ * Le site web (Next.js) a deja les pages :
+ *   - /bookings (liste)
+ *   - /pay et /pay/done
+ *   - /chat
+ *   - /walk/[bookingId]
+ *   - /book/[id]
+ * Pour les routes manquantes (/bookings/:id detail, /application/:id),
+ * le routing Next.js peut faire un fallback vers /bookings avec une
+ * query `?focus=:id`.
+ *
+ * @param {string} type - 'booking' | 'application' | 'pay' | 'chat' |
+ *                        'walk' | 'post' | 'notifications' | 'profile' |
+ *                        'subscription' | 'paw_spot' | 'paw_pass' | null
+ * @param {Object} [params] - resource ids (bookingId, conversationId, ...)
+ * @returns {string} - https://hopetsit.com/... URL
+ */
+const BASE_URL = (process.env.WEBSITE_URL || 'https://hopetsit.com').replace(
+  /\/+$/,
+  '',
+);
+
+const buildEmailLink = (type, params = {}) => {
+  const p = params || {};
+  switch ((type || '').toLowerCase()) {
+    case 'booking':
+    case 'booking_paid':
+    case 'booking_accepted':
+    case 'booking_canceled':
+    case 'visit_report':
+      // /bookings/:id ouvre la fiche detail dans l'app (deep link existant)
+      // ou affiche la liste filtree sur le site web (fallback).
+      return p.bookingId
+        ? `${BASE_URL}/bookings/${p.bookingId}`
+        : `${BASE_URL}/bookings`;
+
+    case 'application':
+    case 'application_new':
+      // /bookings/:id (l'app montre les applications dans le detail booking).
+      // Note : pas de page web dediee `/applications/:id` — fallback liste.
+      return p.bookingId
+        ? `${BASE_URL}/bookings/${p.bookingId}`
+        : `${BASE_URL}/bookings`;
+
+    case 'pay':
+    case 'payment':
+    case 'payment_success':
+    case 'payment_failed':
+      // /pay ouvre l'ecran de paiement. Si on a bookingId, on l'utilise
+      // comme intent pour reprendre le booking et relancer le PI cote
+      // owner.
+      if (p.bookingId) {
+        return `${BASE_URL}/pay?bookingId=${p.bookingId}`;
+      }
+      return `${BASE_URL}/pay`;
+
+    case 'chat':
+    case 'message':
+    case 'new_message':
+      // /chat[/:conversationId] - le service web a une page /chat liste
+      // + l'app deep-link supporte ?conversation=:id.
+      if (p.conversationId) {
+        return `${BASE_URL}/chat/${p.conversationId}`;
+      }
+      return `${BASE_URL}/chat`;
+
+    case 'walk':
+    case 'walk_live':
+      // /walk/:bookingId - page Next.js existante pour le suivi live.
+      return p.bookingId
+        ? `${BASE_URL}/walk/${p.bookingId}`
+        : `${BASE_URL}/bookings`;
+
+    case 'post':
+    case 'post_new':
+      // /book/:id - page Next.js existante pour les annonces owner.
+      return p.postId
+        ? `${BASE_URL}/book/${p.postId}`
+        : `${BASE_URL}/`;
+
+    case 'notifications':
+      return `${BASE_URL}/notifications`;
+
+    case 'profile':
+      // /profile - lien generique vers le profil (app ouvre l'onglet
+      // profil du role courant).
+      return `${BASE_URL}/profile`;
+
+    case 'subscription':
+    case 'paw_pass':
+    case 'paw_follow':
+      return `${BASE_URL}/subscription`;
+
+    case 'paw_spot':
+    case 'map_boost':
+      return `${BASE_URL}/paw-spot`;
+
+    case 'payout':
+    case 'payout_succeeded':
+    case 'payout_failed':
+    case 'wallet':
+    case 'wallet_credited':
+      // /wallet (page provider) - permet de voir le solde et l'historique.
+      return `${BASE_URL}/wallet`;
+
+    default:
+      // Fallback : la page d'accueil. Mieux que rien si le type est
+      // inconnu (template typo, nouveau type pas encore mappe).
+      return `${BASE_URL}/`;
+  }
+};
+
+/**
+ * Helper de plus haut niveau : derive type + params depuis le payload
+ * notification (sendNotification's `data` arg). Centralise la logique
+ * de mapping pour ne pas la dupliquer dans chaque caller.
+ */
+const buildEmailLinkFromNotification = (notifType, data = {}) => {
+  const t = (notifType || '').toLowerCase();
+  // Map les types de notification specifiques vers le type de lien
+  // approprie. Cette table de routage encapsule les bonnes URL.
+  if (t.startsWith('booking_paid') || t === 'booking_accepted' ||
+      t === 'booking_canceled' || t === 'booking_new') {
+    return buildEmailLink('booking', { bookingId: data.bookingId || data.id });
+  }
+  if (t === 'application_new' || t === 'application_accepted' ||
+      t === 'application_rejected') {
+    return buildEmailLink('application', {
+      bookingId: data.bookingId || data.applicationId,
+    });
+  }
+  if (t === 'payment_success' || t === 'payment_failed' ||
+      t === 'payment_required') {
+    return buildEmailLink('pay', { bookingId: data.bookingId });
+  }
+  if (t === 'new_message' || t === 'message') {
+    return buildEmailLink('chat', { conversationId: data.conversationId });
+  }
+  if (t === 'visit_report') {
+    return buildEmailLink('booking', { bookingId: data.bookingId });
+  }
+  if (t === 'walk_started' || t === 'walk_finished') {
+    return buildEmailLink('walk', { bookingId: data.bookingId });
+  }
+  if (t === 'post_new' || t === 'post_application_eligible') {
+    return buildEmailLink('post', { postId: data.postId });
+  }
+  if (t === 'payout_succeeded' || t === 'payout_failed' ||
+      t === 'withdrawal_completed' || t === 'withdrawal_failed' ||
+      t === 'wallet_credited') {
+    return buildEmailLink('wallet');
+  }
+  if (t === 'subscription_renewed' || t === 'subscription_canceled') {
+    return buildEmailLink('subscription');
+  }
+  if (t === 'map_boost_active' || t === 'map_boost_expired') {
+    return buildEmailLink('paw_spot');
+  }
+  // Default : home
+  return buildEmailLink('home');
+};
+
+module.exports = {
+  buildEmailLink,
+  buildEmailLinkFromNotification,
+  BASE_URL,
+};

@@ -201,10 +201,21 @@ const sendNotification = async ({ userId, role, type, data = {}, actor = null })
     logger.warn(`[notif.skip] template missing type=${type} locale=${locale}`);
     return;
   }
-  const title = render(tmpl.title, data);
-  const body = render(tmpl.body, data);
-  const emailSubject = render(tmpl.emailSubject, data);
-  const emailBody = render(tmpl.emailBody, data);
+  // v23.1.155 — Daniel : "connecte les boutons quon recois par mail a
+  // lapp ou le web". On injecte un `emailLink` universel
+  // (https://hopetsit.com/...) calcule depuis le type de notif + le payload
+  // data. Universal Links iOS / App Links Android → ouvrent l'app si
+  // installee, sinon le site web. Les templates JSON utilisent
+  // {{emailLink}} a la place des anciens `hopetsit://...` hardcoded.
+  const { buildEmailLinkFromNotification } = require('../utils/emailLinkBuilder');
+  const renderData = {
+    ...data,
+    emailLink: data.emailLink || buildEmailLinkFromNotification(type, data),
+  };
+  const title = render(tmpl.title, renderData);
+  const body = render(tmpl.body, renderData);
+  const emailSubject = render(tmpl.emailSubject, renderData);
+  const emailBody = render(tmpl.emailBody, renderData);
   const email = decrypt(user.email || '');
   const tokenCount = Array.isArray(user.fcmTokens) ? user.fcmTokens.length : 0;
   logger.info(

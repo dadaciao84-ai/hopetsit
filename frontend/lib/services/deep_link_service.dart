@@ -188,7 +188,13 @@ class DeepLinkService {
     if (first == 'pay') {
       // v23.1 part 125 — bookingId DOIT être un ObjectId 24 hex. Sinon
       // on log et on ignore (anti Intent Redirection).
-      final rawBookingId = segs.isNotEmpty ? segs.last : '';
+      // v23.1.155 — accepte aussi `?bookingId=<id>` (format query param
+      // utilise par emailLinkBuilder.js cote backend pour les liens
+      // /pay sans path arg).
+      var rawBookingId = segs.isNotEmpty ? segs.last : '';
+      if (rawBookingId.isEmpty || rawBookingId == 'pay') {
+        rawBookingId = uri.queryParameters['bookingId'] ?? '';
+      }
       if (!_objectIdRegex.hasMatch(rawBookingId)) {
         AppLogger.logWarning(
           'DeepLink rejected (invalid bookingId): "$rawBookingId"',
@@ -204,6 +210,31 @@ class DeepLinkService {
       Get.toNamed('/bookings');
     } else if (first == 'notifications') {
       Get.toNamed('/notifications');
+    } else if (first == 'walk') {
+      // v23.1.155 — Daniel : "connecte les boutons quon recois par mail
+      // a lapp ou le web". Les emails (walk_started / walk_finished)
+      // pointent vers https://hopetsit.com/walk/<bookingId>. Dans l'app
+      // on ouvre la fiche reservation (le live walk est integre dedans
+      // pour owner et walker).
+      Get.toNamed('/bookings');
+    } else if (first == 'book' || first == 'post') {
+      // v23.1.155 — post (annonce owner) : on ouvre le home owner pour
+      // l'instant. L'app n'a pas encore d'ecran detail dedicate pour un
+      // post specifique cote sitter/walker — ils voient les posts dans
+      // leur home tab et peuvent y candidater.
+      Get.toNamed('/');
+    } else if (first == 'wallet') {
+      // v23.1.155 — emails payout_succeeded / payout_failed pointent
+      // vers /wallet. L'app navigue vers le tab profil ou le user voit
+      // son solde dans la carte Mes paiements.
+      Get.toNamed('/profile');
+    } else if (first == 'subscription' || first == 'paw-spot' ||
+               first == 'pawspot') {
+      // v23.1.155 — emails subscription / map_boost : on redirige vers
+      // la boutique (Paw Shop) ou ces achats vivent.
+      Get.toNamed('/shop');
+    } else if (first == 'profile') {
+      Get.toNamed('/profile');
     } else if (first == 'auth') {
       // v23.1 part 146 — auto-login via one-time token issued by the website.
       // Format attendu : hopetsit://auth?ott=<64 hex>

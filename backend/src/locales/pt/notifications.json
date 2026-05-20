@@ -3,7 +3,7 @@
     "title": "Reserva aceite",
     "body": "Olá {{name}}, ambas as partes aceitaram a reserva. Conclua o pagamento para começar a conversar.",
     "emailSubject": "A sua reserva HopeTSIT está confirmada",
-    "emailBody": "<p>Olá {{name}},</p><p>A reserva foi aceite por ambas as partes. Conclua o pagamento para desbloquear o chat e confirmar a reserva.</p><p>— A equipa HopeTSIT</p><p><a href=\"hopetsit://pay/{{bookingId}}\" style=\"display:inline-block;padding:12px 24px;background:#EF4324;color:#FFFFFF;text-decoration:none;border-radius:8px;font-weight:700;font-family:sans-serif;\">Pagar agora</a></p><p style=\"color:#666;font-size:12px;\">Se o botão não funcionar, abre a app HoPetSit manualmente.</p>"
+    "emailBody": "<p>Olá {{name}},</p><p>A reserva foi aceite por ambas as partes. Conclua o pagamento para desbloquear o chat e confirmar a reserva.</p><p>— A equipa HopeTSIT</p><p><a href=\"{{emailLink}}\" style=\"display:inline-block;padding:12px 24px;background:#EF4324;color:#FFFFFF;text-decoration:none;border-radius:8px;font-weight:700;font-family:sans-serif;\">Pagar agora</a></p><p style=\"color:#666;font-size:12px;\">Se o botão não funcionar, copia este link no teu navegador: {{emailLink}}</p>"
   },
   "new_request_nearby": {
     "title": "Novo anúncio perto de ti",
@@ -15,13 +15,13 @@
     "title": "Novo pedido de reserva",
     "body": "Recebeste um novo pedido de reserva.",
     "emailSubject": "Novo pedido de reserva — HopeTSIT",
-    "emailBody": "<p>Recebeste um novo pedido de reserva no HopeTSIT. Abre a app para o visualizar.</p><p><a href=\"hopetsit://bookings/{{bookingId}}\" style=\"display:inline-block;padding:12px 24px;background:#16A34A;color:#FFFFFF;text-decoration:none;border-radius:8px;font-weight:700;font-family:sans-serif;\">Ver pedido</a></p><p style=\"color:#666;font-size:12px;\">Se o botão não funcionar, abre a app HoPetSit manualmente.</p>"
+    "emailBody": "<p>Recebeste um novo pedido de reserva no HopeTSIT. Abre a app para o visualizar.</p><p><a href=\"{{emailLink}}\" style=\"display:inline-block;padding:12px 24px;background:#16A34A;color:#FFFFFF;text-decoration:none;border-radius:8px;font-weight:700;font-family:sans-serif;\">Ver pedido</a></p><p style=\"color:#666;font-size:12px;\">Se o botão não funcionar, copia este link no teu navegador: {{emailLink}}</p>"
   },
   "booking_accepted": {
     "title": "Reserva aceite",
     "body": "O teu pedido foi aceite. Procedes ao pagamento.",
     "emailSubject": "A tua reserva foi aceite — HoPetSit",
-    "emailBody": "<p>Boas notícias! O teu pedido de reserva foi aceite.</p><p><a href=\"hopetsit://pay/{{bookingId}}\" style=\"display:inline-block;padding:12px 24px;background:#EF4324;color:#FFFFFF;text-decoration:none;border-radius:8px;font-weight:700;font-family:sans-serif;\">Pagar agora</a></p><p style=\"color:#666;font-size:12px;\">Se o botão não funcionar, abre a app HoPetSit manualmente.</p>"
+    "emailBody": "<p>Boas notícias! O teu pedido de reserva foi aceite.</p><p><a href=\"{{emailLink}}\" style=\"display:inline-block;padding:12px 24px;background:#EF4324;color:#FFFFFF;text-decoration:none;border-radius:8px;font-weight:700;font-family:sans-serif;\">Pagar agora</a></p><p style=\"color:#666;font-size:12px;\">Se o botão não funcionar, copia este link no teu navegador: {{emailLink}}</p>"
   },
   "booking_rejected": {
     "title": "Reserva recusada",
@@ -33,7 +33,7 @@
     "title": "Nova candidatura",
     "body": "Um prestador enviou-te um pedido.",
     "emailSubject": "Nova candidatura — HopeTSIT",
-    "emailBody": "<p>Um prestador candidatou-se ao teu anúncio. Abre a app para a examinar.</p><p><a href=\"hopetsit://bookings\" style=\"display:inline-block;padding:12px 24px;background:#EF4324;color:#FFFFFF;text-decoration:none;border-radius:8px;font-weight:700;font-family:sans-serif;\">Ver candidatura</a></p><p style=\"color:#666;font-size:12px;\">Se o botão não funcionar, abre a app HoPetSit manualmente.</p>"
+    "emailBody": "<p>Um prestador candidatou-se ao teu anúncio. Abre a app para a examinar.</p><p><a href=\"{{emailLink}}\" style=\"display:inline-block;padding:12px 24px;background:#EF4324;color:#FFFFFF;text-decoration:none;border-radius:8px;font-weight:700;font-family:sans-serif;\">Ver candidatura</a></p><p style=\"color:#666;font-size:12px;\">Se o botão não funcionar, copia este link no teu navegador: {{emailLink}}</p>"
   },
   "application_accepted": {
     "title": "Candidatura aceite",
@@ -51,7 +51,7 @@
     "title": "Nova mensagem de {{senderName}}",
     "body": "{{preview}}",
     "emailSubject": "Nova mensagem no HopeTSIT",
-    "emailBody": "<p><strong>{{senderName}}</strong> enviou-lhe uma nova mensagem:</p><blockquote>{{preview}}</blockquote><p>Abra a aplicação para responder.</p><p><a href=\"hopetsit://chat/{{conversationId}}\" style=\"display:inline-block;padding:12px 24px;background:#2563EB;color:#FFFFFF;text-decoration:none;border-radius:8px;font-weight:700;font-family:sans-serif;\">Abrir conversa</a></p><p style=\"color:#666;font-size:12px;\">Se o botão não funcionar, abre a app HoPetSit manualmente.</p>"
+    "emailBody": "<p><strong>{{senderName}}</strong> enviou-lhe uma nova mensagem:</p><blockquote>{{preview}}</blockquote><p>Abra a aplicação para responder.</p><p><a href=\"{{emailLink}}\" style=\"display:inline-block;padding:12px 24px;background:#2563EB;color:#FFFFFF;text-decoration:none;border-radius:8px;font-weight:700;font-family:sans-serif;\">Abrir conversa</a></p><p style=\"color:#666;font-size:12px;\">Se o botão não funcionar, copia este link no teu navegador: {{emailLink}}</p>"
   },
   "NEW_REVIEW": {
     "title": "Recebeu uma nova avaliação",
@@ -117,12 +117,12 @@
     "title": "Pagamento recebido!",
     "body": "O proprietário pagou a sua reserva. Já pode conversar no chat para combinar os detalhes.",
     "emailSubject": "Pagamento recebido — HoPetSit",
-    "emailBody": "<p>Boas notícias! O pagamento da reserva acabou de ser confirmado. Já pode conversar com o proprietário para combinar o local e a hora do serviço.</p><p><a href=\"hopetsit://bookings/{{bookingId}}\" style=\"display:inline-block;padding:12px 24px;background:#16A34A;color:#FFFFFF;text-decoration:none;border-radius:8px;font-weight:700;font-family:sans-serif;\">Ver reserva</a></p><p style=\"color:#666;font-size:12px;\">Se o botão não funcionar, abra a app HoPetSit manualmente.</p>"
+    "emailBody": "<p>Boas notícias! O pagamento da reserva acabou de ser confirmado. Já pode conversar com o proprietário para combinar o local e a hora do serviço.</p><p><a href=\"{{emailLink}}\" style=\"display:inline-block;padding:12px 24px;background:#16A34A;color:#FFFFFF;text-decoration:none;border-radius:8px;font-weight:700;font-family:sans-serif;\">Ver reserva</a></p><p style=\"color:#666;font-size:12px;\">Se o botão não funcionar, copia este link no teu navegador: {{emailLink}}</p>"
   },
   "booking_paid_owner": {
     "title": "Pagamento confirmado",
     "body": "O seu pagamento foi registado. A reserva está ativa — converse com o seu prestador para combinar os detalhes.",
     "emailSubject": "O seu pagamento está confirmado — HoPetSit",
-    "emailBody": "<p>O seu pagamento acaba de ser confirmado. A sua reserva está agora <strong>ativa</strong>. Abra a app HoPetSit para conversar com o seu prestador e combinar os últimos detalhes.</p><p><a href=\"hopetsit://bookings/{{bookingId}}\" style=\"display:inline-block;padding:12px 24px;background:#16A34A;color:#FFFFFF;text-decoration:none;border-radius:8px;font-weight:700;font-family:sans-serif;\">Ver reserva</a></p><p style=\"color:#666;font-size:12px;\">Se o botão não funcionar, abra a app HoPetSit manualmente.</p>"
+    "emailBody": "<p>O seu pagamento acaba de ser confirmado. A sua reserva está agora <strong>ativa</strong>. Abra a app HoPetSit para conversar com o seu prestador e combinar os últimos detalhes.</p><p><a href=\"{{emailLink}}\" style=\"display:inline-block;padding:12px 24px;background:#16A34A;color:#FFFFFF;text-decoration:none;border-radius:8px;font-weight:700;font-family:sans-serif;\">Ver reserva</a></p><p style=\"color:#666;font-size:12px;\">Se o botão não funcionar, copia este link no teu navegador: {{emailLink}}</p>"
   }
 }

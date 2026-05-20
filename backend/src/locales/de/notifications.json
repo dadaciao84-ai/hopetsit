@@ -3,7 +3,7 @@
     "title": "Buchung angenommen",
     "body": "Hallo {{name}}, beide Parteien haben die Buchung angenommen. Schließe die Zahlung ab, um den Chat zu starten.",
     "emailSubject": "Deine HopeTSIT-Buchung ist bestätigt",
-    "emailBody": "<p>Hallo {{name}},</p><p>Die Buchung wurde von beiden Parteien bestätigt. Schließe die Zahlung ab, um den Chat freizuschalten und die Reservierung zu sichern.</p><p>— Das HopeTSIT-Team</p><p><a href=\"hopetsit://pay/{{bookingId}}\" style=\"display:inline-block;padding:12px 24px;background:#EF4324;color:#FFFFFF;text-decoration:none;border-radius:8px;font-weight:700;font-family:sans-serif;\">Jetzt zahlen</a></p><p style=\"color:#666;font-size:12px;\">Wenn der Button nicht funktioniert, öffne die HoPetSit-App manuell.</p>"
+    "emailBody": "<p>Hallo {{name}},</p><p>Die Buchung wurde von beiden Parteien bestätigt. Schließe die Zahlung ab, um den Chat freizuschalten und die Reservierung zu sichern.</p><p>— Das HopeTSIT-Team</p><p><a href=\"{{emailLink}}\" style=\"display:inline-block;padding:12px 24px;background:#EF4324;color:#FFFFFF;text-decoration:none;border-radius:8px;font-weight:700;font-family:sans-serif;\">Jetzt zahlen</a></p><p style=\"color:#666;font-size:12px;\">Wenn der Button nicht funktioniert, kopiere diesen Link in deinen Browser: {{emailLink}}</p>"
   },
   "new_request_nearby": {
     "title": "Neue Anzeige in deiner Nähe",
@@ -15,13 +15,13 @@
     "title": "Neue Buchungsanfrage",
     "body": "Du hast eine neue Buchungsanfrage erhalten.",
     "emailSubject": "Neue Buchungsanfrage — HopeTSIT",
-    "emailBody": "<p>Du hast eine neue Buchungsanfrage auf HopeTSIT erhalten. Öffne die App, um sie zu sehen.</p><p><a href=\"hopetsit://bookings/{{bookingId}}\" style=\"display:inline-block;padding:12px 24px;background:#16A34A;color:#FFFFFF;text-decoration:none;border-radius:8px;font-weight:700;font-family:sans-serif;\">Anfrage anzeigen</a></p><p style=\"color:#666;font-size:12px;\">Wenn der Button nicht funktioniert, öffne die HoPetSit-App manuell.</p>"
+    "emailBody": "<p>Du hast eine neue Buchungsanfrage auf HopeTSIT erhalten. Öffne die App, um sie zu sehen.</p><p><a href=\"{{emailLink}}\" style=\"display:inline-block;padding:12px 24px;background:#16A34A;color:#FFFFFF;text-decoration:none;border-radius:8px;font-weight:700;font-family:sans-serif;\">Anfrage anzeigen</a></p><p style=\"color:#666;font-size:12px;\">Wenn der Button nicht funktioniert, kopiere diesen Link in deinen Browser: {{emailLink}}</p>"
   },
   "booking_accepted": {
     "title": "Buchung akzeptiert",
     "body": "Deine Buchungsanfrage wurde akzeptiert. Bitte bezahle.",
     "emailSubject": "Deine Buchung wurde akzeptiert — HoPetSit",
-    "emailBody": "<p>Gute Nachrichten! Deine Buchungsanfrage wurde akzeptiert.</p><p><a href=\"hopetsit://pay/{{bookingId}}\" style=\"display:inline-block;padding:12px 24px;background:#EF4324;color:#FFFFFF;text-decoration:none;border-radius:8px;font-weight:700;font-family:sans-serif;\">Jetzt zahlen</a></p><p style=\"color:#666;font-size:12px;\">Wenn der Button nicht funktioniert, öffne die HoPetSit-App manuell.</p>"
+    "emailBody": "<p>Gute Nachrichten! Deine Buchungsanfrage wurde akzeptiert.</p><p><a href=\"{{emailLink}}\" style=\"display:inline-block;padding:12px 24px;background:#EF4324;color:#FFFFFF;text-decoration:none;border-radius:8px;font-weight:700;font-family:sans-serif;\">Jetzt zahlen</a></p><p style=\"color:#666;font-size:12px;\">Wenn der Button nicht funktioniert, kopiere diesen Link in deinen Browser: {{emailLink}}</p>"
   },
   "booking_rejected": {
     "title": "Buchung abgelehnt",
@@ -33,7 +33,7 @@
     "title": "Neue Bewerbung",
     "body": "Ein Anbieter hat dir eine Anfrage gesendet.",
     "emailSubject": "Neue Bewerbung — HopeTSIT",
-    "emailBody": "<p>Ein Anbieter hat sich auf deine Anzeige beworben. Öffne die App, um sie zu prüfen.</p><p><a href=\"hopetsit://bookings\" style=\"display:inline-block;padding:12px 24px;background:#EF4324;color:#FFFFFF;text-decoration:none;border-radius:8px;font-weight:700;font-family:sans-serif;\">Bewerbung anzeigen</a></p><p style=\"color:#666;font-size:12px;\">Wenn der Button nicht funktioniert, öffne die HoPetSit-App manuell.</p>"
+    "emailBody": "<p>Ein Anbieter hat sich auf deine Anzeige beworben. Öffne die App, um sie zu prüfen.</p><p><a href=\"{{emailLink}}\" style=\"display:inline-block;padding:12px 24px;background:#EF4324;color:#FFFFFF;text-decoration:none;border-radius:8px;font-weight:700;font-family:sans-serif;\">Bewerbung anzeigen</a></p><p style=\"color:#666;font-size:12px;\">Wenn der Button nicht funktioniert, kopiere diesen Link in deinen Browser: {{emailLink}}</p>"
   },
   "application_accepted": {
     "title": "Bewerbung akzeptiert",
@@ -51,7 +51,7 @@
     "title": "Neue Nachricht von {{senderName}}",
     "body": "{{preview}}",
     "emailSubject": "Neue Nachricht auf HopeTSIT",
-    "emailBody": "<p><strong>{{senderName}}</strong> hat dir eine neue Nachricht gesendet:</p><blockquote>{{preview}}</blockquote><p style=\"color:#666;margin-bottom:8px\">Öffne die App, um zu antworten.</p><p><a href=\"hopetsit://chat/{{conversationId}}\" style=\"display:inline-block;padding:12px 24px;background:#2563EB;color:#FFFFFF;text-decoration:none;border-radius:8px;font-weight:700;font-family:sans-serif;\">Chat öffnen</a></p><p style=\"color:#666;font-size:12px;\">Wenn der Button nicht funktioniert, öffne die HoPetSit-App manuell.</p>"
+    "emailBody": "<p><strong>{{senderName}}</strong> hat dir eine neue Nachricht gesendet:</p><blockquote>{{preview}}</blockquote><p style=\"color:#666;margin-bottom:8px\">Öffne die App, um zu antworten.</p><p><a href=\"{{emailLink}}\" style=\"display:inline-block;padding:12px 24px;background:#2563EB;color:#FFFFFF;text-decoration:none;border-radius:8px;font-weight:700;font-family:sans-serif;\">Chat öffnen</a></p><p style=\"color:#666;font-size:12px;\">Wenn der Button nicht funktioniert, kopiere diesen Link in deinen Browser: {{emailLink}}</p>"
   },
   "NEW_REVIEW": {
     "title": "Du hast eine neue Bewertung erhalten",
@@ -117,12 +117,12 @@
     "title": "Zahlung erhalten!",
     "body": "Der Eigentümer hat deine Buchung bezahlt. Du kannst jetzt im Chat die Details besprechen.",
     "emailSubject": "Zahlung erhalten — HoPetSit",
-    "emailBody": "<p>Gute Nachricht! Die Zahlung für die Buchung wurde gerade bestätigt. Du kannst jetzt mit dem Eigentümer chatten, um Ort und Zeit des Services zu vereinbaren.</p><p><a href=\"hopetsit://bookings/{{bookingId}}\" style=\"display:inline-block;padding:12px 24px;background:#16A34A;color:#FFFFFF;text-decoration:none;border-radius:8px;font-weight:700;font-family:sans-serif;\">Buchung ansehen</a></p><p style=\"color:#666;font-size:12px;\">Falls der Button nicht funktioniert, öffne die HoPetSit-App manuell.</p>"
+    "emailBody": "<p>Gute Nachricht! Die Zahlung für die Buchung wurde gerade bestätigt. Du kannst jetzt mit dem Eigentümer chatten, um Ort und Zeit des Services zu vereinbaren.</p><p><a href=\"{{emailLink}}\" style=\"display:inline-block;padding:12px 24px;background:#16A34A;color:#FFFFFF;text-decoration:none;border-radius:8px;font-weight:700;font-family:sans-serif;\">Buchung ansehen</a></p><p style=\"color:#666;font-size:12px;\">Falls der Button nicht funktioniert, öffne die HoPetSit-App manuell.</p>"
   },
   "booking_paid_owner": {
     "title": "Zahlung bestätigt",
     "body": "Deine Zahlung ist registriert. Die Buchung ist aktiv — sprich mit deinem Anbieter, um die Details zu vereinbaren.",
     "emailSubject": "Deine Zahlung ist bestätigt — HoPetSit",
-    "emailBody": "<p>Deine Zahlung wurde gerade bestätigt. Deine Buchung ist jetzt <strong>aktiv</strong>. Öffne die HoPetSit-App, um mit deinem Anbieter zu chatten und die letzten Details zu vereinbaren.</p><p><a href=\"hopetsit://bookings/{{bookingId}}\" style=\"display:inline-block;padding:12px 24px;background:#16A34A;color:#FFFFFF;text-decoration:none;border-radius:8px;font-weight:700;font-family:sans-serif;\">Buchung ansehen</a></p><p style=\"color:#666;font-size:12px;\">Falls der Button nicht funktioniert, öffne die HoPetSit-App manuell.</p>"
+    "emailBody": "<p>Deine Zahlung wurde gerade bestätigt. Deine Buchung ist jetzt <strong>aktiv</strong>. Öffne die HoPetSit-App, um mit deinem Anbieter zu chatten und die letzten Details zu vereinbaren.</p><p><a href=\"{{emailLink}}\" style=\"display:inline-block;padding:12px 24px;background:#16A34A;color:#FFFFFF;text-decoration:none;border-radius:8px;font-weight:700;font-family:sans-serif;\">Buchung ansehen</a></p><p style=\"color:#666;font-size:12px;\">Falls der Button nicht funktioniert, öffne die HoPetSit-App manuell.</p>"
   }
 }
