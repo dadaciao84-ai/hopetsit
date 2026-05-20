@@ -89,12 +89,25 @@ class _SplashScreenState extends State<SplashScreen>
       final role = (json is Map && json['role'] is String)
           ? (json['role'] as String).toLowerCase()
           : null;
-      // Reject tokens that are already expired so we never auto-login a
-      // user whose backend session is dead.
+      // v23.1.154 — Daniel : "faite que lapli ne se ferme que si on met
+      // manuelment deconnecter". Avant : si le JWT etait expire, on
+      // retournait null → l'app forcait un retour a Onboarding (logout
+      // implicite). Maintenant on retourne le role meme si exp est
+      // depasse — les API calls renverront un 401 et le user verra un
+      // snackbar mais restera connecte tant qu'il ne fait pas Profil
+      // > Deconnecter. Le user peut reouvrir l'app sans devoir re-login
+      // a chaque expiration JWT silencieuse.
+      // (Le check d'expiration est conserve en debug pour info, mais
+      // non bloquant.)
       if (json is Map && json['exp'] is num) {
         final expSec = (json['exp'] as num).toInt();
         final nowSec = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-        if (expSec <= nowSec) return null;
+        if (expSec <= nowSec) {
+          debugPrint(
+            '[HOPETSIT] JWT exp passed ($expSec <= $nowSec) — '
+            'keeping user logged in (will see 401 on next API call).',
+          );
+        }
       }
       return (role != null && role.isNotEmpty) ? role : null;
     } catch (_) {

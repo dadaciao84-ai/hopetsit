@@ -81,8 +81,8 @@ class _InvoiceViewerScreenState extends State<InvoiceViewerScreen> {
   Future<void> _triggerPrint() async {
     try {
       CustomSnackbar.showInfo(
-        title: 'Téléchargement…',
-        message: 'Préparation du PDF',
+        title: 'invoice_download_preparing_title'.tr,
+        message: 'invoice_download_preparing_msg'.tr,
       );
       final safeNumber = widget.invoiceNumber.isNotEmpty
           ? widget.invoiceNumber.replaceAll(RegExp(r'[^A-Za-z0-9_-]'), '_')
@@ -127,6 +127,17 @@ class _InvoiceViewerScreenState extends State<InvoiceViewerScreen> {
     }
   }
 
+  /// v23.1.154 — Daniel : "faite que je puis enregistrer mon pdf facture
+  /// ds fichier du tel". Le bouton AppBar etait masque (actions: []) car
+  /// les boutons HTML internes etaient supposes suffire. Mais sur iOS le
+  /// share sheet montre "Save to Files" pas toujours visible au premier
+  /// coup d'oeil. On rajoute un IconButton explicite (download icon) dans
+  /// l'AppBar qui appelle directement _triggerPrint() → user voit l'option
+  /// "Enregistrer dans Fichiers" du share sheet.
+  Future<void> _saveToFiles() async {
+    await _triggerPrint();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -157,11 +168,19 @@ class _InvoiceViewerScreenState extends State<InvoiceViewerScreen> {
               ),
           ],
         ),
-        // v23.1 part 67 — Daniel : "Enlever icone blanche en haut a droite".
-        // The AppBar download icon was redundant : the invoice HTML itself
-        // shows a big orange "⬇ Télécharger PDF" button at the top AND a
-        // sticky one at the bottom (both calling Hopetsit.postMessage
-        // 'download' which pops out to the OS browser). actions: [] now.
+        // v23.1.154 — Daniel : "faite que je puis enregistrer mon pdf
+        // facture ds fichier du tel". On reintroduit l'icone download
+        // dans l'AppBar (apres le retrait part 67) avec un tooltip clair
+        // "Enregistrer dans Fichiers" — le bouton appelle _triggerPrint()
+        // qui ouvre le share sheet OS avec l'option "Save to Files" (iOS)
+        // ou "Save to Downloads" (Android) directement visible.
+        actions: [
+          IconButton(
+            tooltip: 'invoice_save_to_files'.tr,
+            icon: const Icon(Icons.save_alt, color: Colors.white),
+            onPressed: _saveToFiles,
+          ),
+        ],
       ),
       body: Stack(
         children: [

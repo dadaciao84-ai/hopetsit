@@ -7,6 +7,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:hopetsit/controllers/auth_controller.dart';
 import 'package:hopetsit/controllers/friend_controller.dart';
 import 'package:hopetsit/controllers/map_report_controller.dart';
+import 'package:hopetsit/controllers/map_boost_controller.dart';
 import 'package:hopetsit/controllers/paw_map_controller.dart';
 import 'package:hopetsit/controllers/subscription_controller.dart';
 import 'package:hopetsit/data/network/api_client.dart';
@@ -516,20 +517,81 @@ class _PawMapScreenState extends State<PawMapScreen> {
       );
     }
 
+    // v23.1.154 — Daniel : "les couleurs du halo pour pawspot marche pas".
+    // 1) On affiche maintenant le halo de l'utilisateur lui-meme s'il a
+    //    un map_boost actif (avant, il ne voyait que les halos des AUTRES
+    //    providers — son halo n'apparaissait jamais sur sa propre carte).
+    // 2) Tous les tiers ont desormais un halo distinct (pas seulement
+    //    Platinum), avec une couleur ET un rayon specifiques au tier :
+    //      bronze   → cuivre  (40m, petit)
+    //      silver   → argent  (80m, moyen)
+    //      gold     → dore    (120m, grand)
+    //      platinum → ambre   (160m, le plus large) + halo le plus
+    //                          intense (toujours l'effet "premium")
+    final phase = _haloPhase.value; // 0..1
+
+    Color tierColor(String tier) {
+      switch (tier) {
+        case 'bronze':
+          return const Color(0xFFB87333); // cuivre
+        case 'silver':
+          return const Color(0xFFB0B0B0); // argent
+        case 'gold':
+          return const Color(0xFFFFD700); // dore jaune
+        case 'platinum':
+        default:
+          return const Color(0xFFFFAA00); // ambre chaud
+      }
+    }
+
+    double tierMaxRadius(String tier) {
+      switch (tier) {
+        case 'bronze':
+          return 40.0;
+        case 'silver':
+          return 80.0;
+        case 'gold':
+          return 120.0;
+        case 'platinum':
+        default:
+          return 160.0;
+      }
+    }
+
+    // — Self-halo : le user voit son propre halo s'il a un map_boost actif.
+    final mapBoostCtl = Get.isRegistered<MapBoostController>()
+        ? Get.find<MapBoostController>()
+        : null;
+    final mapBoostStatus = mapBoostCtl?.status.value;
+    final selfTier = mapBoostStatus?.tier?.toLowerCase();
+    if (userPos != null &&
+        mapBoostStatus != null &&
+        mapBoostStatus.isActive &&
+        selfTier != null &&
+        selfTier.isNotEmpty) {
+      final selfColor = tierColor(selfTier);
+      final selfMax = tierMaxRadius(selfTier);
+      final selfRadius = 30.0 + (selfMax - 30.0) * phase;
+      final selfOpacity = (0.55 * (1.0 - phase)).clamp(0.0, 1.0);
+      circles.add(
+        Circle(
+          circleId: const CircleId('self_pawspot_halo'),
+          center: userPos,
+          radius: selfRadius,
+          fillColor: selfColor.withValues(alpha: selfOpacity * 0.5),
+          strokeColor: selfColor.withValues(alpha: selfOpacity),
+          strokeWidth: 2,
+        ),
+      );
+    }
+
     if (_isSitterOrWalker) return circles; // owner-only feature
     if (!_showProviders.value) return circles;
-    final phase = _haloPhase.value; // 0..1
-    // Radius grows from 30 → 160 m, opacity fades 0.45 → 0.
-    final radius = 30.0 + 130.0 * phase;
-    final opacity = (0.45 * (1.0 - phase)).clamp(0.0, 1.0);
-    // Platinum color = doré chaud (mêmes tons que le pin orange).
-    final fill = const Color(0xFFFFAA00).withValues(alpha: opacity * 0.55);
-    final stroke = const Color(0xFFFFAA00).withValues(alpha: opacity);
     for (final p in _nearbyProviders) {
       final isMapBoosted = p['isMapBoosted'] == true;
       if (!isMapBoosted) continue;
       final mapTier = (p['mapBoostTier'] ?? '').toString();
-      if (mapTier != 'platinum') continue;
+      // v23.1.154 — tous les tiers ont un halo (pas seulement platinum).
       final loc = p['location'] is Map ? p['location'] as Map : null;
       final coords = loc != null && loc['coordinates'] is List
           ? loc['coordinates'] as List
@@ -539,6 +601,13 @@ class _PawMapScreenState extends State<PawMapScreen> {
       final lat = (coords[1] as num).toDouble();
       final id = (p['id'] ?? p['_id'] ?? '').toString();
       if (id.isEmpty) continue;
+      // Color + radius depend on tier
+      final color = tierColor(mapTier);
+      final maxRadius = tierMaxRadius(mapTier);
+      final radius = 30.0 + (maxRadius - 30.0) * phase;
+      final opacity = (0.45 * (1.0 - phase)).clamp(0.0, 1.0);
+      final fill = color.withValues(alpha: opacity * 0.55);
+      final stroke = color.withValues(alpha: opacity);
       circles.add(
         Circle(
           circleId: CircleId('halo_$id'),

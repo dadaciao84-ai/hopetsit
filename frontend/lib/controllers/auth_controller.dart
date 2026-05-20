@@ -1448,28 +1448,37 @@ class AuthController extends GetxController {
         lower.contains('jwt');
   }
 
-  /// Handles "please login again" errors by logging out and routing to signin screen
-  /// This should be called whenever an error indicates the user needs to re-authenticate
+  /// v23.1.154 — Daniel : "faite que lapli ne se ferme que si on met
+  /// manuelment deconnecter". Avant : tout 401/403 entrainait un logout
+  /// + redirection forcee vers LoginScreen — frustrant quand le token
+  /// expire au milieu d'une session. Maintenant : on affiche juste un
+  /// snackbar discret pour signaler le probleme, et on laisse l'user
+  /// continuer (les ecrans qui ont besoin de l'API afficheront leurs
+  /// propres erreurs gracieusement). Seul le bouton "Deconnecter" dans
+  /// Profil declenche un vrai logout via `authController.logout()`.
+  ///
+  /// Note : ce changement evite aussi que l'app se "fermer" toute seule
+  /// quand un appel API non critique tombe en 401. Pour les ecrans
+  /// vraiment cassés (chat live qui se reconnecte sans cesse), la
+  /// reconnexion silencieuse continuera de retry — ils peuvent toujours
+  /// se deconnecter manuellement.
+  static bool _sessionExpiredSnackShown = false;
   static Future<void> handleLoginRequiredError() async {
     try {
-      // Get AuthController instance if available
-      if (Get.isRegistered<AuthController>()) {
-        final authController = Get.find<AuthController>();
-        await authController.logout();
-      } else {
-        // If AuthController is not registered, manually clear storage and navigate
-        final storage = GetStorage();
-        await storage.remove(StorageKeys.authToken);
-        await storage.remove(StorageKeys.userProfile);
-        await storage.remove(StorageKeys.userRole);
-        Get.offAll(() => const LoginScreen());
-      }
-    } catch (e) {
-      // Fallback: clear storage and navigate even if logout fails
-      final storage = GetStorage();
-      await storage.remove(StorageKeys.authToken);
-      await storage.remove(StorageKeys.userProfile);
-      Get.offAll(() => const LoginScreen());
+      if (_sessionExpiredSnackShown) return;
+      _sessionExpiredSnackShown = true;
+      // Show a one-shot warning. Don't logout, don't redirect.
+      CustomSnackbar.showWarning(
+        title: 'auth_session_expired_title'.tr,
+        message: 'auth_session_expired_msg'.tr,
+      );
+      // Reset the lock after 30s so it can show again on next failure.
+      Future.delayed(const Duration(seconds: 30), () {
+        _sessionExpiredSnackShown = false;
+      });
+    } catch (_) {
+      // Snackbar may fail if context unavailable — silently ignore.
+      // Critical : we NEVER auto-logout here.
     }
   }
 
