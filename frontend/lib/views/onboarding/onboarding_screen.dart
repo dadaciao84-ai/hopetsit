@@ -24,65 +24,60 @@ class OnboardingScreen extends StatelessWidget {
         width: double.infinity,
         height: double.infinity,
         decoration: BoxDecoration(
+          // v23.1.166 — Daniel a fourni un nouveau mockup : orange dominant
+          // sur ~80% de l'ecran, 3 cartes blanches verticales avec icone
+          // circulaire + titre + description, CTA orange en bas avec icone
+          // patte + fleche. Gradient dégradé du orange chaud au orange plus
+          // clair en bas pour adoucir la transition vers les CTA.
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: isDark
                 ? [
                     AppColors.primaryColor,
-                    AppColors.primaryColor.withValues(alpha: 0.85),
-                    AppColors.backgroundDark,
+                    AppColors.primaryColor.withValues(alpha: 0.92),
+                    AppColors.backgroundDark.withValues(alpha: 0.7),
                     AppColors.backgroundDark,
                   ]
                 : [
                     AppColors.primaryColor,
-                    AppColors.primaryColor.withValues(alpha: 0.9),
-                    Colors.white,
+                    const Color(0xFFFF6B45),
+                    const Color(0xFFFF9B7A),
                     Colors.white,
                   ],
-            // v23.1.165 — Daniel : "moin de blanc". Avant : orange jusqu'a
-            // 48% (zone blanche basse trop grande sur Android). Maintenant :
-            // 65% orange + transition douce sur 5% pour adoucir la coupure
-            // nette → moins de blanc visible, fondu plus naturel.
-            stops: const [0.0, 0.60, 0.65, 1.0],
+            stops: const [0.0, 0.55, 0.78, 1.0],
           ),
         ),
-        // v22.2 — Bug 16e : structure Column + Expanded scrollable au-dessus
-        // / CTAs fixes en bas. Bouton "S'inscrire" toujours visible peu
-        // importe la taille d'ecran.
         child: SafeArea(
           child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 28.w),
+            padding: EdgeInsets.symmetric(horizontal: 20.w),
             child: Column(
               children: [
-                // v22.4 — SingleChildScrollView shrink-wrap (sans Expanded)
-                // pour ne plus gonfler artificiellement la zone scrollable.
-                // Le Spacer ci-dessous pousse le CTA en bas sur grands ecrans
-                // sans creer un vide blanc dans le scroll.
                 Flexible(
                   child: SingleChildScrollView(
                     child: Column(
                       children: [
-                        SizedBox(height: 16.h),
+                        SizedBox(height: 20.h),
 
-                        // v22.1 — Logo PNG raster proprement centre.
+                        // v23.1.166 — Logo plus grand (88w -> 130w) avec
+                        // bordure blanche + shadow plus prononcee.
                         Container(
-                          width: 88.w,
-                          height: 88.w,
+                          width: 130.w,
+                          height: 130.w,
                           decoration: BoxDecoration(
                             color: Colors.white,
-                            borderRadius: BorderRadius.circular(22.r),
+                            borderRadius: BorderRadius.circular(32.r),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.22),
-                                blurRadius: 20,
-                                offset: const Offset(0, 8),
+                                color: Colors.black.withValues(alpha: 0.25),
+                                blurRadius: 24,
+                                offset: const Offset(0, 10),
                               ),
                             ],
                           ),
-                          padding: EdgeInsets.all(8.w),
+                          padding: EdgeInsets.all(10.w),
                           child: ClipRRect(
-                            borderRadius: BorderRadius.circular(16.r),
+                            borderRadius: BorderRadius.circular(24.r),
                             child: Image.asset(
                               'assets/brand/png/apple-icon-original.png',
                               fit: BoxFit.cover,
@@ -90,55 +85,64 @@ class OnboardingScreen extends StatelessWidget {
                           ),
                         ),
 
-                        SizedBox(height: 12.h),
+                        SizedBox(height: 16.h),
 
                         PoppinsText(
                           text: 'HoPetSit',
-                          fontSize: 28.sp,
+                          fontSize: 36.sp,
                           fontWeight: FontWeight.w800,
                           color: Colors.white,
                         ),
 
-                        SizedBox(height: 4.h),
+                        SizedBox(height: 8.h),
 
                         InterText(
                           text: 'onboarding_tagline'.tr,
                           fontSize: 14.sp,
-                          fontWeight: FontWeight.w400,
-                          color: Colors.white.withValues(alpha: 0.85),
+                          fontWeight: FontWeight.w500,
+                          color: Colors.white,
                           textAlign: TextAlign.center,
                         ),
 
-                        SizedBox(height: 22.h),
+                        SizedBox(height: 26.h),
 
-                        // 3 chips Pet-sitting / PawMap / PawFollow
-                        // v22.4 — chaque chip wrappe dans Expanded pour garantir
-                        // 1/3 de la largeur a chacun → plus de label qui deborde
-                        // ni d'effet "tordu" sur la Row.
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _FeatureChip(
-                                icon: Icons.pets,
-                                label: 'onboarding_feature_trusted'.tr,
+                        // v23.1.166 — 3 cartes verticales (au lieu de chips
+                        // empilees horizontalement). Chaque carte : fond
+                        // blanc + icone circulaire orange + titre + description.
+                        IntrinsicHeight(
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Expanded(
+                                child: _FeatureCard(
+                                  icon: Icons.pets,
+                                  title: 'onboarding_feature_trusted'.tr,
+                                  description:
+                                      'onboarding_feature_trusted_desc'.tr,
+                                ),
                               ),
-                            ),
-                            Expanded(
-                              child: _FeatureChip(
-                                icon: Icons.map_outlined,
-                                label: 'onboarding_feature_chat'.tr,
+                              SizedBox(width: 10.w),
+                              Expanded(
+                                child: _FeatureCard(
+                                  icon: Icons.map_outlined,
+                                  title: 'onboarding_feature_chat'.tr,
+                                  description: 'onboarding_feature_chat_desc'.tr,
+                                ),
                               ),
-                            ),
-                            Expanded(
-                              child: _FeatureChip(
-                                icon: Icons.family_restroom,
-                                label: 'onboarding_feature_nearby'.tr,
+                              SizedBox(width: 10.w),
+                              Expanded(
+                                child: _FeatureCard(
+                                  icon: Icons.family_restroom,
+                                  title: 'onboarding_feature_nearby'.tr,
+                                  description:
+                                      'onboarding_feature_nearby_desc'.tr,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
 
-                        SizedBox(height: 12.h),
+                        SizedBox(height: 20.h),
                       ],
                     ),
                   ),
@@ -158,9 +162,39 @@ class OnboardingScreen extends StatelessWidget {
                   ),
                   child: Column(
                     children: [
+                      // v23.1.166 — Daniel mockup : S'inscrire avec icone
+                      // patte ronde a gauche + fleche a droite, fond orange.
                       CustomButton(
-                        title: 'onboarding_signup'.tr,
                         onTap: () => Get.to(() => SignUpAsScreen()),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Container(
+                              width: 36.w,
+                              height: 36.w,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.22),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.pets,
+                                size: 18.sp,
+                                color: Colors.white,
+                              ),
+                            ),
+                            PoppinsText(
+                              text: 'onboarding_signup'.tr,
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                            Icon(
+                              Icons.arrow_forward_ios_rounded,
+                              size: 16.sp,
+                              color: Colors.white,
+                            ),
+                          ],
+                        ),
                       ),
 
                       SizedBox(height: 10.h),
@@ -272,47 +306,71 @@ class OnboardingScreen extends StatelessWidget {
 }
 
 /// Small feature highlight chip for the onboarding hero area.
-class _FeatureChip extends StatelessWidget {
+/// v23.1.166 — Daniel a fourni un mockup avec 3 cartes verticales (au lieu
+/// de chips horizontales). Chaque carte = fond blanc + icone circulaire
+/// orange + titre + description courte. Layout : Column dans une Card,
+/// Row IntrinsicHeight au parent pour egaliser les hauteurs.
+class _FeatureCard extends StatelessWidget {
   final IconData icon;
-  final String label;
+  final String title;
+  final String description;
 
-  const _FeatureChip({required this.icon, required this.label});
+  const _FeatureCard({
+    required this.icon,
+    required this.title,
+    required this.description,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        // v23.1.165 — Daniel : "les 3 icones plus grande". Avant 54.w → 80.w
-        // (+48%), icone interne 26.sp → 38.sp, border radius 18 → 22, et
-        // ombre intensifiee pour donner plus de presence visuelle.
-        Container(
-          width: 80.w,
-          height: 80.w,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(22.r),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.18),
-                blurRadius: 14,
-                offset: const Offset(0, 4),
-              ),
-            ],
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 16.h),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20.r),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.10),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
           ),
-          child: Icon(icon, size: 38.sp, color: AppColors.primaryColor),
-        ),
-        SizedBox(height: 10.h),
-        // v23.1.165 — fontSize 10 → 12 (lisible avec icones plus grosses).
-        InterText(
-          text: label,
-          fontSize: 12.sp,
-          fontWeight: FontWeight.w700,
-          color: Colors.white,
-          textAlign: TextAlign.center,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-        ),
-      ],
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Icone circulaire orange-tinted (light orange bg, orange icon).
+          Container(
+            width: 56.w,
+            height: 56.w,
+            decoration: BoxDecoration(
+              color: AppColors.primaryColor.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, size: 28.sp, color: AppColors.primaryColor),
+          ),
+          SizedBox(height: 12.h),
+          PoppinsText(
+            text: title,
+            fontSize: 14.sp,
+            fontWeight: FontWeight.w700,
+            color: AppColors.blackColor,
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          SizedBox(height: 8.h),
+          InterText(
+            text: description,
+            fontSize: 11.sp,
+            fontWeight: FontWeight.w400,
+            color: AppColors.grey700Color,
+            textAlign: TextAlign.center,
+            maxLines: 4,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
     );
   }
 }

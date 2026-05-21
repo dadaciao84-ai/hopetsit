@@ -450,6 +450,9 @@ const Map<String, String> esESTranslations = <String, String>{
       'onboarding_feature_trusted': 'Cuidado',
       'onboarding_feature_chat': 'PawMap',
       'onboarding_feature_nearby': 'PawFollow',
+      'onboarding_feature_trusted_desc': 'Encuentra cuidadores de confianza cerca de ti.',
+      'onboarding_feature_chat_desc': 'Explora los lugares pet-friendly a tu alrededor en el mapa interactivo.',
+      'onboarding_feature_nearby_desc': 'Sigue las aventuras de tu mascota y comparte sus momentos.',
       'onboarding_or': 'o',
 
       'error_invalid_details_title': 'Datos no válidos',

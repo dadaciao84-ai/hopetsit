@@ -429,6 +429,9 @@ const Map<String, String> ptPTTranslations = <String, String>{
       'onboarding_feature_trusted': 'Pet-sitting',
       'onboarding_feature_chat': 'PawMap',
       'onboarding_feature_nearby': 'PawFollow',
+      'onboarding_feature_trusted_desc': 'Encontra pet-sitters de confiança perto de ti.',
+      'onboarding_feature_chat_desc': 'Explora os locais pet-friendly à tua volta no mapa interativo.',
+      'onboarding_feature_nearby_desc': 'Segue as aventuras do teu animal e partilha os seus momentos.',
       'onboarding_or': 'ou',
 
       // Validation / errors
