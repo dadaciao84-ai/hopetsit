@@ -36,7 +36,7 @@ from reportlab.platypus import (
 OUTPUT = os.path.join(
     os.path.expanduser("~"),
     "Downloads",
-    "HopeTSIT_iOS_Build_Guide_v23.1.170.pdf",
+    "HopeTSIT_iOS_Build_Guide_v23.1.171.pdf",
 )
 
 # ─── Brand colors ──────────────────────────────────────────────────────────
@@ -137,7 +137,7 @@ def build():
         rightMargin=2 * cm,
         topMargin=2 * cm,
         bottomMargin=2 * cm,
-        title="HopeTSIT — iOS Build Guide v23.1.170",
+        title="HopeTSIT — iOS Build Guide v23.1.171",
         author="HopeTSIT",
     )
     story = []
@@ -185,12 +185,39 @@ def build():
     # ─── Changelog v146 → v170 ─────────────────────────────────────────────
     story.append(p("Nouveautés depuis v23.1.146", H1))
     story.append(p(
-        "Ce build iOS doit être généré sur la base du code source <b>v23.1.170</b>. "
+        "Ce build iOS doit être généré sur la base du code source <b>v23.1.171</b>. "
         "Voici les corrections et améliorations majeures introduites entre les "
         "deux versions. Toutes sont déjà appliquées dans le ZIP source que tu "
         "as reçu : tu n'as rien à modifier côté code, juste à rebuilder.",
         BODY,
     ))
+
+    story.append(p("v23.1.171 — Re-fix Suivre end-to-end + croix signalement + Famille", H3))
+    story.append(bullet("<b>Croix de fermeture déplacée</b> : la croix avait "
+                        "été mise sur la mauvaise page (bug_report_screen) en "
+                        "v170. Maintenant sur le BON fichier "
+                        "<i>create_report_sheet.dart</i> = bottom sheet "
+                        "« Signaler autour de moi » de la PawMap."))
+    story.append(bullet("<b>Suivre walker/sitter end-to-end</b> : quand le "
+                        "walker/sitter tape « Suis-moi », l'app capture sa "
+                        "position GPS via Geolocator et l'envoie au backend "
+                        "qui met à jour Walker.location.coordinates. Quand "
+                        "l'owner tape « Suivre walker », il voit maintenant "
+                        "une VRAIE position au lieu de NO_LOCATION_YET."))
+    story.append(bullet("<b>Suivi famille PawFollow Famille €9.99</b> : "
+                        "nouveau champ <i>UserSubscription.familyMembers[]</i> "
+                        "(max 4 membres × 1 titulaire = 5). Helper "
+                        "<i>isInSameFamily(userA, userB)</i> côté backend. "
+                        "3 nouvelles routes : GET /friends/:id/track-access, "
+                        "POST /friends/family/invite-member, "
+                        "DELETE /friends/family/member/:id."))
+    story.append(bullet("<b>Tap sur friend tile</b> : appelle maintenant "
+                        "/track-access qui retourne canTrack=true si l'ami "
+                        "partage sa position OU si famille active. Ouvre "
+                        "PawMap si canTrack, sinon snackbar explicatif."))
+    story.append(bullet("<b>Catch-all Next.js</b> : remplacé l'icône logo.png "
+                        "(qui n'existe pas dans /public) par une patte emoji "
+                        "🐾 sur fond orange pour éviter l'icône cassée."))
 
     story.append(p("v23.1.170 — Crash chat + Suivre + Invite + Emails 404", H3))
     story.append(bullet("<b>Crash chat post-paiement walker</b> : le webhook "

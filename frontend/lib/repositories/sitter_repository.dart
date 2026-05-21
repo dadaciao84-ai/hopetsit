@@ -243,13 +243,23 @@ class SitterRepository {
 
   /// v23.1.170 — POST /bookings/:id/follow-request
   /// Bouton "Suis-moi" côté sitter/walker. Envoie une notif push au owner
-  /// pour proposer le suivi live. Retourne { success, bookingId, ownerNotified }.
+  /// pour proposer le suivi live. Si lat/lng fournis, le backend persiste
+  /// la position dans Walker.location / Sitter.location pour que l'owner
+  /// puisse la récupérer via /provider-location dès le clic Suivre.
+  /// Retourne { success, bookingId, ownerNotified }.
   Future<Map<String, dynamic>> requestLiveTracking({
     required String bookingId,
+    double? lat,
+    double? lng,
   }) async {
+    final body = <String, dynamic>{};
+    if (lat != null && lng != null) {
+      body['lat'] = lat;
+      body['lng'] = lng;
+    }
     final response = await _apiClient.post(
       '${ApiEndpoints.bookings}/$bookingId/follow-request',
-      body: const {},
+      body: body,
       requiresAuth: true,
     );
     if (response is Map<String, dynamic>) return response;

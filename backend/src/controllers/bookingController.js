@@ -4323,6 +4323,33 @@ const requestLiveTracking = async (req, res) => {
       return res.status(404).json({ error: 'Owner not found on booking.' });
     }
 
+    // v23.1.170-fix — Daniel : "que owner suive ma balade". Pour que
+    // /provider-location renvoie une position au lieu de NO_LOCATION_YET,
+    // on persiste les coordonnées GPS envoyées par le client dans le
+    // document Walker / Sitter. Le client envoie { lat, lng } dans le body.
+    try {
+      const { lat, lng } = req.body || {};
+      const hasCoords =
+        typeof lat === 'number' && typeof lng === 'number' &&
+        !Number.isNaN(lat) && !Number.isNaN(lng);
+      if (hasCoords) {
+        const Walker = require('../models/Walker');
+        const Sitter = require('../models/Sitter');
+        const update = {
+          'location.type': 'Point',
+          'location.coordinates': [lng, lat],
+          'location.updatedAt': new Date(),
+        };
+        if (userRole === 'walker') {
+          await Walker.findByIdAndUpdate(userId, { $set: update });
+        } else if (userRole === 'sitter') {
+          await Sitter.findByIdAndUpdate(userId, { $set: update });
+        }
+      }
+    } catch (e) {
+      logger.warn('[booking.requestLiveTracking] location update failed', e);
+    }
+
     // Push notif à l'owner avec deep-link vers la LiveWalkMapScreen.
     try {
       const { sendNotification } = require('../services/notificationSender');

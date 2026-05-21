@@ -237,6 +237,31 @@ const userSubscriptionSchema = new mongoose.Schema(
     // PawSpot monthly credit ledger
     mapBoostCreditsRemaining: { type: Number, default: 0, min: 0 },
     mapBoostCreditsResetAt: { type: Date, default: null },
+
+    // v23.1.170 — Daniel : "fais le suivi famille en plus". PawFollow
+    // Famille (€9.99/mois) inclut jusqu'à 5 membres tracking. Cette liste
+    // contient les userId des 4 autres membres (le titulaire de l'abo est
+    // déjà identifié par userId du document). On stocke aussi le userModel
+    // de chaque membre pour pouvoir requêter Owner / Sitter / Walker.
+    //
+    // Sécurité : un user ne peut être dans la famille qu'UNE seule fois
+    // (cf. service helper isInSameFamily ci-dessous). Si le titulaire
+    // annule son abo, la liste est conservée pour le réabonnement futur,
+    // mais isInSameFamily renvoie false dès que la sub n'est plus active.
+    familyMembers: [
+      {
+        userId: { type: mongoose.Schema.Types.ObjectId, required: true },
+        userModel: {
+          type: String,
+          enum: ['Owner', 'Sitter', 'Walker'],
+          required: true,
+        },
+        addedAt: { type: Date, default: Date.now },
+        // Optionnel : l'email saisi par le titulaire (utile si l'invité
+        // n'a pas encore créé son compte — feature future).
+        email: String,
+      },
+    ],
   },
   { timestamps: true }
 );
@@ -255,11 +280,69 @@ userSubscriptionSchema.methods.isCurrentlyPremium = function isCurrentlyPremium(
   return new Date(this.currentPeriodEnd) > new Date();
 };
 
+/**
+ * v23.1.170 — Helper : retourne true si userA et userB sont membres de la
+ * même famille PawFollow Famille (peu importe qui est le titulaire). Pour
+ * que ça soit "actif", il faut que la sub du titulaire soit active +
+ * currentPeriodEnd dans le futur.
+ *
+ * Logique :
+ *   - On charge toutes les subs `famille` actives qui contiennent userA
+ *     en titulaire OU dans familyMembers
+ *   - Pour chacune, on vérifie si userB y figure aussi
+ *   - Si oui → même famille.
+ *
+ * @param {string} userAId - ObjectId string
+ * @param {string} userBId - ObjectId string
+ * @returns {Promise<boolean>}
+ */
+async function isInSameFamily(userAId, userBId) {
+  if (!userAId || !userBId) return false;
+  const a = String(userAId);
+  const b = String(userBId);
+  if (a === b) return true;
+  const Model = mongoose.model('UserSubscription');
+  const now = new Date();
+  // Sub où A est titulaire ET active ET famille → vérifier si B est dedans
+  const subA = await Model.findOne({
+    userId: a,
+    plan: 'famille',
+    status: 'active',
+    currentPeriodEnd: { $gt: now },
+  }).lean();
+  if (subA && Array.isArray(subA.familyMembers)) {
+    if (subA.familyMembers.some((m) => String(m.userId) === b)) return true;
+  }
+  // Sub où B est titulaire ET active ET famille → vérifier si A est dedans
+  const subB = await Model.findOne({
+    userId: b,
+    plan: 'famille',
+    status: 'active',
+    currentPeriodEnd: { $gt: now },
+  }).lean();
+  if (subB && Array.isArray(subB.familyMembers)) {
+    if (subB.familyMembers.some((m) => String(m.userId) === a)) return true;
+  }
+  // Subs où A figure en family member → vérifier si B figure dans la même
+  const subsContainingA = await Model.find({
+    'familyMembers.userId': a,
+    plan: 'famille',
+    status: 'active',
+    currentPeriodEnd: { $gt: now },
+  }).lean();
+  for (const sub of subsContainingA) {
+    const memberIds = (sub.familyMembers || []).map((m) => String(m.userId));
+    if (memberIds.includes(b) || String(sub.userId) === b) return true;
+  }
+  return false;
+}
+
 module.exports = mongoose.model('UserSubscription', userSubscriptionSchema);
 module.exports.PREMIUM_PLANS = PREMIUM_PLANS;
 module.exports.PREMIUM_PLAN_INTERVALS = PREMIUM_PLAN_INTERVALS;
 module.exports.PREMIUM_PRICING = PREMIUM_PRICING;
 module.exports.PREMIUM_FEATURES_DEFAULT = PREMIUM_FEATURES_DEFAULT;
+module.exports.isInSameFamily = isInSameFamily;
 module.exports.getPlanPricing = getPlanPricing;
 module.exports.PAWFOLLOW_PLAN_INTERVALS = PAWFOLLOW_PLAN_INTERVALS;
 module.exports.PAWFOLLOW_PRICING = PAWFOLLOW_PRICING;

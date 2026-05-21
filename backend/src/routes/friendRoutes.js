@@ -334,4 +334,175 @@ router.post('/:id/share', requireAuth, async (req, res) => {
   }
 });
 
+// ── v23.1.170 — Suivi famille (PawFollow Famille €9.99) ───────────────────
+//
+// Daniel : "fais le suivi famille en plus, si une famille veux se suivre
+// que juste en cliquand sur le nom ds sa liste damis sa le geoloclaise".
+//
+// Trois routes :
+//   GET    /:id/track-access      → l'autre user peut-il être tracké ?
+//   POST   /family/invite-member  → ajouter un membre à ma famille (titulaire)
+//   DELETE /family/member/:userId → retirer un membre
+
+const UserSubscription = require('../models/UserSubscription');
+const { isInSameFamily } = require('../models/UserSubscription');
+
+/**
+ * GET /friends/:id/track-access
+ * Réponse : { canTrack: bool, reason: 'family' | 'shared' | 'none' | 'no_friendship' }
+ *
+ * Logique :
+ *   - Si pas amis (friendship.accepted) → canTrack=false, reason='no_friendship'
+ *   - Si même famille PawFollow Famille → canTrack=true, reason='family'
+ *   - Si l'autre a flag share-position=true vers moi → canTrack=true, reason='shared'
+ *   - Sinon canTrack=false, reason='none'
+ */
+router.get('/:id/track-access', requireAuth, async (req, res) => {
+  try {
+    const user = me(req);
+    const otherId = req.params.id;
+    if (!otherId) return res.status(400).json({ error: 'Friend id required.' });
+
+    // Friendship status check
+    const friendship = await Friendship.findOne({
+      status: 'accepted',
+      $or: [
+        { requesterId: user.id, addresseeId: otherId },
+        { requesterId: otherId, addresseeId: user.id },
+      ],
+    }).lean();
+    if (!friendship) {
+      return res.json({ canTrack: false, reason: 'no_friendship' });
+    }
+
+    // Family check
+    if (await isInSameFamily(user.id, otherId)) {
+      return res.json({ canTrack: true, reason: 'family' });
+    }
+
+    // Per-friendship share flag (the OTHER must share with me)
+    const otherSharesWithMe =
+      (String(friendship.requesterId) === String(otherId) &&
+        friendship.requesterShareWithAddressee === true) ||
+      (String(friendship.addresseeId) === String(otherId) &&
+        friendship.addresseeShareWithRequester === true);
+    if (otherSharesWithMe) {
+      return res.json({ canTrack: true, reason: 'shared' });
+    }
+
+    return res.json({ canTrack: false, reason: 'none' });
+  } catch (e) {
+    logger.error('[friends/track-access]', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+/**
+ * POST /friends/family/invite-member  body: { userId, userRole, email? }
+ * Le titulaire d'une sub PawFollow Famille active ajoute jusqu'à 4 membres.
+ * 403 si pas de sub famille active. 409 si déjà membre. 422 si limite atteinte.
+ */
+router.post('/family/invite-member', requireAuth, async (req, res) => {
+  try {
+    const user = me(req);
+    const { userId, userRole, email } = req.body || {};
+    if (!userId || !userRole) {
+      return res
+        .status(400)
+        .json({ error: 'userId and userRole are required.' });
+    }
+    const targetModel = ROLE_TO_MODEL_NAME[String(userRole).toLowerCase()];
+    if (!targetModel) {
+      return res.status(400).json({ error: 'Invalid userRole.' });
+    }
+    const now = new Date();
+    const sub = await UserSubscription.findOne({
+      userId: user.id,
+      userModel: user.model,
+      plan: 'famille',
+      status: 'active',
+      currentPeriodEnd: { $gt: now },
+    });
+    if (!sub) {
+      return res.status(403).json({
+        error: 'Active PawFollow Famille subscription required.',
+        code: 'FAMILY_PLAN_REQUIRED',
+      });
+    }
+    sub.familyMembers = sub.familyMembers || [];
+    if (sub.familyMembers.length >= 4) {
+      return res.status(422).json({
+        error: 'Family is full (4 members max in addition to you).',
+        code: 'FAMILY_FULL',
+      });
+    }
+    if (sub.familyMembers.some((m) => String(m.userId) === String(userId))) {
+      return res.status(409).json({ error: 'Already a family member.' });
+    }
+    sub.familyMembers.push({
+      userId,
+      userModel: targetModel,
+      email: email || undefined,
+      addedAt: now,
+    });
+    await sub.save();
+
+    // Push notif au nouveau membre.
+    try {
+      const { sendNotification } = require('../services/notificationSender');
+      await sendNotification({
+        userId,
+        userRole: String(userRole).toLowerCase(),
+        type: 'family_member_added',
+        title: 'family_member_added_title',
+        body: 'family_member_added_body',
+        data: { addedBy: String(user.id) },
+      });
+    } catch (_) {/* non-critical */}
+
+    res.status(201).json({
+      success: true,
+      familyMembersCount: sub.familyMembers.length,
+      remainingSlots: 4 - sub.familyMembers.length,
+    });
+  } catch (e) {
+    logger.error('[friends/family/invite-member]', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+/** DELETE /friends/family/member/:userId — titulaire retire un membre. */
+router.delete('/family/member/:userId', requireAuth, async (req, res) => {
+  try {
+    const user = me(req);
+    const targetId = req.params.userId;
+    const sub = await UserSubscription.findOne({
+      userId: user.id,
+      userModel: user.model,
+      plan: 'famille',
+    });
+    if (!sub) {
+      return res
+        .status(404)
+        .json({ error: 'No family subscription found.' });
+    }
+    const before = (sub.familyMembers || []).length;
+    sub.familyMembers = (sub.familyMembers || []).filter(
+      (m) => String(m.userId) !== String(targetId),
+    );
+    if (sub.familyMembers.length === before) {
+      return res.status(404).json({ error: 'Member not in family.' });
+    }
+    await sub.save();
+    res.json({
+      success: true,
+      familyMembersCount: sub.familyMembers.length,
+      remainingSlots: 4 - sub.familyMembers.length,
+    });
+  } catch (e) {
+    logger.error('[friends/family/member DELETE]', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 module.exports = router;

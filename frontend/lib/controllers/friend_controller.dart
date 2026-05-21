@@ -90,6 +90,23 @@ class FriendController extends GetxController {
     }
   }
 
+  /// v23.1.170 — GET /friends/:id/track-access
+  /// Renvoie { canTrack: bool, reason: 'family' | 'shared' | 'none' | 'no_friendship' }
+  Future<Map<String, dynamic>> checkTrackAccess(String otherUserId) async {
+    try {
+      final api = Get.find<ApiClient>();
+      final r = await api.get(
+        '/friends/$otherUserId/track-access',
+        requiresAuth: true,
+      );
+      if (r is Map) return Map<String, dynamic>.from(r);
+      return {'canTrack': false, 'reason': 'unknown'};
+    } catch (e) {
+      debugPrint('[Friends] checkTrackAccess error: $e');
+      return {'canTrack': false, 'reason': 'error'};
+    }
+  }
+
   Future<bool> accept(String friendshipId) async {
     try {
       final api = Get.find<ApiClient>();

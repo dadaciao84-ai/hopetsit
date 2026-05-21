@@ -183,6 +183,22 @@ class _CreateReportSheetState extends State<CreateReportSheet> {
                       color: AppColors.textPrimary(context),
                     ),
                   ),
+                  // v23.1.170-fix — Daniel : "sur la page signalement en
+                  // haut a droite met une croix pour fermer la page" —
+                  // c'est ce bottom sheet (Signaler autour de moi), pas
+                  // le bug_report_screen comme on l'avait cru en premier.
+                  IconButton(
+                    icon: Icon(Icons.close_rounded,
+                        size: 22.sp,
+                        color: AppColors.textSecondary(context)),
+                    tooltip: 'common_close'.tr,
+                    padding: EdgeInsets.zero,
+                    constraints: BoxConstraints(
+                      minWidth: 32.w,
+                      minHeight: 32.h,
+                    ),
+                    onPressed: () => Navigator.of(context).pop(false),
+                  ),
                 ],
               ),
               SizedBox(height: 2.h),

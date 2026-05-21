@@ -24,7 +24,6 @@
 // Cette implémentation évite la prolifération de 8 pages stubs identiques
 // (option (b) recommandée par l'audit).
 
-import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
@@ -133,15 +132,10 @@ export default function CatchAllPage({
   return (
     <main className="min-h-screen bg-gradient-to-br from-orange-50 to-white flex items-center justify-center px-4 py-12">
       <div className="max-w-md w-full bg-white rounded-3xl shadow-xl p-8 text-center">
-        <div className="mx-auto mb-6 w-20 h-20 rounded-2xl bg-orange-500 flex items-center justify-center text-white">
-          <Image
-            src="/logo.png"
-            alt="HoPetSit"
-            width={48}
-            height={48}
-            className="object-contain"
-            priority
-          />
+        {/* v23.1.171 — logo.png n'existe pas, on utilise un emoji + bg
+            orange pour éviter l'icône cassée. Le logo svg est sur la home. */}
+        <div className="mx-auto mb-6 w-20 h-20 rounded-2xl bg-orange-500 flex items-center justify-center text-white text-4xl">
+          🐾
         </div>
 
         <h1 className="text-2xl font-bold text-slate-900 mb-2">

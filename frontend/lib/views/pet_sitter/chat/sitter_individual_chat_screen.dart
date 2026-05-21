@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:hopetsit/controllers/sitter_chat_controller.dart';
 import 'package:hopetsit/repositories/sitter_repository.dart';
@@ -133,7 +134,31 @@ class _SitterIndividualChatScreenState
         );
         return;
       }
-      await repo.requestLiveTracking(bookingId: bookingId);
+      // v23.1.170-fix — Daniel : "que owner suive ma balade". Pour que ça
+      // marche end-to-end, il faut pousser MA position GPS au backend
+      // (sinon /provider-location renvoie NO_LOCATION_YET côté owner).
+      // On capture la position courante via geolocator avant le follow-request.
+      double? lat;
+      double? lng;
+      try {
+        final hasPermission = await Geolocator.checkPermission();
+        if (hasPermission == LocationPermission.denied) {
+          await Geolocator.requestPermission();
+        }
+        final pos = await Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.high,
+            timeLimit: Duration(seconds: 8),
+          ),
+        );
+        lat = pos.latitude;
+        lng = pos.longitude;
+      } catch (_) {/* on continue sans coords; backend renverra NO_LOCATION_YET */}
+      await repo.requestLiveTracking(
+        bookingId: bookingId,
+        lat: lat,
+        lng: lng,
+      );
       if (!mounted) return;
       CustomSnackbar.showSuccess(
         title: 'follow_request_sent_title'.tr,

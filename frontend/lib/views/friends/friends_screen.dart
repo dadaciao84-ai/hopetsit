@@ -382,23 +382,29 @@ class _FriendTile extends StatelessWidget {
 
     // v23.1.170 — Daniel : "si une famille veux se suivre que juste en
     // cliquand sur le nom ds sa liste damis par exemplet sa le geoloclaise".
-    // Tap sur la card → on ouvre directement la PawMap. La carte affiche
-    // déjà tous les amis qui partagent leur position via le socket
-    // `map:friend-position`. Si l'ami n'a pas activé son share, on affiche
-    // un snackbar explicatif pour lui demander d'activer.
+    // Tap sur la card → vérifie via /friends/:id/track-access si on peut
+    // tracker (famille PawFollow Famille auto, OU friend share-position
+    // activé), puis ouvre la PawMap. Sinon snackbar + lien upsell.
     return InkWell(
       borderRadius: BorderRadius.circular(16.r),
-      onTap: () {
-        final theyShareWithMe = friendship.theirSharePosition;
-        if (!theyShareWithMe) {
-          CustomSnackbar.showInfo(
-            title: 'friends_tap_not_shared_title'.tr,
-            message: 'friends_tap_not_shared_msg'
-                .trParams({'name': other.name.isEmpty ? '—' : other.name}),
-          );
+      onTap: () async {
+        // Quick local check : si l'ami partage avec moi → on évite l'aller-retour.
+        if (friendship.theirSharePosition) {
+          Get.to(() => const PawMapScreen());
           return;
         }
-        Get.to(() => const PawMapScreen());
+        // Sinon on demande au backend (la famille bypass le share flag).
+        final access = await controller.checkTrackAccess(other.id);
+        final canTrack = access['canTrack'] == true;
+        if (canTrack) {
+          Get.to(() => const PawMapScreen());
+          return;
+        }
+        CustomSnackbar.showInfo(
+          title: 'friends_tap_not_shared_title'.tr,
+          message: 'friends_tap_not_shared_msg'
+              .trParams({'name': other.name.isEmpty ? '—' : other.name}),
+        );
       },
       child: Container(
       padding: EdgeInsets.all(12.w),
