@@ -514,9 +514,9 @@ const Map<String, String> itITTranslations = <String, String>{
       'onboarding_feature_trusted': 'Pet-sitting',
       'onboarding_feature_chat': 'PawMap',
       'onboarding_feature_nearby': 'PawFollow',
-      'onboarding_feature_trusted_desc': 'Trova pet-sitter di fiducia vicino a te.',
-      'onboarding_feature_chat_desc': 'Esplora i luoghi pet-friendly intorno a te sulla mappa interattiva.',
-      'onboarding_feature_nearby_desc': 'Segui le avventure del tuo animale e condividi i suoi momenti.',
+      'onboarding_feature_trusted_desc': 'Sitter di fiducia vicino a te.',
+      'onboarding_feature_chat_desc': 'Luoghi pet-friendly vicino a te.',
+      'onboarding_feature_nearby_desc': 'Segui le avventure del tuo pet.',
       'onboarding_or': 'o',
 
       'error_invalid_details_title': 'Dati non validi',

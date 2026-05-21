@@ -36,7 +36,7 @@ from reportlab.platypus import (
 OUTPUT = os.path.join(
     os.path.expanduser("~"),
     "Downloads",
-    "HopeTSIT_iOS_Build_Guide_v23.1.146.pdf",
+    "HopeTSIT_iOS_Build_Guide_v23.1.168.pdf",
 )
 
 # ─── Brand colors ──────────────────────────────────────────────────────────
@@ -137,7 +137,7 @@ def build():
         rightMargin=2 * cm,
         topMargin=2 * cm,
         bottomMargin=2 * cm,
-        title="HopeTSIT — iOS Build Guide v23.1.146",
+        title="HopeTSIT — iOS Build Guide v23.1.168",
         author="HopeTSIT",
     )
     story = []
@@ -150,7 +150,7 @@ def build():
     story.append(
         Table(
             [
-                ["Version", "23.1.146"],
+                ["Version", "23.1.168"],
                 ["Bundle ID", "com.hopetsit.app"],
                 ["Team ID Apple", "J7259479JR"],
                 ["Cible Flutter SDK", "^3.9.2"],
@@ -180,6 +180,94 @@ def build():
             NOTE,
         )
     )
+    story.append(PageBreak())
+
+    # ─── Changelog v146 → v168 ─────────────────────────────────────────────
+    story.append(p("Nouveautés depuis v23.1.146", H1))
+    story.append(p(
+        "Ce build iOS doit être généré sur la base du code source <b>v23.1.168</b>. "
+        "Voici les corrections et améliorations majeures introduites entre les "
+        "deux versions. Toutes sont déjà appliquées dans le ZIP source que tu "
+        "as reçu : tu n'as rien à modifier côté code, juste à rebuilder.",
+        BODY,
+    ))
+
+    story.append(p("Paiements Airwallex", H3))
+    story.append(bullet("Fix de la page blanche qui bloquait certains paiements : "
+                        "les Payment Intents en état CANCELLED ne sont plus "
+                        "réutilisés."))
+    story.append(bullet("customer_id correctement attaché aux PI subscription / "
+                        "boost / mapBoost (les cartes enregistrées s'affichent "
+                        "à nouveau)."))
+    story.append(bullet("Walker peut maintenant être payé via le même flow "
+                        "Pay-In + Payout que les sitters."))
+
+    story.append(p("Règle d'annulation 72h", H3))
+    story.append(bullet("Owner, sitter et walker peuvent annuler une "
+                        "réservation jusqu'à 72h avant le début, avec "
+                        "remboursement automatique."))
+    story.append(bullet("Bouton <b>Annuler</b> visible dans les 3 écrans "
+                        "Réservations (owner / sitter / walker)."))
+    story.append(bullet("Notifications envoyées aux 2 parties à l'annulation "
+                        "(booking_cancelled_by_owner / _by_provider)."))
+
+    story.append(p("PawSpot & carte interactive", H3))
+    story.append(bullet("Couleur des halos par tier corrigée : bronze / silver "
+                        "/ gold / platinum + anneau couleur par rôle "
+                        "(vert walker, bleu sitter, orange owner)."))
+    story.append(bullet("Le halo se rafraîchit immédiatement quand on active "
+                        "Map Boost ou qu'on change de tier."))
+    story.append(bullet("Le suivi walker depuis le chat centre la carte "
+                        "sur la position du walker en temps réel."))
+
+    story.append(p("Universal Links (emails → app)", H3))
+    story.append(bullet("Tous les boutons des emails (réservation, paiement, "
+                        "chat, walk, wallet, abonnement, PawSpot) ouvrent "
+                        "désormais l'app iOS via <b>https://hopetsit.com/...</b> "
+                        "au lieu de l'ancien scheme <i>hopetsit://</i>."))
+    story.append(bullet("Le fichier <b>.well-known/apple-app-site-association</b> "
+                        "est déjà servi par le site Next.js (Vercel). Tu n'as "
+                        "qu'à activer la capability <b>Associated Domains</b> "
+                        "dans Xcode (voir section 7 de ce guide)."))
+
+    story.append(p("Factures (PDF + HTML)", H3))
+    story.append(bullet("Le mot \"Invoice\" est traduit en 6 langues "
+                        "(FR / EN / ES / DE / IT / PT) dans la facture HTML."))
+    story.append(bullet("Bouton \"Enregistrer la facture PDF dans les "
+                        "fichiers du téléphone\" ajouté."))
+
+    story.append(p("Onboarding redesign", H3))
+    story.append(bullet("Nouvelle page d'accueil : 3 cartes blanches "
+                        "(Pet-sitting / PawMap / PawFollow) avec icône, "
+                        "titre et description courte sous chaque carte."))
+    story.append(bullet("Logo plus grand (130w), titre 36sp, bouton "
+                        "S'inscrire avec icône patte + flèche."))
+    story.append(bullet("Descriptions raccourcies et lisibles dans les "
+                        "6 langues (\"Sitters de confiance près de toi\", "
+                        "\"Lieux pet-friendly autour de toi\", "
+                        "\"Suis les aventures de ton animal\")."))
+    story.append(bullet("Gradient orange/blanc bien en arrière-plan, ne "
+                        "couvre plus les cartes."))
+
+    story.append(p("UX divers", H3))
+    story.append(bullet("Barre de nav système (Android Samsung) en gris "
+                        "#E5E7EB pour rester visible quand on change de langue."))
+    story.append(bullet("Auto-logout au expiry du token : supprimé, l'app "
+                        "reste connectée."))
+    story.append(bullet("Tarifs walker : champs 90min + 120min ajoutés."))
+    story.append(bullet("PawFollow : noms et descriptions des plans "
+                        "traduits en 6 langues."))
+    story.append(bullet("Bouton \"Send request\" remis sur la page détail "
+                        "d'un post."))
+
+    story.append(Spacer(1, 0.5 * cm))
+    story.append(p(
+        "Côté iOS, aucune action manuelle requise : tu vas builder normalement "
+        "à partir du dossier <b>frontend/</b>. La seule chose à vérifier dans "
+        "Xcode reste la capability <b>Associated Domains</b> (section 7) qui "
+        "doit lister <i>applinks:hopetsit.com</i> et <i>applinks:www.hopetsit.com</i>.",
+        NOTE,
+    ))
     story.append(PageBreak())
 
     # ─── Sommaire ──────────────────────────────────────────────────────────

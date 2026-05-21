@@ -415,9 +415,9 @@ const Map<String, String> enUSTranslations = <String, String>{
       'onboarding_feature_trusted': 'Pet-sitting',
       'onboarding_feature_chat': 'PawMap',
       'onboarding_feature_nearby': 'PawFollow',
-      'onboarding_feature_trusted_desc': 'Find trusted pet-sitters near you.',
-      'onboarding_feature_chat_desc': 'Explore pet-friendly places around you on the interactive map.',
-      'onboarding_feature_nearby_desc': 'Follow your pet\'s adventures and share its moments.',
+      'onboarding_feature_trusted_desc': 'Trusted sitters near you.',
+      'onboarding_feature_chat_desc': 'Pet-friendly places around you.',
+      'onboarding_feature_nearby_desc': 'Follow your pet\'s adventures.',
       'onboarding_or': 'or',
 
       // Validation / errors

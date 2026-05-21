@@ -504,9 +504,9 @@ const Map<String, String> deDETranslations = <String, String>{
       'onboarding_feature_trusted': 'Tiersitting',
       'onboarding_feature_chat': 'PawMap',
       'onboarding_feature_nearby': 'PawFollow',
-      'onboarding_feature_trusted_desc': 'Finde vertrauenswürdige Tiersitter in deiner Nähe.',
-      'onboarding_feature_chat_desc': 'Entdecke tierfreundliche Orte in deiner Nähe auf der interaktiven Karte.',
-      'onboarding_feature_nearby_desc': 'Verfolge die Abenteuer deines Tieres und teile seine Momente.',
+      'onboarding_feature_trusted_desc': 'Vertrauenswürdige Sitter in deiner Nähe.',
+      'onboarding_feature_chat_desc': 'Tierfreundliche Orte in deiner Nähe.',
+      'onboarding_feature_nearby_desc': 'Folge den Abenteuern deines Tieres.',
       'onboarding_or': 'oder',
 
       'error_invalid_details_title': 'Ungültige Angaben',
