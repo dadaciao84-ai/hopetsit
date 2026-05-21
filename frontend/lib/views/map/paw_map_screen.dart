@@ -128,6 +128,18 @@ class _PawMapScreenState extends State<PawMapScreen> {
         ? Get.find<LiveMapService>()
         : Get.put(LiveMapService(), permanent: true);
     _liveMap.attach();
+    // v23.1.163 — Daniel : "halo ne change pas de couleur selon option
+    // pawspot". 2eme cause potentielle : MapBoostController n'etait
+    // initialise QUE lors de la 1re visite de la boutique. Donc le
+    // self-halo (qui lit mapBoostCtl.status.value.tier dans
+    // _buildHaloCircles) ne fonctionnait pas tant que Daniel n'avait
+    // pas ouvert la boutique → l'utilisateur ne voyait jamais son
+    // propre halo PawSpot. Maintenant on force l'init au mount de
+    // PawMap + on appelle loadStatus pour avoir le tier a jour.
+    if (!Get.isRegistered<MapBoostController>()) {
+      Get.put(MapBoostController());
+    }
+    Get.find<MapBoostController>().loadStatus();
 
     // v23.1 part 123 — halo pulse pour Platinum.
     _haloTimer = Timer.periodic(const Duration(milliseconds: 200), (_) {
@@ -1193,6 +1205,17 @@ class _PawMapScreenState extends State<PawMapScreen> {
                     // v23.1 part 123 — rebuild every halo tick (~5 fps) so
                     // le pulse Platinum reste fluide.
                     _haloPhase.value;
+                    // v23.1.163 — VRAI ROOT CAUSE du bug "halo ne change pas
+                    // de couleur" : l'Obx ne declarait PAS _nearbyProviders
+                    // ni _showProviders comme dependance, donc le GoogleMap
+                    // rebuildait UNIQUEMENT au tick halo (5fps), pas quand
+                    // les providers chargeaient depuis l'API. Resultat :
+                    // _buildHaloCircles s'executait sur _nearbyProviders=[]
+                    // pendant des secondes, aucun halo n'apparaissait. Fix :
+                    // on lit explicitement la length + le show flag pour
+                    // forcer le rebuild a chaque assignAll().
+                    _nearbyProviders.length;
+                    _showProviders.value;
                     return GoogleMap(
                       initialCameraPosition: CameraPosition(
                         target: _currentCenter,

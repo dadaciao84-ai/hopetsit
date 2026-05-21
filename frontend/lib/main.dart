@@ -41,11 +41,13 @@ void main() async {
     debugPrint = (String? message, {int? wrapWidth}) {};
   }
 
-  // v23.1.161 — Daniel : "les bouton menu de samsung sont blanc met les
-  // orange". Avant : edge-to-edge avec systemNavigationBarColor transparent
-  // → sur Samsung les 3 boutons Home/Back/Recent apparaissaient en blanc
-  // sur fond blanc → invisibles. Maintenant : on garde edge-to-edge mais
-  // on force la couleur de la barre nav en orange app + icones blanches.
+  // v23.1.163 — Daniel : "menu samsung fleche tjr blanche mettre en orange
+  // ou noir". v161 avait fond orange + icones blanches → flèche blanche
+  // sur orange = contraste moyen (Samsung One UI peut le rendre encore
+  // moins lisible). Daniel demande "orange ou noir". On garde le fond
+  // orange (#EF4324) mais on switch les icones en NOIR (Brightness.dark)
+  // → flèche noire sur fond orange = max contraste, visible meme si
+  // Samsung override partiellement les couleurs.
   SystemChrome.setEnabledSystemUIMode(
     SystemUiMode.manual,
     overlays: SystemUiOverlay.values,
@@ -53,10 +55,10 @@ void main() async {
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
     statusBarIconBrightness: Brightness.dark,
-    // v23.1.161 — Orange app (#EF4324) avec icones blanches pour les
-    // 3 boutons Samsung. Visible sur tous les fonds (clair / sombre).
+    // v23.1.163 — Orange app #EF4324 + icones NOIRES pour les 3 boutons
+    // Samsung Home/Back/Recent. Contraste optimal noir-sur-orange.
     systemNavigationBarColor: Color(0xFFEF4324),
-    systemNavigationBarIconBrightness: Brightness.light,
+    systemNavigationBarIconBrightness: Brightness.dark,
     systemNavigationBarDividerColor: Color(0xFFEF4324),
     systemNavigationBarContrastEnforced: false,
   ));
