@@ -239,9 +239,12 @@ const renderInvoiceHtml = async (req, res) => {
     const supported = ['en', 'fr', 'es', 'de', 'it', 'pt'];
     const lang = supported.includes(rawLang) ? rawLang : 'en';
 
+    // v23.1.164 — Daniel : "dans la fcture ya tjr ecris invoice fais que tt
+    // soit bien traduit". Ajout du label `invoiceLabel` qui sert pour le
+    // <title> de la page ET pour le numero affiche en haut a droite.
     const T = {
       en: {
-        invoiceTitle: 'HoPetSit Invoice', downloadBtn: '⬇ Download PDF',
+        invoiceTitle: 'HoPetSit Invoice', invoiceLabel: 'Invoice', downloadBtn: '⬇ Download PDF',
         billTo: 'Bill to (Owner)', serviceProvider: 'Service provider',
         description: 'Description', serviceDate: 'Service date', pets: 'Pets',
         amount: 'Amount', issued: 'Issued', paid: 'Paid',
@@ -252,7 +255,7 @@ const renderInvoiceHtml = async (req, res) => {
         escrowText: "Funds are held in escrow until 24h after the service ends, then released to the provider's registered IBAN.",
       },
       fr: {
-        invoiceTitle: 'Facture HoPetSit', downloadBtn: '⬇ Télécharger PDF',
+        invoiceTitle: 'Facture HoPetSit', invoiceLabel: 'Facture', downloadBtn: '⬇ Télécharger PDF',
         billTo: 'Facturé à (Propriétaire)', serviceProvider: 'Prestataire',
         description: 'Description', serviceDate: 'Date du service', pets: 'Animaux',
         amount: 'Montant', issued: 'Émise', paid: 'Payée',
@@ -263,7 +266,7 @@ const renderInvoiceHtml = async (req, res) => {
         escrowText: "Les fonds sont conservés en séquestre jusqu'à 24h après la fin du service, puis libérés vers l'IBAN enregistré du prestataire.",
       },
       es: {
-        invoiceTitle: 'Factura HoPetSit', downloadBtn: '⬇ Descargar PDF',
+        invoiceTitle: 'Factura HoPetSit', invoiceLabel: 'Factura', downloadBtn: '⬇ Descargar PDF',
         billTo: 'Facturado a (Propietario)', serviceProvider: 'Prestador del servicio',
         description: 'Descripción', serviceDate: 'Fecha del servicio', pets: 'Mascotas',
         amount: 'Importe', issued: 'Emitida', paid: 'Pagada',
@@ -274,7 +277,7 @@ const renderInvoiceHtml = async (req, res) => {
         escrowText: 'Los fondos se mantienen en depósito hasta 24h después del final del servicio, luego se liberan al IBAN registrado del prestador.',
       },
       de: {
-        invoiceTitle: 'HoPetSit Rechnung', downloadBtn: '⬇ PDF herunterladen',
+        invoiceTitle: 'HoPetSit Rechnung', invoiceLabel: 'Rechnung', downloadBtn: '⬇ PDF herunterladen',
         billTo: 'Rechnung an (Besitzer)', serviceProvider: 'Dienstleister',
         description: 'Beschreibung', serviceDate: 'Servicedatum', pets: 'Tiere',
         amount: 'Betrag', issued: 'Ausgestellt', paid: 'Bezahlt',
@@ -285,7 +288,7 @@ const renderInvoiceHtml = async (req, res) => {
         escrowText: 'Die Gelder werden bis 24 Std. nach Serviceende treuhänderisch verwahrt und dann auf das hinterlegte IBAN des Anbieters freigegeben.',
       },
       it: {
-        invoiceTitle: 'Fattura HoPetSit', downloadBtn: '⬇ Scarica PDF',
+        invoiceTitle: 'Fattura HoPetSit', invoiceLabel: 'Fattura', downloadBtn: '⬇ Scarica PDF',
         billTo: 'Fatturato a (Proprietario)', serviceProvider: 'Prestatore del servizio',
         description: 'Descrizione', serviceDate: 'Data del servizio', pets: 'Animali',
         amount: 'Importo', issued: 'Emessa', paid: 'Pagata',
@@ -296,7 +299,7 @@ const renderInvoiceHtml = async (req, res) => {
         escrowText: 'I fondi sono conservati in deposito fino a 24h dopo la fine del servizio, poi rilasciati sull\'IBAN registrato del prestatore.',
       },
       pt: {
-        invoiceTitle: 'Fatura HoPetSit', downloadBtn: '⬇ Descarregar PDF',
+        invoiceTitle: 'Fatura HoPetSit', invoiceLabel: 'Fatura', downloadBtn: '⬇ Descarregar PDF',
         billTo: 'Faturado a (Proprietário)', serviceProvider: 'Prestador do serviço',
         description: 'Descrição', serviceDate: 'Data do serviço', pets: 'Animais',
         amount: 'Valor', issued: 'Emitida', paid: 'Paga',
@@ -313,7 +316,7 @@ const renderInvoiceHtml = async (req, res) => {
 <html lang="${lang}">
 <head>
 <meta charset="utf-8" />
-<title>Invoice ${inv.invoiceNumber} — HoPetSit</title>
+<title>${T.invoiceLabel} ${inv.invoiceNumber} — HoPetSit</title>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -431,7 +434,7 @@ const renderInvoiceHtml = async (req, res) => {
       </div>
     </div>
     <div class="meta">
-      <div class="num">Invoice ${inv.invoiceNumber}</div>
+      <div class="num">${T.invoiceLabel} ${inv.invoiceNumber}</div>
       <div>${T.issued}: ${fmt(inv.issuedAt)}</div>
       <div>${T.paid}: ${fmt(inv.paidAt)}</div>
       <span class="status ${inv.status === 'refunded' ? 'refunded' : ''}">${inv.status}</span>

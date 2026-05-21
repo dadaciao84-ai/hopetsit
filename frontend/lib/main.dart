@@ -41,13 +41,15 @@ void main() async {
     debugPrint = (String? message, {int? wrapWidth}) {};
   }
 
-  // v23.1.163 — Daniel : "menu samsung fleche tjr blanche mettre en orange
-  // ou noir". v161 avait fond orange + icones blanches → flèche blanche
-  // sur orange = contraste moyen (Samsung One UI peut le rendre encore
-  // moins lisible). Daniel demande "orange ou noir". On garde le fond
-  // orange (#EF4324) mais on switch les icones en NOIR (Brightness.dark)
-  // → flèche noire sur fond orange = max contraste, visible meme si
-  // Samsung override partiellement les couleurs.
+  // v23.1.164 — Daniel : "quand je change de langue les arrow samsung
+  // devienne blanche, met gris tte les langue". v163 mettait fond orange
+  // + icones noires, mais le changement de langue (via Get.updateLocale)
+  // reconstruit MaterialApp et reset les SystemUiOverlayStyle au defaut
+  // OS (icones blanches sur certains Samsung). Fix : on passe a un fond
+  // GRIS NEUTRE qui ne depend ni de la langue ni du theme orange.
+  // En complement, on re-applique le style via AnnotatedRegion au root
+  // du MaterialApp (build() ci-dessous) pour resister aux rebuilds de
+  // locale change.
   SystemChrome.setEnabledSystemUIMode(
     SystemUiMode.manual,
     overlays: SystemUiOverlay.values,
@@ -55,11 +57,11 @@ void main() async {
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
     statusBarIconBrightness: Brightness.dark,
-    // v23.1.163 — Orange app #EF4324 + icones NOIRES pour les 3 boutons
-    // Samsung Home/Back/Recent. Contraste optimal noir-sur-orange.
-    systemNavigationBarColor: Color(0xFFEF4324),
+    // v23.1.164 — Gris #E5E7EB (slate-200) + icones SOMBRES = lisible
+    // dans toutes les langues, persiste aux changements de locale.
+    systemNavigationBarColor: Color(0xFFE5E7EB),
     systemNavigationBarIconBrightness: Brightness.dark,
-    systemNavigationBarDividerColor: Color(0xFFEF4324),
+    systemNavigationBarDividerColor: Color(0xFFE5E7EB),
     systemNavigationBarContrastEnforced: false,
   ));
 
@@ -149,7 +151,22 @@ class MyApp extends StatelessWidget {
       minTextAdapt: true,
       splitScreenMode: true,
       builder: (context, child) {
-        return GestureDetector(
+        // v23.1.164 — Daniel : "quand je change de langue les arrow samsung
+        // devienne blanche". On wrap GetMaterialApp dans un AnnotatedRegion
+        // qui re-applique le SystemUiOverlayStyle a chaque rebuild (donc
+        // chaque changement de langue qui fait rebuild MaterialApp). Le
+        // setSystemUIOverlayStyle initial dans main() ne survivait pas a
+        // Get.updateLocale() qui recree l'arbre widget.
+        return AnnotatedRegion<SystemUiOverlayStyle>(
+          value: const SystemUiOverlayStyle(
+            statusBarColor: Colors.transparent,
+            statusBarIconBrightness: Brightness.dark,
+            systemNavigationBarColor: Color(0xFFE5E7EB),
+            systemNavigationBarIconBrightness: Brightness.dark,
+            systemNavigationBarDividerColor: Color(0xFFE5E7EB),
+            systemNavigationBarContrastEnforced: false,
+          ),
+          child: GestureDetector(
           onTap: () => FocusManager.instance.primaryFocus!.unfocus(),
           child: GetMaterialApp(
             debugShowCheckedModeBanner: false,
@@ -339,6 +356,7 @@ class MyApp extends StatelessWidget {
             // calls remain functional; new code should use Get.toNamed(AppRoutes.xxx).
             initialRoute: AppRoutes.splash,
             getPages: AppPages.pages,
+          ),
           ),
         );
       },
