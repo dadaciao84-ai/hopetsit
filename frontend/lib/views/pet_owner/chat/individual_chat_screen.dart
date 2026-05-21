@@ -359,9 +359,13 @@ class _IndividualChatScreenState extends State<IndividualChatScreen> {
                     Icon(Icons.location_on_rounded,
                         size: 14.sp, color: Colors.white),
                     SizedBox(width: 4.w),
+                    // v23.1.172 — Daniel : "change le bouton suivre avec
+                    // suivre en direct mon animal pour owner". Label fixe
+                    // (plus de label dynamique walker/sitter) car Daniel
+                    // veut un wording plus clair côté propriétaire.
                     InterText(
-                      text: _followLabel(),
-                      fontSize: 12.sp,
+                      text: 'follow_button_live_my_pet'.tr,
+                      fontSize: 11.sp,
                       fontWeight: FontWeight.w800,
                       color: Colors.white,
                     ),

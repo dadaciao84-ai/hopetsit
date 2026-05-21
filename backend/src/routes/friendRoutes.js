@@ -398,6 +398,59 @@ router.get('/:id/track-access', requireAuth, async (req, res) => {
 });
 
 /**
+ * GET /friends/family/members
+ * Liste les membres de MA famille PawFollow + retourne mon statut titulaire.
+ * Format de réponse :
+ *   {
+ *     hasActiveFamilyPlan: bool,
+ *     members: [{ id, role, name, avatar, addedAt, email }],
+ *     remainingSlots: number (4 - members.length quand active, 0 sinon)
+ *   }
+ */
+router.get('/family/members', requireAuth, async (req, res) => {
+  try {
+    const user = me(req);
+    const now = new Date();
+    const sub = await UserSubscription.findOne({
+      userId: user.id,
+      userModel: user.model,
+      plan: 'famille',
+      status: 'active',
+      currentPeriodEnd: { $gt: now },
+    }).lean();
+    if (!sub) {
+      return res.json({
+        hasActiveFamilyPlan: false,
+        members: [],
+        remainingSlots: 0,
+      });
+    }
+    const raw = Array.isArray(sub.familyMembers) ? sub.familyMembers : [];
+    const enriched = await Promise.all(
+      raw.map(async (m) => {
+        const mini = await fetchUserMini(m.userId, m.userModel);
+        return {
+          id: String(m.userId),
+          role: (m.userModel || '').toLowerCase(),
+          name: mini?.name || '',
+          avatar: mini?.avatar || '',
+          addedAt: m.addedAt,
+          email: m.email || null,
+        };
+      }),
+    );
+    res.json({
+      hasActiveFamilyPlan: true,
+      members: enriched,
+      remainingSlots: Math.max(0, 4 - enriched.length),
+    });
+  } catch (e) {
+    logger.error('[friends/family/members]', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+/**
  * POST /friends/family/invite-member  body: { userId, userRole, email? }
  * Le titulaire d'une sub PawFollow Famille active ajoute jusqu'à 4 membres.
  * 403 si pas de sub famille active. 409 si déjà membre. 422 si limite atteinte.

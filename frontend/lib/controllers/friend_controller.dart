@@ -56,7 +56,15 @@ class FriendController extends GetxController {
     }
   }
 
-  Future<bool> sendRequest(String targetId, String targetRole) async {
+  /// v23.1.172 — Daniel : "quand je demande invitation amis sa met met
+  /// erreur impossible". On retourne maintenant le message d'erreur brut
+  /// du backend pour que l'UI puisse afficher la VRAIE raison (déjà ami,
+  /// pending, network, etc.) au lieu d'un "Impossible" générique.
+  ///
+  /// Retourne :
+  ///   - "" (string vide) si succès
+  ///   - "ALREADY_PENDING" / "ALREADY_ACCEPTED" / "SELF" / message libre si échec
+  Future<String> sendRequest(String targetId, String targetRole) async {
     try {
       final api = Get.find<ApiClient>();
       await api.post(
@@ -65,10 +73,20 @@ class FriendController extends GetxController {
         requiresAuth: true,
       );
       await loadRequests();
-      return true;
+      return '';
     } catch (e) {
       debugPrint('[Friends] sendRequest error: $e');
-      return false;
+      // ApiException expose le body : on essaie d'extraire le champ `error`
+      final raw = e.toString();
+      // ex. ApiException: Already in state "pending". (id: 671abc)
+      final match = RegExp(r'Already in state "(\w+)"').firstMatch(raw);
+      if (match != null) {
+        final state = match.group(1);
+        return state == 'accepted' ? 'ALREADY_ACCEPTED' : 'ALREADY_PENDING';
+      }
+      if (raw.contains('Cannot befriend yourself')) return 'SELF';
+      // Sinon on renvoie le message brut (sans le préfixe ApiException:).
+      return raw.replaceAll('ApiException:', '').trim();
     }
   }
 
@@ -87,6 +105,83 @@ class FriendController extends GetxController {
     } catch (e) {
       debugPrint('[Friends] searchUsers error: $e');
       return [];
+    }
+  }
+
+  // ── v23.1.172 — PawFollow Famille (5 membres tracking) ────────────────
+  //
+  // Daniel : "le truc de famille je le vois pas non plus". On expose les
+  // 3 endpoints famille via le controller pour que friends_screen puisse
+  // afficher l'onglet "Famille".
+
+  final RxBool hasFamilyPlan = false.obs;
+  final RxList<Map<String, dynamic>> familyMembers =
+      <Map<String, dynamic>>[].obs;
+  final RxInt familyRemainingSlots = 0.obs;
+
+  /// Charge les membres de ma famille PawFollow.
+  Future<void> loadFamily() async {
+    try {
+      final api = Get.find<ApiClient>();
+      final r = await api.get('/friends/family/members', requiresAuth: true);
+      if (r is Map) {
+        hasFamilyPlan.value = r['hasActiveFamilyPlan'] == true;
+        final list = (r['members'] is List) ? r['members'] as List : [];
+        familyMembers.assignAll(
+          list.whereType<Map>().map((m) => Map<String, dynamic>.from(m)).toList(),
+        );
+        familyRemainingSlots.value = (r['remainingSlots'] as int?) ?? 0;
+      }
+    } catch (e) {
+      debugPrint('[Friends] loadFamily error: $e');
+      hasFamilyPlan.value = false;
+      familyMembers.clear();
+      familyRemainingSlots.value = 0;
+    }
+  }
+
+  /// Ajoute un ami à ma famille. Retourne "" en cas de succès ou code erreur.
+  Future<String> addFamilyMember({
+    required String userId,
+    required String userRole,
+    String? email,
+  }) async {
+    try {
+      final api = Get.find<ApiClient>();
+      await api.post(
+        '/friends/family/invite-member',
+        body: {
+          'userId': userId,
+          'userRole': userRole,
+          if (email != null && email.isNotEmpty) 'email': email,
+        },
+        requiresAuth: true,
+      );
+      await loadFamily();
+      return '';
+    } catch (e) {
+      debugPrint('[Friends] addFamilyMember error: $e');
+      final raw = e.toString();
+      if (raw.contains('FAMILY_PLAN_REQUIRED')) return 'FAMILY_PLAN_REQUIRED';
+      if (raw.contains('FAMILY_FULL')) return 'FAMILY_FULL';
+      if (raw.contains('Already a family member')) return 'ALREADY_MEMBER';
+      return raw.replaceAll('ApiException:', '').trim();
+    }
+  }
+
+  /// Retire un ami de ma famille.
+  Future<bool> removeFamilyMember(String userId) async {
+    try {
+      final api = Get.find<ApiClient>();
+      await api.delete(
+        '/friends/family/member/$userId',
+        requiresAuth: true,
+      );
+      await loadFamily();
+      return true;
+    } catch (e) {
+      debugPrint('[Friends] removeFamilyMember error: $e');
+      return false;
     }
   }
 

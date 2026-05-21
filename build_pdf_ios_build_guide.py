@@ -36,7 +36,7 @@ from reportlab.platypus import (
 OUTPUT = os.path.join(
     os.path.expanduser("~"),
     "Downloads",
-    "HopeTSIT_iOS_Build_Guide_v23.1.171.pdf",
+    "HopeTSIT_iOS_Build_Guide_v23.1.173.pdf",
 )
 
 # ─── Brand colors ──────────────────────────────────────────────────────────
@@ -137,7 +137,7 @@ def build():
         rightMargin=2 * cm,
         topMargin=2 * cm,
         bottomMargin=2 * cm,
-        title="HopeTSIT — iOS Build Guide v23.1.171",
+        title="HopeTSIT — iOS Build Guide v23.1.173",
         author="HopeTSIT",
     )
     story = []
@@ -185,14 +185,39 @@ def build():
     # ─── Changelog v146 → v170 ─────────────────────────────────────────────
     story.append(p("Nouveautés depuis v23.1.146", H1))
     story.append(p(
-        "Ce build iOS doit être généré sur la base du code source <b>v23.1.171</b>. "
+        "Ce build iOS doit être généré sur la base du code source <b>v23.1.173</b>. "
         "Voici les corrections et améliorations majeures introduites entre les "
         "deux versions. Toutes sont déjà appliquées dans le ZIP source que tu "
         "as reçu : tu n'as rien à modifier côté code, juste à rebuilder.",
         BODY,
     ))
 
-    story.append(p("v23.1.171 — Re-fix Suivre end-to-end + croix signalement + Famille", H3))
+    story.append(p("v23.1.173 — Labels Suivre + UI Famille + erreurs invite", H3))
+    story.append(bullet("<b>Label bouton owner</b> : « Suivre » → « Suivre "
+                        "en direct mon animal » (texte unique, plus simple "
+                        "que le dynamique walker/sitter de v171)."))
+    story.append(bullet("<b>Label bouton walker/sitter</b> : « Suis-moi » → "
+                        "« Partager ma position en direct » (plus clair sur "
+                        "l'action)."))
+    story.append(bullet("<b>UI Famille</b> : nouvel onglet « Famille » (3e tab) "
+                        "dans l'écran Mes amis. Si pas d'abo PawFollow Famille "
+                        "actif → page CTA « Souscrire PawFollow Famille ». "
+                        "Sinon → liste des membres (max 4) avec bouton "
+                        "« + Inviter un ami à ma famille » qui ouvre un sheet "
+                        "avec la liste des amis acceptés à picker."))
+    story.append(bullet("<b>Backend route GET /friends/family/members</b> : "
+                        "renvoie hasActiveFamilyPlan + members enrichis + "
+                        "remainingSlots. Utilisé par l'onglet Famille."))
+    story.append(bullet("<b>Erreur invitation amis</b> : avant « Impossible "
+                        "d'envoyer la demande » générique. Maintenant on "
+                        "extrait la VRAIE raison du backend "
+                        "(ALREADY_PENDING / ALREADY_ACCEPTED / SELF / message "
+                        "libre) et on affiche un snackbar explicite à l'user."))
+    story.append(bullet("<b>i18n</b> : 30 nouvelles clés × 6 langues "
+                        "(follow_button_live_my_pet, follow_share_position_button, "
+                        "friends_tab_*, friends_invite_err_*, family_*)."))
+
+    story.append(p("v23.1.171 — Re-fix Suivre end-to-end + croix signalement + Famille (backend)", H3))
     story.append(bullet("<b>Croix de fermeture déplacée</b> : la croix avait "
                         "été mise sur la mauvaise page (bug_report_screen) en "
                         "v170. Maintenant sur le BON fichier "

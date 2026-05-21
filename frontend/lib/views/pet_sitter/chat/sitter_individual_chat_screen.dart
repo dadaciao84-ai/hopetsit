@@ -255,9 +255,11 @@ class _SitterIndividualChatScreenState
                     Icon(Icons.share_location_rounded,
                         size: 14.sp, color: Colors.white),
                     SizedBox(width: 4.w),
+                    // v23.1.172 — Daniel : "Partager ma position en direct"
+                    // côté walker/sitter (au lieu de "Suis-moi" v170).
                     InterText(
-                      text: 'follow_me_button'.tr,
-                      fontSize: 12.sp,
+                      text: 'follow_share_position_button'.tr,
+                      fontSize: 11.sp,
                       fontWeight: FontWeight.w800,
                       color: Colors.white,
                     ),

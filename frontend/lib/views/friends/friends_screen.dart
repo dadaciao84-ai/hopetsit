@@ -7,6 +7,7 @@ import 'package:hopetsit/controllers/friend_controller.dart';
 import 'package:hopetsit/models/friendship_model.dart';
 import 'package:hopetsit/utils/app_colors.dart';
 import 'package:hopetsit/utils/storage_keys.dart';
+import 'package:hopetsit/views/boost/coin_shop_screen.dart';
 import 'package:hopetsit/views/map/paw_map_screen.dart';
 import 'package:hopetsit/widgets/app_text.dart';
 import 'package:hopetsit/widgets/custom_snackbar_widget.dart';
@@ -26,8 +27,13 @@ class FriendsScreen extends StatelessWidget {
         ? Get.find<FriendController>()
         : Get.put(FriendController());
 
+    // v23.1.172 — Daniel : "le truc de famille je le vois pas". On ajoute
+    // un 3e onglet "Famille" qui montre les membres de PawFollow Famille
+    // + permet d'inviter / retirer depuis la liste d'amis acceptés.
+    // On précharge la famille à l'ouverture de l'écran.
+    controller.loadFamily();
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Scaffold(
         backgroundColor: AppColors.scaffold(context),
         appBar: AppBar(
@@ -94,7 +100,8 @@ class FriendsScreen extends StatelessWidget {
             unselectedLabelColor: AppColors.greyText,
             indicatorColor: AppColors.primaryColor,
             tabs: [
-              const Tab(icon: Icon(Icons.people_rounded), text: 'Amis'),
+              Tab(icon: const Icon(Icons.people_rounded),
+                  text: 'friends_tab_friends'.tr),
               Tab(
                 icon: Obx(() {
                   final n = controller.incomingRequests.length;
@@ -128,7 +135,12 @@ class FriendsScreen extends StatelessWidget {
                     ],
                   );
                 }),
-                text: 'Demandes',
+                text: 'friends_tab_requests'.tr,
+              ),
+              // v23.1.172 — Onglet Famille (PawFollow Famille).
+              Tab(
+                icon: const Icon(Icons.family_restroom_rounded),
+                text: 'friends_tab_family'.tr,
               ),
             ],
           ),
@@ -137,6 +149,7 @@ class FriendsScreen extends StatelessWidget {
           children: [
             _FriendsTab(controller: controller),
             _RequestsTab(controller: controller),
+            _FamilyTab(controller: controller),
           ],
         ),
         // v23.1 part 69 — Bug 9 : Daniel "Comment sajoute les amis ?".
@@ -277,18 +290,30 @@ class FriendsScreen extends StatelessWidget {
                                 horizontal: 12.w, vertical: 6.h),
                           ),
                           onPressed: () async {
-                            final ok = await controller.sendRequest(id, role);
+                            // v23.1.172 — Daniel : "quand je demande
+                            // invitation amis sa met erreur impossible".
+                            // On lit maintenant le code d'erreur backend
+                            // pour expliquer la VRAIE cause au user.
+                            final err = await controller.sendRequest(id, role);
                             if (!context.mounted) return;
-                            if (ok) {
+                            if (err.isEmpty) {
                               Navigator.of(ctx).pop();
                               CustomSnackbar.showSuccess(
-                                title: 'Demande envoyée',
-                                message: 'On préviendra $name dès qu\'iel accepte.',
+                                title: 'friends_invite_sent_title'.tr,
+                                message: 'friends_invite_sent_msg'
+                                    .trParams({'name': name}),
                               );
                             } else {
+                              final msg = err == 'ALREADY_PENDING'
+                                  ? 'friends_invite_err_already_pending'.tr
+                                  : err == 'ALREADY_ACCEPTED'
+                                      ? 'friends_invite_err_already_accepted'.tr
+                                      : err == 'SELF'
+                                          ? 'friends_invite_err_self'.tr
+                                          : err;
                               CustomSnackbar.showError(
-                                title: 'Erreur',
-                                message: 'Impossible d\'envoyer la demande.',
+                                title: 'common_error'.tr,
+                                message: msg,
                               );
                             }
                           },
@@ -683,6 +708,354 @@ class _OutgoingTile extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── v23.1.172 — Famille tab (PawFollow Famille €9.99) ─────────────────────
+//
+// Daniel : "le truc de famille je le vois pas non plus". Cet onglet montre :
+//   - Si pas d'abo Famille actif : CTA "Souscris PawFollow Famille"
+//   - Si abo actif : liste des membres + bouton "+ Inviter un ami" (filtre
+//     parmi les amis acceptés) + bouton "Retirer" par membre.
+
+class _FamilyTab extends StatelessWidget {
+  const _FamilyTab({required this.controller});
+  final FriendController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = AppColors.roleAccent(
+      Get.find<AuthController>().userRole.value,
+    );
+    return RefreshIndicator(
+      onRefresh: () => controller.loadFamily(),
+      child: Obx(() {
+        if (!controller.hasFamilyPlan.value) {
+          return ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: EdgeInsets.all(24.w),
+            children: [
+              SizedBox(height: 40.h),
+              Container(
+                padding: EdgeInsets.all(20.w),
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(16.r),
+                  border: Border.all(color: accent.withValues(alpha: 0.25)),
+                ),
+                child: Column(
+                  children: [
+                    Icon(Icons.family_restroom_rounded,
+                        size: 56.sp, color: accent),
+                    SizedBox(height: 12.h),
+                    InterText(
+                      text: 'family_no_plan_title'.tr,
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textPrimary(context),
+                    ),
+                    SizedBox(height: 8.h),
+                    InterText(
+                      text: 'family_no_plan_desc'.tr,
+                      fontSize: 12.sp,
+                      color: AppColors.textSecondary(context),
+                    ),
+                    SizedBox(height: 16.h),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: accent,
+                          foregroundColor: Colors.white,
+                          padding: EdgeInsets.symmetric(vertical: 12.h),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12.r),
+                          ),
+                        ),
+                        icon: const Icon(Icons.shopping_cart_rounded),
+                        label: Text('family_no_plan_cta'.tr),
+                        onPressed: () =>
+                            Get.to(() => const CoinShopScreen(initialTab: 1)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        }
+        final members = controller.familyMembers;
+        return ListView(
+          padding: EdgeInsets.all(12.w),
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: [
+            Container(
+              padding: EdgeInsets.all(14.w),
+              decoration: BoxDecoration(
+                color: accent.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(14.r),
+                border: Border.all(color: accent.withValues(alpha: 0.25)),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.verified_user_rounded, color: accent, size: 24.sp),
+                  SizedBox(width: 10.w),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        InterText(
+                          text: 'family_header_title'.tr,
+                          fontSize: 13.sp,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.textPrimary(context),
+                        ),
+                        SizedBox(height: 2.h),
+                        InterText(
+                          text: 'family_slots'.trParams({
+                            'used': members.length.toString(),
+                            'total': '4',
+                          }),
+                          fontSize: 11.sp,
+                          color: AppColors.textSecondary(context),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: 16.h),
+            if (members.isEmpty)
+              Padding(
+                padding: EdgeInsets.symmetric(vertical: 24.h),
+                child: Center(
+                  child: InterText(
+                    text: 'family_empty_msg'.tr,
+                    fontSize: 13.sp,
+                    color: AppColors.greyText,
+                  ),
+                ),
+              )
+            else
+              ...members.map((m) => _FamilyMemberTile(
+                    member: m,
+                    controller: controller,
+                  )),
+            SizedBox(height: 12.h),
+            if (controller.familyRemainingSlots.value > 0)
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  icon: const Icon(Icons.person_add_alt_1_rounded),
+                  label: Text('family_add_member_btn'.tr),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: accent,
+                    side: BorderSide(color: accent),
+                    padding: EdgeInsets.symmetric(vertical: 12.h),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12.r),
+                    ),
+                  ),
+                  onPressed: () => _showAddMemberSheet(context, controller),
+                ),
+              )
+            else
+              Padding(
+                padding: EdgeInsets.symmetric(vertical: 8.h),
+                child: Center(
+                  child: InterText(
+                    text: 'family_full_msg'.tr,
+                    fontSize: 12.sp,
+                    color: AppColors.greyText,
+                  ),
+                ),
+              ),
+          ],
+        );
+      }),
+    );
+  }
+
+  void _showAddMemberSheet(
+    BuildContext context,
+    FriendController controller,
+  ) {
+    final eligibleFriends = controller.friends
+        .where((f) =>
+            f.other != null &&
+            !controller.familyMembers
+                .any((m) => m['id'] == f.other!.id))
+        .toList();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) => Container(
+        padding: EdgeInsets.all(16.w),
+        constraints: BoxConstraints(maxHeight: 400.h),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.family_restroom_rounded,
+                    color: AppColors.primaryColor, size: 24.sp),
+                SizedBox(width: 8.w),
+                Expanded(
+                  child: InterText(
+                    text: 'family_add_member_title'.tr,
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close_rounded),
+                  onPressed: () => Navigator.of(ctx).pop(),
+                ),
+              ],
+            ),
+            SizedBox(height: 8.h),
+            InterText(
+              text: eligibleFriends.isEmpty
+                  ? 'family_add_member_no_friends'.tr
+                  : 'family_add_member_pick'.tr,
+              fontSize: 12.sp,
+              color: AppColors.greyText,
+            ),
+            SizedBox(height: 12.h),
+            Expanded(
+              child: ListView.separated(
+                itemCount: eligibleFriends.length,
+                separatorBuilder: (_, __) => const Divider(height: 1),
+                itemBuilder: (_, i) {
+                  final f = eligibleFriends[i];
+                  final other = f.other!;
+                  return ListTile(
+                    leading: CircleAvatar(
+                      radius: 18.r,
+                      backgroundColor:
+                          AppColors.primaryColor.withValues(alpha: 0.15),
+                      backgroundImage: other.avatar.isNotEmpty
+                          ? NetworkImage(other.avatar)
+                          : null,
+                      child: other.avatar.isEmpty
+                          ? Icon(Icons.person, size: 18.sp)
+                          : null,
+                    ),
+                    title: Text(other.name.isEmpty ? 'Utilisateur' : other.name),
+                    subtitle: Text(other.model),
+                    trailing: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryColor,
+                        foregroundColor: Colors.white,
+                      ),
+                      onPressed: () async {
+                        final err = await controller.addFamilyMember(
+                          userId: other.id,
+                          userRole: other.model.toLowerCase(),
+                        );
+                        if (!context.mounted) return;
+                        if (err.isEmpty) {
+                          Navigator.of(ctx).pop();
+                          CustomSnackbar.showSuccess(
+                            title: 'family_member_added_title'.tr,
+                            message: 'family_member_added_msg'
+                                .trParams({'name': other.name}),
+                          );
+                        } else {
+                          final msg = err == 'FAMILY_FULL'
+                              ? 'family_err_full'.tr
+                              : err == 'ALREADY_MEMBER'
+                                  ? 'family_err_already_member'.tr
+                                  : err == 'FAMILY_PLAN_REQUIRED'
+                                      ? 'family_err_plan_required'.tr
+                                      : err;
+                          CustomSnackbar.showError(
+                            title: 'common_error'.tr,
+                            message: msg,
+                          );
+                        }
+                      },
+                      child: Text('family_add_btn'.tr),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FamilyMemberTile extends StatelessWidget {
+  const _FamilyMemberTile({required this.member, required this.controller});
+  final Map<String, dynamic> member;
+  final FriendController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final name = (member['name'] ?? '').toString();
+    final avatar = (member['avatar'] ?? '').toString();
+    final role = (member['role'] ?? '').toString();
+    final id = (member['id'] ?? '').toString();
+    return Container(
+      margin: EdgeInsets.only(bottom: 10.h),
+      padding: EdgeInsets.all(12.w),
+      decoration: BoxDecoration(
+        color: AppColors.card(context),
+        borderRadius: BorderRadius.circular(14.r),
+        boxShadow: AppColors.cardShadow(context),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 22.r,
+            backgroundColor: AppColors.primaryColor.withValues(alpha: 0.15),
+            backgroundImage: avatar.isNotEmpty ? NetworkImage(avatar) : null,
+            child: avatar.isEmpty
+                ? Icon(Icons.person, color: AppColors.primaryColor, size: 20.sp)
+                : null,
+          ),
+          SizedBox(width: 12.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                InterText(
+                  text: name.isEmpty ? '—' : name,
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w700,
+                ),
+                SizedBox(height: 2.h),
+                InterText(
+                  text: role,
+                  fontSize: 11.sp,
+                  color: AppColors.greyText,
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            icon: Icon(Icons.person_remove_rounded,
+                color: AppColors.errorColor, size: 20.sp),
+            tooltip: 'family_remove_member_tooltip'.tr,
+            onPressed: () async {
+              final ok = await controller.removeFamilyMember(id);
+              if (!context.mounted) return;
+              if (ok) {
+                CustomSnackbar.showSuccess(
+                  title: 'family_member_removed_title'.tr,
+                  message: 'family_member_removed_msg'
+                      .trParams({'name': name}),
+                );
+              }
+            },
           ),
         ],
       ),
