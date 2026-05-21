@@ -36,7 +36,7 @@ from reportlab.platypus import (
 OUTPUT = os.path.join(
     os.path.expanduser("~"),
     "Downloads",
-    "HopeTSIT_iOS_Build_Guide_v23.1.168.pdf",
+    "HopeTSIT_iOS_Build_Guide_v23.1.169.pdf",
 )
 
 # ─── Brand colors ──────────────────────────────────────────────────────────
@@ -137,7 +137,7 @@ def build():
         rightMargin=2 * cm,
         topMargin=2 * cm,
         bottomMargin=2 * cm,
-        title="HopeTSIT — iOS Build Guide v23.1.168",
+        title="HopeTSIT — iOS Build Guide v23.1.169",
         author="HopeTSIT",
     )
     story = []
@@ -182,15 +182,44 @@ def build():
     )
     story.append(PageBreak())
 
-    # ─── Changelog v146 → v168 ─────────────────────────────────────────────
+    # ─── Changelog v146 → v169 ─────────────────────────────────────────────
     story.append(p("Nouveautés depuis v23.1.146", H1))
     story.append(p(
-        "Ce build iOS doit être généré sur la base du code source <b>v23.1.168</b>. "
+        "Ce build iOS doit être généré sur la base du code source <b>v23.1.169</b>. "
         "Voici les corrections et améliorations majeures introduites entre les "
         "deux versions. Toutes sont déjà appliquées dans le ZIP source que tu "
         "as reçu : tu n'as rien à modifier côté code, juste à rebuilder.",
         BODY,
     ))
+
+    story.append(p("v23.1.169 — Derniers bugs i18n (screenshots Daniel)", H3))
+    story.append(bullet("Facture PDF : maintenant générée dans la langue de "
+                        "l'app (6 langues) au lieu de toujours en français. "
+                        "Le symbole € est maintenant lisible grâce à la fonte "
+                        "Noto Sans embarquée (le glyphe manquait dans "
+                        "Helvetica par défaut du package pdf)."))
+    story.append(bullet("PawFollow store : carte \"Chat entre amis\" "
+                        "(titre + description + état actif) maintenant "
+                        "traduite dans les 6 langues."))
+    story.append(bullet("PawSpot store : titre \"Emplacement de ton PawSpot\", "
+                        "boutons \"Changer\" / \"Choisir mon spot\", tooltips "
+                        "et messages d'alerte (fallback / aucune position / "
+                        "loading) maintenant traduits dans les 6 langues."))
+    story.append(bullet("Fiche pet : la catégorie (\"Chien\", \"Chat\"...) "
+                        "et l'état de vaccination (\"À jour\"...) s'adaptent "
+                        "à la langue courante même si la valeur a été stockée "
+                        "en français dans la DB."))
+    story.append(bullet("Affichage hauteur pet : sanitization de \".100 cm\" "
+                        "vers \"0.100 cm\" (typo / virgule décimale FR "
+                        "convertie en point par l'IME). Aussi nettoyé "
+                        "au save côté controllers."))
+    story.append(bullet("Header \"Demande de réservation\" sur post : la "
+                        "string FR brute en DB est maintenant remappée vers "
+                        "la locale courante (les 6 variantes acceptées)."))
+    story.append(bullet("Bouton Partager / Compartir sur écran post ouvert "
+                        "depuis une notification : était inerte (callback "
+                        "onShare non câblé), maintenant lance SharePlus avec "
+                        "le post + lien deep-link <i>hopetsit.com/post/:id</i>."))
 
     story.append(p("Paiements Airwallex", H3))
     story.append(bullet("Fix de la page blanche qui bloquait certains paiements : "
