@@ -40,10 +40,11 @@ class OnboardingScreen extends StatelessWidget {
                     Colors.white,
                     Colors.white,
                   ],
-            // v22.3 — Bug 17d : zone orange etendue a 48% pour que les chips
-            // ET leurs labels rentrent dans la zone orange (avant : 35% donc
-            // les labels blancs tombaient sur fond blanc et étaient invisibles).
-            stops: const [0.0, 0.48, 0.48, 1.0],
+            // v23.1.165 — Daniel : "moin de blanc". Avant : orange jusqu'a
+            // 48% (zone blanche basse trop grande sur Android). Maintenant :
+            // 65% orange + transition douce sur 5% pour adoucir la coupure
+            // nette → moins de blanc visible, fondu plus naturel.
+            stops: const [0.0, 0.60, 0.65, 1.0],
           ),
         ),
         // v22.2 — Bug 16e : structure Column + Expanded scrollable au-dessus
@@ -281,33 +282,31 @@ class _FeatureChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // v22.2 — Bug 16e : .w sur les 2 axes pour forcer un carre strict
-        // (54.w + 54.h donnait un container non-carre = border radius
-        // asymetrique = effet tordu).
+        // v23.1.165 — Daniel : "les 3 icones plus grande". Avant 54.w → 80.w
+        // (+48%), icone interne 26.sp → 38.sp, border radius 18 → 22, et
+        // ombre intensifiee pour donner plus de presence visuelle.
         Container(
-          width: 54.w,
-          height: 54.w,
+          width: 80.w,
+          height: 80.w,
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(18.r),
+            borderRadius: BorderRadius.circular(22.r),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.1),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
+                color: Colors.black.withValues(alpha: 0.18),
+                blurRadius: 14,
+                offset: const Offset(0, 4),
               ),
             ],
           ),
-          child: Icon(icon, size: 26.sp, color: AppColors.primaryColor),
+          child: Icon(icon, size: 38.sp, color: AppColors.primaryColor),
         ),
-        SizedBox(height: 8.h),
-        // v22.4 — fontSize reduite + maxLines/ellipsis pour que les labels
-        // longs ("Pet-sitting") rentrent dans la largeur 1/3 garantie par
-        // l'Expanded parent, sans deborder ni etre tronque visuellement.
+        SizedBox(height: 10.h),
+        // v23.1.165 — fontSize 10 → 12 (lisible avec icones plus grosses).
         InterText(
           text: label,
-          fontSize: 10.sp,
-          fontWeight: FontWeight.w600,
+          fontSize: 12.sp,
+          fontWeight: FontWeight.w700,
           color: Colors.white,
           textAlign: TextAlign.center,
           maxLines: 2,

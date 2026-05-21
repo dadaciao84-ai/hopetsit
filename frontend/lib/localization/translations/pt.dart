@@ -426,7 +426,7 @@ const Map<String, String> ptPTTranslations = <String, String>{
       'onboarding_have_account': 'Tem uma conta?',
       'onboarding_signup': 'Registar',
       'onboarding_tagline': 'Pet-sitting, PawMap e acompanhamento do seu animal',
-      'onboarding_feature_trusted': 'Cuidar de animais de estimação',
+      'onboarding_feature_trusted': 'Pet-sitting',
       'onboarding_feature_chat': 'PawMap',
       'onboarding_feature_nearby': 'PawFollow',
       'onboarding_or': 'ou',
