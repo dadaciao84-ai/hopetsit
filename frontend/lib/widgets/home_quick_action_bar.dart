@@ -296,7 +296,7 @@ class _HomeQuickActionBarState extends State<HomeQuickActionBar>
                 b.pricing?.currency ?? 'EUR',
                 (b.pricing?.totalPrice ?? b.totalAmount ?? 0).toDouble(),
               )} → $providerName • ${_dateLabel(b)}',
-          ctaLabel: 'Voir détails',
+          ctaLabel: 'view_details_cta'.tr,
           booking: b,
           pulse: false,
           allBookingIds: ownerPaidRecent.map((bk) => bk.id).toList(),
@@ -375,20 +375,27 @@ class _HomeQuickActionBarState extends State<HomeQuickActionBar>
       final isWalker = widget.role == 'walker';
       final ownerName = b.owner.name.isNotEmpty ? b.owner.name : '—';
       final extra = providerPaidRecent.length - 1;
+      // v23.1.162 — Daniel : banner toast en FR sur UI espagnole.
       final title = extra > 0
-          ? 'Paiement reçu ! (+$extra autre${extra > 1 ? 's' : ''})'
-          : 'Paiement reçu !';
+          ? 'payment_received_banner_title_extra'
+              .trParams({'count': extra.toString()})
+          : 'payment_received_banner_title'.tr;
       return _QuickAction(
         kind: _Kind.providerPaid,
         color: isWalker ? const Color(0xFF4CAF50) : const Color(0xFF2196F3),
         icon: Icons.check_circle_rounded,
         title: title,
-        subtitle: '$ownerName a payé '
+        // v23.1.162 — subtitle hardcoded FR avant ('$ownerName a payé X').
+        // Templated avec @name + @amount maintenant.
+        subtitle: 'payment_received_subtitle'.trParams({
+          'name': ownerName,
+          'amount':
             '${CurrencyHelper.format(
               b.pricing?.currency ?? 'EUR',
               (b.pricing?.totalPrice ?? b.totalAmount ?? 0).toDouble(),
             )} • ${_dateLabel(b)}',
-        ctaLabel: 'Voir détails',
+        }),
+        ctaLabel: 'view_details_cta'.tr,
         booking: b,
         pulse: false,
         allBookingIds: providerPaidRecent.map((bk) => bk.id).toList(),
@@ -648,7 +655,7 @@ class _HomeQuickActionBarState extends State<HomeQuickActionBar>
               SizedBox(height: 12.h),
               Center(
                 child: PoppinsText(
-                  text: 'Paiement reçu !',
+                  text: 'payment_received_banner_title'.tr,
                   fontSize: 18.sp,
                   fontWeight: FontWeight.w800,
                   color: accent,
@@ -715,7 +722,7 @@ class _HomeQuickActionBarState extends State<HomeQuickActionBar>
                   icon: Icon(Icons.receipt_long_rounded,
                       color: Colors.white, size: 20.sp),
                   label: Text(
-                    'Voir mes factures',
+                    'view_my_invoices_button'.tr,
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 14.sp, fontWeight: FontWeight.w700,

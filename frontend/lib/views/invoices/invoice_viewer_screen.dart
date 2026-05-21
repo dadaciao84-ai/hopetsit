@@ -155,7 +155,7 @@ class _InvoiceViewerScreenState extends State<InvoiceViewerScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             PoppinsText(
-              text: 'Facture HoPetSit',
+              text: 'invoice_viewer_title'.tr,
               fontSize: 16.sp,
               fontWeight: FontWeight.w700,
               color: Colors.white,

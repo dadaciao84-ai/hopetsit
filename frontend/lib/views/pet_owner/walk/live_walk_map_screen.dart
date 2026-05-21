@@ -54,10 +54,13 @@ class _LiveWalkMapScreenState extends State<LiveWalkMapScreen> {
         _subscribeSocket();
         setState(() => _status = 'live');
       } else {
-        setState(() => _status = 'no-active-walk');
+        // v23.1.162 — Daniel : 'no-active-walk' apparaissait brut. Cle i18n
+        // 'live_walk_no_active' resolue via .tr (FR: 'Aucune balade en cours',
+        // ES: 'Sin paseo activo', etc.).
+        setState(() => _status = 'live_walk_no_active'.tr);
       }
     } catch (e) {
-      setState(() => _status = 'error: $e');
+      setState(() => _status = '${'live_walk_error'.tr}: $e');
     }
   }
 
@@ -97,7 +100,10 @@ class _LiveWalkMapScreenState extends State<LiveWalkMapScreen> {
         scrolledUnderElevation: 0,
         surfaceTintColor: Colors.transparent,
         title: PoppinsText(
-          text: 'live_walk_title'.tr.isEmpty ? 'Balade en direct' : 'live_walk_title'.tr,
+          // v23.1.162 — la cle live_walk_title est maintenant definie dans
+          // les 6 fichiers de traduction. Le fallback FR 'Balade en direct'
+          // n'est plus necessaire — .tr retourne toujours la bonne valeur.
+          text: 'live_walk_title'.tr,
           fontSize: 18.sp,
           fontWeight: FontWeight.w700,
           color: AppColors.textPrimary(context),

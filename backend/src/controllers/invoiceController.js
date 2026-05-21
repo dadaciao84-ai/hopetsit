@@ -225,9 +225,92 @@ const renderInvoiceHtml = async (req, res) => {
     const money = (n) =>
       `${(Number(n) || 0).toFixed(2)} ${(inv.currency || 'EUR').toUpperCase()}`;
 
+    // v23.1.162 — Daniel : "Facture HoPetSit" + "Télécharger PDF" affichés
+    // en FR sur UI espagnole. La page HTML de la facture est servie par
+    // le backend → on lit le `lang` query param (ou Accept-Language) et
+    // on choisit la locale appropriee. Le frontend Flutter passe deja
+    // ?lang=es/de/it/pt/en/fr quand il ouvre la WebView.
+    const rawLang = (req.query.lang ||
+      (req.headers['accept-language'] || 'en').split(',')[0].split('-')[0] ||
+      'en')
+      .toString()
+      .toLowerCase()
+      .slice(0, 2);
+    const supported = ['en', 'fr', 'es', 'de', 'it', 'pt'];
+    const lang = supported.includes(rawLang) ? rawLang : 'en';
+
+    const T = {
+      en: {
+        invoiceTitle: 'HoPetSit Invoice', downloadBtn: '⬇ Download PDF',
+        billTo: 'Bill to (Owner)', serviceProvider: 'Service provider',
+        description: 'Description', serviceDate: 'Service date', pets: 'Pets',
+        amount: 'Amount', issued: 'Issued', paid: 'Paid',
+        grossAmount: 'Gross amount', commission: 'HoPetSit platform fee (20%)',
+        netProvider: 'Net to provider', totalCharged: 'Total charged to owner',
+        footer: 'Payment processed by Airwallex (PCI-DSS Level 1 certified). HoPetSit does not access, transmit or store cardholder data.',
+        cancelTerms: 'Self-cancellation with full refund available up to 72h before the service starts. See',
+        escrowText: "Funds are held in escrow until 24h after the service ends, then released to the provider's registered IBAN.",
+      },
+      fr: {
+        invoiceTitle: 'Facture HoPetSit', downloadBtn: '⬇ Télécharger PDF',
+        billTo: 'Facturé à (Propriétaire)', serviceProvider: 'Prestataire',
+        description: 'Description', serviceDate: 'Date du service', pets: 'Animaux',
+        amount: 'Montant', issued: 'Émise', paid: 'Payée',
+        grossAmount: 'Montant brut', commission: 'Commission HoPetSit (20%)',
+        netProvider: 'Net pour le prestataire', totalCharged: 'Total facturé au propriétaire',
+        footer: 'Paiement traité par Airwallex (certifié PCI-DSS Niveau 1). HoPetSit n\'accède pas, ne transmet pas et ne stocke pas les données de carte bancaire.',
+        cancelTerms: 'Annulation gratuite avec remboursement intégral disponible jusqu\'à 72h avant le début du service. Voir',
+        escrowText: "Les fonds sont conservés en séquestre jusqu'à 24h après la fin du service, puis libérés vers l'IBAN enregistré du prestataire.",
+      },
+      es: {
+        invoiceTitle: 'Factura HoPetSit', downloadBtn: '⬇ Descargar PDF',
+        billTo: 'Facturado a (Propietario)', serviceProvider: 'Prestador del servicio',
+        description: 'Descripción', serviceDate: 'Fecha del servicio', pets: 'Mascotas',
+        amount: 'Importe', issued: 'Emitida', paid: 'Pagada',
+        grossAmount: 'Importe bruto', commission: 'Comisión HoPetSit (20%)',
+        netProvider: 'Neto para el prestador', totalCharged: 'Total facturado al propietario',
+        footer: 'Pago procesado por Airwallex (certificado PCI-DSS Nivel 1). HoPetSit no accede, transmite ni almacena datos de tarjetas.',
+        cancelTerms: 'Cancelación gratuita con reembolso íntegro disponible hasta 72h antes del inicio del servicio. Ver',
+        escrowText: 'Los fondos se mantienen en depósito hasta 24h después del final del servicio, luego se liberan al IBAN registrado del prestador.',
+      },
+      de: {
+        invoiceTitle: 'HoPetSit Rechnung', downloadBtn: '⬇ PDF herunterladen',
+        billTo: 'Rechnung an (Besitzer)', serviceProvider: 'Dienstleister',
+        description: 'Beschreibung', serviceDate: 'Servicedatum', pets: 'Tiere',
+        amount: 'Betrag', issued: 'Ausgestellt', paid: 'Bezahlt',
+        grossAmount: 'Bruttobetrag', commission: 'HoPetSit Plattformgebühr (20%)',
+        netProvider: 'Netto an Anbieter', totalCharged: 'Gesamtbetrag an Besitzer berechnet',
+        footer: 'Zahlung verarbeitet durch Airwallex (PCI-DSS Stufe 1 zertifiziert). HoPetSit greift nicht auf Kartendaten zu, überträgt oder speichert sie nicht.',
+        cancelTerms: 'Kostenlose Stornierung mit voller Rückerstattung bis 72 Std. vor Servicebeginn möglich. Siehe',
+        escrowText: 'Die Gelder werden bis 24 Std. nach Serviceende treuhänderisch verwahrt und dann auf das hinterlegte IBAN des Anbieters freigegeben.',
+      },
+      it: {
+        invoiceTitle: 'Fattura HoPetSit', downloadBtn: '⬇ Scarica PDF',
+        billTo: 'Fatturato a (Proprietario)', serviceProvider: 'Prestatore del servizio',
+        description: 'Descrizione', serviceDate: 'Data del servizio', pets: 'Animali',
+        amount: 'Importo', issued: 'Emessa', paid: 'Pagata',
+        grossAmount: 'Importo lordo', commission: 'Commissione HoPetSit (20%)',
+        netProvider: 'Netto al prestatore', totalCharged: 'Totale addebitato al proprietario',
+        footer: 'Pagamento elaborato da Airwallex (certificato PCI-DSS Livello 1). HoPetSit non accede, trasmette o memorizza i dati delle carte.',
+        cancelTerms: 'Annullamento gratuito con rimborso integrale disponibile fino a 72h prima dell\'inizio del servizio. Vedi',
+        escrowText: 'I fondi sono conservati in deposito fino a 24h dopo la fine del servizio, poi rilasciati sull\'IBAN registrato del prestatore.',
+      },
+      pt: {
+        invoiceTitle: 'Fatura HoPetSit', downloadBtn: '⬇ Descarregar PDF',
+        billTo: 'Faturado a (Proprietário)', serviceProvider: 'Prestador do serviço',
+        description: 'Descrição', serviceDate: 'Data do serviço', pets: 'Animais',
+        amount: 'Valor', issued: 'Emitida', paid: 'Paga',
+        grossAmount: 'Valor bruto', commission: 'Comissão HoPetSit (20%)',
+        netProvider: 'Líquido para o prestador', totalCharged: 'Total cobrado ao proprietário',
+        footer: 'Pagamento processado pela Airwallex (certificado PCI-DSS Nível 1). A HoPetSit não acede, transmite nem armazena dados de cartões.',
+        cancelTerms: 'Cancelamento gratuito com reembolso integral disponível até 72h antes do início do serviço. Ver',
+        escrowText: 'Os fundos são mantidos em garantia até 24h após o fim do serviço, depois libertados para o IBAN registado do prestador.',
+      },
+    }[lang];
+
     res.set('Content-Type', 'text/html; charset=utf-8');
     return res.send(`<!DOCTYPE html>
-<html lang="en">
+<html lang="${lang}">
 <head>
 <meta charset="utf-8" />
 <title>Invoice ${inv.invoiceNumber} — HoPetSit</title>
@@ -315,8 +398,8 @@ const renderInvoiceHtml = async (req, res) => {
 </head>
 <body>
   <div class="download-cta-top">
-    <span class="label">📄 Facture HoPetSit</span>
-    <button type="button" onclick="downloadInvoice()">⬇ Télécharger PDF</button>
+    <span class="label">📄 ${T.invoiceTitle}</span>
+    <button type="button" onclick="downloadInvoice()">${T.downloadBtn}</button>
   </div>
   <div class="head">
     <div class="brand" style="display: flex; align-items: center; gap: 12px;">
@@ -349,20 +432,20 @@ const renderInvoiceHtml = async (req, res) => {
     </div>
     <div class="meta">
       <div class="num">Invoice ${inv.invoiceNumber}</div>
-      <div>Issued: ${fmt(inv.issuedAt)}</div>
-      <div>Paid: ${fmt(inv.paidAt)}</div>
+      <div>${T.issued}: ${fmt(inv.issuedAt)}</div>
+      <div>${T.paid}: ${fmt(inv.paidAt)}</div>
       <span class="status ${inv.status === 'refunded' ? 'refunded' : ''}">${inv.status}</span>
     </div>
   </div>
 
   <div class="grid">
     <div class="card">
-      <h3>Bill to (Owner)</h3>
+      <h3>${T.billTo}</h3>
       <div class="name">${inv.ownerName || '—'}</div>
       <div class="sub">${inv.ownerEmail || ''}</div>
     </div>
     <div class="card">
-      <h3>Service provider <span class="pill">${inv.providerRole}</span></h3>
+      <h3>${T.serviceProvider} <span class="pill">${inv.providerRole}</span></h3>
       <div class="name">${inv.providerName || '—'}</div>
       <div class="sub">${inv.providerEmail || ''}</div>
     </div>
@@ -371,10 +454,10 @@ const renderInvoiceHtml = async (req, res) => {
   <table>
     <thead>
       <tr>
-        <th>Description</th>
-        <th>Service date</th>
-        <th>Pets</th>
-        <th style="text-align:right;">Amount</th>
+        <th>${T.description}</th>
+        <th>${T.serviceDate}</th>
+        <th>${T.pets}</th>
+        <th style="text-align:right;">${T.amount}</th>
       </tr>
     </thead>
     <tbody>
@@ -389,36 +472,32 @@ const renderInvoiceHtml = async (req, res) => {
 
   <table class="totals">
     <tr>
-      <td>Gross amount</td>
+      <td>${T.grossAmount}</td>
       <td>${money(inv.grossAmount)}</td>
     </tr>
     <tr>
-      <td>HoPetSit platform fee (20%)</td>
+      <td>${T.commission}</td>
       <td>${money(inv.commission)}</td>
     </tr>
     <tr>
-      <td>Net to provider</td>
+      <td>${T.netProvider}</td>
       <td>${money(inv.netPayout)}</td>
     </tr>
     <tr class="grand">
-      <td>Total charged to owner</td>
+      <td>${T.totalCharged}</td>
       <td>${money(inv.grossAmount)}</td>
     </tr>
   </table>
 
   <div class="footer">
-    Payment processed by Airwallex (PCI-DSS Level 1 certified). HoPetSit does
-    not access, transmit or store cardholder data.<br/>
-    Funds are held in escrow until 24h after the service ends, then released
-    to the provider's registered IBAN. Self-cancellation with full refund
-    available up to 72h before the service starts. See
-    <a href="https://hopetsit.com/refund">https://hopetsit.com/refund</a> for
-    full terms.
+    ${T.footer}<br/>
+    ${T.escrowText} ${T.cancelTerms}
+    <a href="https://hopetsit.com/refund">https://hopetsit.com/refund</a>.
   </div>
 
   <div class="download-bar">
-    <button type="button" onclick="downloadInvoice()" aria-label="Télécharger PDF">
-      ⬇ Télécharger PDF
+    <button type="button" onclick="downloadInvoice()" aria-label="${T.downloadBtn}">
+      ${T.downloadBtn}
     </button>
   </div>
 

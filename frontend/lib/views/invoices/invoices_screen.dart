@@ -58,7 +58,15 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
   /// we open the same HTML in an in-app WebView with a clean HoPetSit
   /// header. The user never sees the backend URL.
   Future<void> _openInvoice(InvoiceModel inv) async {
-    final url = _repo.htmlUrlFor(inv.id);
+    // v23.1.162 — Daniel : page facture en FR sur UI espagnole. Le HTML
+    // est genere par le backend, donc on doit lui dire dans quelle langue
+    // afficher. On lit la locale active de GetX et on ajoute ?lang=xx a
+    // l'URL. Backend (invoiceController.js) accepte en/fr/es/de/it/pt et
+    // fallback sur en si la locale n'est pas supportee.
+    final baseUrl = _repo.htmlUrlFor(inv.id);
+    final lang = (Get.locale?.languageCode ?? 'en').toLowerCase();
+    final separator = baseUrl.contains('?') ? '&' : '?';
+    final url = '$baseUrl${separator}lang=$lang';
     Get.to(
       () => InvoiceViewerScreen(
         url: url,
