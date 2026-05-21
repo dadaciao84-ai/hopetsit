@@ -893,7 +893,7 @@ class _PremiumTabState extends State<_PremiumTab> with AutomaticKeepAliveClientM
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   InterText(
-                    text: 'Chat entre amis',
+                    text: 'coin_shop_chat_friends_title'.tr,
                     fontSize: 15.sp,
                     fontWeight: FontWeight.w700,
                     color: AppColors.textPrimary(context),
@@ -901,8 +901,8 @@ class _PremiumTabState extends State<_PremiumTab> with AutomaticKeepAliveClientM
                   SizedBox(height: 3.h),
                   InterText(
                     text: alreadyActive
-                        ? 'Actif · renouvelle le chat entre amis'
-                        : 'Débloque le chat avec tes amis acceptés — 30 jours',
+                        ? 'coin_shop_chat_friends_active'.tr
+                        : 'coin_shop_chat_friends_desc'.tr,
                     fontSize: 12.sp,
                     color: AppColors.greyText,
                   ),
@@ -1611,17 +1611,20 @@ class _MapBoostTabState extends State<_MapBoostTab> with AutomaticKeepAliveClien
       Color borderColor;
       if (hasCustom) {
         summary = label.isNotEmpty
-            ? '📍 PawSpot : $label'
-            : '📍 PawSpot personnalisé (${lat?.toStringAsFixed(4)}, ${lng?.toStringAsFixed(4)})';
+            ? 'coin_shop_pawspot_summary_custom'.trParams({'label': label})
+            : 'coin_shop_pawspot_summary_custom_coords'.trParams({
+                'lat': lat?.toStringAsFixed(4) ?? '?',
+                'lng': lng?.toStringAsFixed(4) ?? '?',
+              });
         borderColor = const Color(0xFF10B981);
       } else if (isFallback) {
-        summary = '⚠️ PawSpot utilise ton adresse perso. Choisis un emplacement spécifique pour mieux apparaître sur la carte.';
+        summary = 'coin_shop_pawspot_summary_fallback'.tr;
         borderColor = const Color(0xFFF39C12);
       } else if (!hasFallback) {
-        summary = '❌ Aucune position définie. Ton PawSpot est invisible sur la carte tant que tu ne choisis pas un emplacement.';
+        summary = 'coin_shop_pawspot_summary_none'.tr;
         borderColor = const Color(0xFFE74C3C);
       } else {
-        summary = 'Position non chargée.';
+        summary = 'coin_shop_pawspot_summary_loading'.tr;
         borderColor = AppColors.divider(context);
       }
 
@@ -1641,7 +1644,7 @@ class _MapBoostTabState extends State<_MapBoostTab> with AutomaticKeepAliveClien
                 SizedBox(width: 8.w),
                 Expanded(
                   child: InterText(
-                    text: 'Emplacement de ton PawSpot',
+                    text: 'coin_shop_pawspot_location_title'.tr,
                     fontSize: 14.sp,
                     fontWeight: FontWeight.w700,
                     color: AppColors.textPrimary(context),
@@ -1662,7 +1665,9 @@ class _MapBoostTabState extends State<_MapBoostTab> with AutomaticKeepAliveClien
                   child: ElevatedButton.icon(
                     onPressed: () => _pickPawSpotLocation(context, controller),
                     icon: const Icon(Icons.map),
-                    label: Text(hasCustom ? 'Changer' : 'Choisir mon spot'),
+                    label: Text(hasCustom
+                        ? 'coin_shop_pawspot_change_btn'.tr
+                        : 'coin_shop_pawspot_choose_btn'.tr),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primaryColor,
                       foregroundColor: Colors.white,
@@ -1675,7 +1680,7 @@ class _MapBoostTabState extends State<_MapBoostTab> with AutomaticKeepAliveClien
                   IconButton(
                     onPressed: () => _clearPawSpotLocation(context, controller),
                     icon: const Icon(Icons.delete_outline),
-                    tooltip: 'Revenir à mon adresse perso',
+                    tooltip: 'coin_shop_pawspot_reset_tooltip'.tr,
                   ),
                 ],
               ],

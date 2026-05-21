@@ -8,6 +8,7 @@ import 'package:hopetsit/utils/service_type_translator.dart';
 import 'package:hopetsit/views/pet_sitter/widgets/pet_post_card.dart';
 import 'package:hopetsit/widgets/app_text.dart';
 import 'package:hopetsit/widgets/post_comment_sheet.dart';
+import 'package:share_plus/share_plus.dart';
 
 /// Shows a single post as the same [PetPostCard] used on the home feed (e.g. from a like notification).
 class NotificationPostViewScreen extends StatefulWidget {
@@ -126,6 +127,20 @@ class _NotificationPostViewScreenState
               isLiked: postsController.isPostLiked(post.id),
               onLike: () => postsController.toggleLike(post.id),
               onComment: () => PostCommentSheet.show(context, post),
+              // v23.1.168 — Daniel : "verifie le bouton partager qui bug".
+              // Le bouton Compartir/Partager n'avait pas de callback câblé
+              // sur l'écran ouvert depuis une notification → tap inerte.
+              // On fait pareil que sitter_homescreen / my_posts : on partage
+              // le titre + lien deep-link vers le post.
+              onShare: () {
+                final text = post.body.trim().isNotEmpty
+                    ? post.body.trim()
+                    : 'post_card_default_share_message'.tr;
+                final url = 'https://hopetsit.com/post/${post.id}';
+                SharePlus.instance.share(
+                  ShareParams(text: '$text\n\n$url'),
+                );
+              },
             );
           }),
         ),

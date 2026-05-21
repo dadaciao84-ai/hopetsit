@@ -608,10 +608,19 @@ class PetPostCard extends StatelessWidget {
     );
   }
 
-  // Maps known English post body strings from backend to localized versions.
+  // Maps known post body strings (any language) from backend to the user's
+  // current locale. v23.1.168 — Daniel : la string était stockée en FR pur
+  // dans la DB ("Demande de réservation") donc quand l'utilisateur changeait
+  // la langue de l'app, l'en-tête restait en FR.
   String _localizePostBody(String body) {
-    switch (body.toLowerCase()) {
+    switch (body.toLowerCase().trim()) {
       case 'reservation request':
+      case 'demande de réservation':
+      case 'demande de reservation':
+      case 'solicitud de reserva':
+      case 'reservierungsanfrage':
+      case 'richiesta di prenotazione':
+      case 'pedido de reserva':
         return 'post_card_reservation_request'.tr;
       default:
         return body;

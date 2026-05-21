@@ -301,7 +301,11 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             _buildDetailBox('pet_detail_weight'.tr, widget.weight, AppColors.primaryColor),
-            _buildDetailBox('pet_detail_height'.tr, widget.height, AppColors.primaryColor),
+            _buildDetailBox(
+              'pet_detail_height'.tr,
+              _sanitizeHeight(widget.height),
+              AppColors.primaryColor,
+            ),
           ],
         ),
         SizedBox(height: 16.h),
@@ -332,7 +336,7 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
         ],
         if (widget.category != null && widget.category!.isNotEmpty) ...[
           SizedBox(height: 12.h),
-          _buildDetailRow('pet_detail_category'.tr, widget.category!),
+          _buildDetailRow('pet_detail_category'.tr, _localizedCategory(widget.category!)),
         ],
       ],
     );
@@ -388,7 +392,7 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
           spacing: 8.w,
           runSpacing: 8.h,
           children: widget.vaccinations
-              .map((vaccination) => _buildVaccinationTag(vaccination))
+              .map((vaccination) => _buildVaccinationTag(_localizedVaccination(vaccination)))
               .toList(),
         ),
       ],
@@ -503,6 +507,75 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
         ),
       ),
     );
+  }
+
+  // v23.1.168 — Daniel : "Chien" et "À jour" restaient en français même sur
+  // l'app en espagnol. Cause : la valeur du champ avait été stockée en FR
+  // brut dans Mongo. On normalise vers les clés i18n pour suivre la locale.
+  String _localizedCategory(String raw) {
+    final lower = raw.trim().toLowerCase();
+    switch (lower) {
+      case 'dog': case 'chien': case 'perro':
+      case 'hund': case 'cane': case 'cão': case 'cao':
+        return 'create_pet_category_dog'.tr;
+      case 'cat': case 'chat': case 'gato':
+      case 'katze': case 'gatto':
+        return 'create_pet_category_cat'.tr;
+      case 'bird': case 'oiseau': case 'pájaro': case 'pajaro':
+      case 'vogel': case 'uccello': case 'pássaro': case 'passaro':
+        return 'create_pet_category_bird'.tr;
+      case 'rabbit': case 'lapin': case 'conejo':
+      case 'kaninchen': case 'coniglio': case 'coelho':
+        return 'create_pet_category_rabbit'.tr;
+      case 'other': case 'autre': case 'otro':
+      case 'andere': case 'altro': case 'outro':
+        return 'create_pet_category_other'.tr;
+      default:
+        return raw;
+    }
+  }
+
+  String _localizedVaccination(String raw) {
+    final lower = raw.trim().toLowerCase();
+    switch (lower) {
+      case 'up to date': case 'à jour': case 'a jour':
+      case 'al día': case 'al dia':
+      case 'aktuell':
+      case 'aggiornate': case 'aggiornato':
+      case 'atualizado': case 'em dia':
+        return 'create_pet_vaccination_up_to_date'.tr;
+      case 'not vaccinated':
+      case 'non vacciné': case 'non vaccine':
+      case 'no vacunado':
+      case 'nicht geimpft':
+      case 'non vaccinato':
+      case 'não vacinado': case 'nao vacinado':
+        return 'create_pet_vaccination_not_vaccinated'.tr;
+      case 'partial': case 'partially vaccinated':
+      case 'partiel': case 'partiellement vacciné':
+      case 'parcial': case 'parcialmente vacunado':
+      case 'teilweise geimpft':
+      case 'parziale': case 'parzialmente vaccinato':
+      case 'parcialmente vacinado':
+        return 'create_pet_vaccination_partial'.tr;
+      default:
+        return raw;
+    }
+  }
+
+  // v23.1.168 — Daniel : "Altura .100 cm" — la string était stockée comme
+  // ".100" (ex. virgule décimale FR convertie en point par IME, ou typo).
+  // On nettoie : ajoute le 0 devant le point si la chaîne commence par "."
+  // et on dépouille les caractères non numériques au passage.
+  String _sanitizeHeight(String raw) {
+    var s = raw.trim();
+    if (s.isEmpty) return s;
+    // .100 -> 0.100
+    if (s.startsWith('.')) s = '0$s';
+    // ,100 -> 0.100 (decimal comma)
+    if (s.startsWith(',')) s = '0.${s.substring(1)}';
+    s = s.replaceAll(',', '.');
+    return s;
   }
 
   Widget _buildVaccinationTag(String text) {

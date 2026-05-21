@@ -95,8 +95,8 @@ class _InvoiceViewerScreenState extends State<InvoiceViewerScreen> {
         await file.writeAsBytes(bytes);
         await Share.shareXFiles(
           [XFile(file.path, mimeType: 'application/pdf')],
-          subject: 'Facture HoPetSit $safeNumber',
-          text: 'Facture HoPetSit',
+          subject: '${'invoice_pdf_subject'.tr} $safeNumber',
+          text: 'invoice_pdf_subject'.tr,
         );
         return;
       }
@@ -110,8 +110,8 @@ class _InvoiceViewerScreenState extends State<InvoiceViewerScreen> {
       await file.writeAsBytes(res.bodyBytes);
       await Share.shareXFiles(
         [XFile(file.path, mimeType: 'text/html')],
-        subject: 'Facture HoPetSit $safeNumber',
-        text: 'Facture HoPetSit',
+        subject: '${'invoice_pdf_subject'.tr} $safeNumber',
+        text: 'invoice_pdf_subject'.tr,
       );
     } catch (e) {
       try {

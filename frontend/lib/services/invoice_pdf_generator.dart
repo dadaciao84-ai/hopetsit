@@ -1,24 +1,48 @@
 // v23.1 part 73 — Native PDF generation for invoices.
-//
-// Daniel : "facture se telecharge en htlm elle peux pas se telecharger
-// directement en pdf sur le tel". Previously _triggerPrint downloaded
-// the HTML invoice and shared it as text/html — fine on desktop but
-// the user wanted a real PDF that opens with any PDF viewer on the
-// phone.
-//
-// This module builds the PDF locally from InvoiceModel using the `pdf`
-// package (no backend round-trip, no external service). The resulting
-// bytes are returned ; the caller saves to disk or shares via Share.
+// v23.1.168 — Daniel : "qd je change la facture de langue sa marche pas
+// et le symbole euro est partie verifie et corrige".
+//   Fix #1 : la facture PDF ignorait `Get.locale` et hardcodait tout en
+//   français → on lit la locale au build et on traduit toutes les strings.
+//   Fix #2 : le symbole € s'affichait en carré vide car la fonte Helvetica
+//   par défaut (Type1, WinAnsi) du package `pdf` ne contient pas le glyphe
+//   selon le `pdf_widgets` build sur Android. On charge maintenant Noto Sans
+//   via `printing/PdfGoogleFonts` qui contient tous les glyphes Unicode
+//   (€, €, accents diacritiques, etc.).
 
+import 'package:get/get.dart';
 import 'package:hopetsit/models/invoice_model.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 
 class InvoicePdfGenerator {
   InvoicePdfGenerator._();
 
+  // Resolve a 2-letter locale from Get (defaults to 'en' if missing).
+  static String _currentLang() {
+    try {
+      final code = Get.locale?.languageCode.toLowerCase() ?? 'en';
+      const supported = ['en', 'fr', 'es', 'de', 'it', 'pt'];
+      return supported.contains(code) ? code : 'en';
+    } catch (_) {
+      return 'en';
+    }
+  }
+
   static Future<List<int>> build(InvoiceModel inv) async {
     final doc = pw.Document();
+    final lang = _currentLang();
+
+    // v23.1.168 — Noto Sans contient le € + accents. On charge regular + bold
+    // une seule fois et on les réutilise via le pw.Theme global.
+    final fontReg = await PdfGoogleFonts.notoSansRegular();
+    final fontBold = await PdfGoogleFonts.notoSansBold();
+    final fontEmoji = await PdfGoogleFonts.notoColorEmoji();
+    final theme = pw.ThemeData.withFont(
+      base: fontReg,
+      bold: fontBold,
+      fontFallback: [fontEmoji, fontReg],
+    );
 
     final orange = PdfColor.fromInt(0xFFEF4324);
     final dark = PdfColor.fromInt(0xFF1F1F1F);
@@ -37,6 +61,7 @@ class InvoicePdfGenerator {
     doc.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
+        theme: theme,
         margin: const pw.EdgeInsets.fromLTRB(36, 40, 36, 40),
         build: (context) => [
           // Header : logo + "Facture HoPetSit"
@@ -95,7 +120,7 @@ class InvoicePdfGenerator {
                 child: pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
-                    pw.Text('FACTURE',
+                    pw.Text('invoice_pdf_label'.tr,
                         style: pw.TextStyle(
                             fontSize: 11, color: muted, letterSpacing: 1.4)),
                     pw.SizedBox(height: 4),
@@ -110,10 +135,10 @@ class InvoicePdfGenerator {
               pw.Column(
                 crossAxisAlignment: pw.CrossAxisAlignment.end,
                 children: [
-                  _kvRight('Émise le', fmtDate(inv.issuedAt), muted),
-                  _kvRight('Payée le', fmtDate(inv.paidAt), muted),
+                  _kvRight('invoice_pdf_issued'.tr, fmtDate(inv.issuedAt), muted),
+                  _kvRight('invoice_pdf_paid'.tr, fmtDate(inv.paidAt), muted),
                   if (inv.refundedAt != null)
-                    _kvRight('Remboursée le', fmtDate(inv.refundedAt), muted),
+                    _kvRight('invoice_pdf_refunded'.tr, fmtDate(inv.refundedAt), muted),
                 ],
               ),
             ],
@@ -125,12 +150,13 @@ class InvoicePdfGenerator {
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
               pw.Expanded(
-                child: _partyBox('FACTURÉ À', inv.ownerName, 'Propriétaire', accent),
+                child: _partyBox('invoice_pdf_bill_to'.tr, inv.ownerName,
+                    'invoice_pdf_owner_role'.tr, accent),
               ),
               pw.SizedBox(width: 12),
               pw.Expanded(
                 child: _partyBox(
-                  'PRESTATAIRE',
+                  'invoice_pdf_provider'.tr,
                   inv.providerName,
                   inv.providerRole.toUpperCase(),
                   accent,
@@ -151,20 +177,20 @@ class InvoicePdfGenerator {
             child: pw.SizedBox(
               width: 280,
               child: pw.Column(children: [
-                _totalRow('Montant brut', fmtAmount(inv.grossAmount), muted),
+                _totalRow('invoice_pdf_gross'.tr, fmtAmount(inv.grossAmount), muted),
                 _totalRow(
-                  'Commission HoPetSit (20%)',
+                  'invoice_pdf_commission'.tr,
                   '-${fmtAmount(inv.commission)}',
                   muted,
                 ),
                 _totalRow(
-                  'Net au prestataire',
+                  'invoice_pdf_net_provider'.tr,
                   fmtAmount(inv.netPayout),
                   muted,
                 ),
                 pw.Divider(color: orange, thickness: 2),
                 _totalRow(
-                  'Total payé',
+                  'invoice_pdf_total_paid'.tr,
                   fmtAmount(inv.grossAmount),
                   accent,
                   bold: true,
@@ -185,8 +211,7 @@ class InvoicePdfGenerator {
               ),
             ),
             child: pw.Text(
-              'Cette facture est générée automatiquement par HoPetSit. '
-              'Toute question : contact@hopetsit.com',
+              'invoice_pdf_footer'.tr,
               style: pw.TextStyle(fontSize: 9, color: muted),
             ),
           ),
@@ -276,10 +301,10 @@ class InvoicePdfGenerator {
         pw.TableRow(
           decoration: pw.BoxDecoration(color: accent),
           children: [
-            _th('Description'),
-            _th('Date(s) de service'),
-            _th('Animal(aux)'),
-            _th('Statut'),
+            _th('invoice_pdf_desc'.tr),
+            _th('invoice_pdf_service_dates'.tr),
+            _th('invoice_pdf_pets'.tr),
+            _th('invoice_pdf_status'.tr),
           ],
         ),
         pw.TableRow(children: [
@@ -337,11 +362,11 @@ class InvoicePdfGenerator {
 
   static String _serviceLabel(String raw) {
     final s = raw.toLowerCase();
-    if (s.contains('walk')) return 'Promenade chien';
-    if (s.contains('day_care') || s.contains('garderie')) return 'Garderie';
-    if (s.contains('boarding') || s.contains('overnight')) return 'Garde nuit';
-    if (s.contains('sitting')) return 'Pet-sitting';
-    return raw.isEmpty ? 'Service' : raw;
+    if (s.contains('walk')) return 'invoice_pdf_service_walk'.tr;
+    if (s.contains('day_care') || s.contains('garderie')) return 'invoice_pdf_service_daycare'.tr;
+    if (s.contains('boarding') || s.contains('overnight')) return 'invoice_pdf_service_boarding'.tr;
+    if (s.contains('sitting')) return 'invoice_pdf_service_sitting'.tr;
+    return raw.isEmpty ? 'invoice_pdf_service_generic'.tr : raw;
   }
 
   static String _serviceDateRange(

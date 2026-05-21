@@ -168,21 +168,22 @@ class CreatePetProfileController extends GetxController {
       return false;
     }
 
-    // Explicit height check (backup: cannot be zero)
-    final heightText = heightController.text.trim();
-    if (heightText.isNotEmpty) {
-      final cleaned = heightText.replaceAll(RegExp(r'[^\d.]'), '');
-      if (cleaned.isNotEmpty) {
-        final h = double.tryParse(cleaned);
-        if (h != null && h <= 0) {
-          CustomSnackbar.showError(
-            title: 'pet_create_validation_error'.tr,
-            message: 'snackbar_text_height_must_be_greater_than_0',
-          );
-          return false;
-        }
+    // v23.1.168 — Daniel : "Altura .100 cm" — la string contenait un
+    // point décimal en tête (typo / IME). On normalise pour stocker
+    // une valeur propre dans Mongo.
+    var heightText = heightController.text.trim().replaceAll(',', '.');
+    if (heightText.startsWith('.')) heightText = '0$heightText';
+    final heightCleaned = heightText.replaceAll(RegExp(r'[^\d.]'), '');
+    if (heightCleaned.isNotEmpty) {
+      final h = double.tryParse(heightCleaned);
+      if (h != null && h <= 0) {
+        CustomSnackbar.showError(
+          title: 'pet_create_validation_error'.tr,
+          message: 'snackbar_text_height_must_be_greater_than_0',
+        );
+        return false;
       }
-    } else {
+    } else if (heightText.isEmpty) {
       CustomSnackbar.showError(
         title: 'pet_create_validation_error'.tr,
         message: 'snackbar_text_height_is_required',
@@ -214,7 +215,7 @@ class CreatePetProfileController extends GetxController {
         'breed': breedController.text.trim(),
         'dob': dateOfBirthController.text.trim(),
         'weight': weightController.text.trim(),
-        'height': heightController.text.trim(),
+        'height': heightCleaned,
         'passportNumber': passportNumberController.text.trim(),
         'chipNumber': chipNumberController.text.trim(),
         // v22.1 — Bug 11a : sexe de l'animal envoyé au backend.
