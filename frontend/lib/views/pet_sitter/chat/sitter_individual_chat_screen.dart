@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:hopetsit/controllers/sitter_chat_controller.dart';
+import 'package:hopetsit/repositories/sitter_repository.dart';
 import 'package:hopetsit/utils/app_colors.dart';
 import 'package:hopetsit/utils/app_images.dart';
 import 'package:hopetsit/widgets/app_text.dart';
+import 'package:hopetsit/widgets/custom_snackbar_widget.dart';
 import 'package:hopetsit/widgets/translate_message_button.dart';
 
 class SitterIndividualChatScreen extends StatefulWidget {
@@ -100,6 +102,51 @@ class _SitterIndividualChatScreenState
     super.dispose();
   }
 
+  // v23.1.170 — handler du bouton "Suis-moi" miroir côté sitter/walker.
+  // 1. Cherche un booking actif (paid + non-cancelled) avec ce owner
+  // 2. POST /bookings/:id/follow-request → backend push notif à l'owner
+  // 3. Snackbar de confirmation
+  Future<void> _onFollowMeTap() async {
+    try {
+      final repo = Get.find<SitterRepository>();
+      final bookings = await repo.getMyBookings();
+      String norm(String s) =>
+          s.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+      final wantedName = norm(widget.contactName);
+      final candidate = bookings.firstWhereOrNull((b) {
+        final pay = (b.paymentStatus ?? '').toLowerCase();
+        final st = (b.status).toLowerCase();
+        if (pay != 'paid') return false;
+        if (st == 'cancelled' || st == 'refunded' || st == 'completed') {
+          return false;
+        }
+        return norm(b.owner.name) == wantedName ||
+            norm(b.owner.name).contains(wantedName) ||
+            wantedName.contains(norm(b.owner.name));
+      });
+      final bookingId = candidate?.id;
+      if (bookingId == null || bookingId.isEmpty) {
+        CustomSnackbar.showWarning(
+          title: 'follow_no_booking_title'.tr,
+          message: 'follow_no_booking_msg'
+              .trParams({'name': widget.contactName}),
+        );
+        return;
+      }
+      await repo.requestLiveTracking(bookingId: bookingId);
+      if (!mounted) return;
+      CustomSnackbar.showSuccess(
+        title: 'follow_request_sent_title'.tr,
+        message: 'follow_request_sent_msg'.tr,
+      );
+    } catch (e) {
+      CustomSnackbar.showError(
+        title: 'follow_unavailable_title'.tr,
+        message: e.toString().replaceAll('ApiException:', '').trim(),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -156,6 +203,45 @@ class _SitterIndividualChatScreenState
             ),
           ],
         ),
+        // v23.1.170 — Daniel : "pareil du coter de walker et sitter y
+        // doive poivoir envoyer au owner suis moi et que les 3 profile
+        // recoive les notification". Bouton miroir côté sitter/walker :
+        // un tap envoie POST /bookings/:id/follow-request → push notif à
+        // l'owner avec deep-link vers la LiveWalkMapScreen.
+        actions: [
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 8.w),
+            child: GestureDetector(
+              onTap: _onFollowMeTap,
+              child: Container(
+                padding: EdgeInsets.symmetric(
+                    horizontal: 12.w, vertical: 8.h),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF2563EB), Color(0xFF60A5FA)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(20.r),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.share_location_rounded,
+                        size: 14.sp, color: Colors.white),
+                    SizedBox(width: 4.w),
+                    InterText(
+                      text: 'follow_me_button'.tr,
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
       body: Obx(() {
         if (chatController.isLoading.value) {

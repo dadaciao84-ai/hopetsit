@@ -185,8 +185,9 @@ class AuthController extends GetxController {
           // navigating before the snackbar appears on the new screen.
           WidgetsBinding.instance.addPostFrameCallback((_) {
             CustomSnackbar.showInfo(
-              title: 'Tu as plusieurs rôles',
-              message: 'Tu es ouvert en ${role}. Tu peux switcher depuis Profil → Switch rôle.',
+              title: 'auth_multiple_roles_title'.tr,
+              message: 'auth_multiple_roles_msg'
+                  .trParams({'role': role.toString()}),
             );
           });
         } catch (_) { /* non-critical */ }

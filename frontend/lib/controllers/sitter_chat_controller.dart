@@ -189,8 +189,15 @@ class SitterChatController extends GetxController {
           '';
 
       if (conversationId == currentChatId.value) {
+        // v23.1.170 — Voir chat_controller.dart pour l'explication détaillée.
+        // Le webhook paiement émet un payload nested `{conversationId,
+        // message: {...}}` au lieu du payload flat. Sans unpack, on affichait
+        // des IDs Mongo bruts comme texte → écran noir + crash.
+        final raw = messageData['message'] is Map<String, dynamic>
+            ? Map<String, dynamic>.from(messageData['message'] as Map)
+            : messageData;
         final newMessage = _mapToSitterChatMessage(
-          messageData,
+          raw,
           userId,
           'sitter',
         );

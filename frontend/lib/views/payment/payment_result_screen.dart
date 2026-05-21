@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
+import 'package:hopetsit/controllers/chat_controller.dart';
 import 'package:hopetsit/data/network/api_client.dart';
 import 'package:hopetsit/models/booking_model.dart';
 import 'package:hopetsit/utils/app_colors.dart';
@@ -392,6 +393,20 @@ class PaymentResultScreen extends StatelessWidget {
         throw Exception('no conversation id in response');
       }
 
+      // v23.1.170 — Daniel : "jai payer un walker on commence a secirre ds
+      // le chat et la il yavais que des numlero qui saffichet et ecran
+      // noir crash". Cause #2 (en plus du nested payload fix) : `Get.offAll`
+      // détruit la route hôte → ChatController.onClose() ferme les Rx, mais
+      // l'instance reste enregistrée via `Get.put` non-permanent → quand
+      // IndividualChatScreen.initState retrouve l'instance morte → Obx
+      // accède à des Rx fermés → écran noir + crash. On force-delete
+      // l'instance AVANT le offAll pour que le nouveau screen recrée tout
+      // proprement depuis zero.
+      try {
+        if (Get.isRegistered<ChatController>()) {
+          Get.delete<ChatController>(force: true);
+        }
+      } catch (_) {/* noop */}
       // Use Get.offAll to clear the stack — owner never wants to land
       // back on the payment screen by tapping back from the chat.
       Get.offAll(

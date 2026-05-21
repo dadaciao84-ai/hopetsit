@@ -82,8 +82,7 @@ class _CreateReportSheetState extends State<CreateReportSheet> {
   void _showPremiumLockedSnack() {
     CustomSnackbar.showError(
       title: 'pawmap_snack_premium_required'.tr,
-      message:
-          'Ce type de signalement est réservé aux membres Premium. Passe Premium pour débloquer tous les types.',
+      message: 'pawmap_snack_premium_only_msg'.tr,
     );
   }
 

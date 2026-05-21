@@ -36,7 +36,7 @@ from reportlab.platypus import (
 OUTPUT = os.path.join(
     os.path.expanduser("~"),
     "Downloads",
-    "HopeTSIT_iOS_Build_Guide_v23.1.169.pdf",
+    "HopeTSIT_iOS_Build_Guide_v23.1.170.pdf",
 )
 
 # ─── Brand colors ──────────────────────────────────────────────────────────
@@ -137,7 +137,7 @@ def build():
         rightMargin=2 * cm,
         topMargin=2 * cm,
         bottomMargin=2 * cm,
-        title="HopeTSIT — iOS Build Guide v23.1.169",
+        title="HopeTSIT — iOS Build Guide v23.1.170",
         author="HopeTSIT",
     )
     story = []
@@ -182,17 +182,56 @@ def build():
     )
     story.append(PageBreak())
 
-    # ─── Changelog v146 → v169 ─────────────────────────────────────────────
+    # ─── Changelog v146 → v170 ─────────────────────────────────────────────
     story.append(p("Nouveautés depuis v23.1.146", H1))
     story.append(p(
-        "Ce build iOS doit être généré sur la base du code source <b>v23.1.169</b>. "
+        "Ce build iOS doit être généré sur la base du code source <b>v23.1.170</b>. "
         "Voici les corrections et améliorations majeures introduites entre les "
         "deux versions. Toutes sont déjà appliquées dans le ZIP source que tu "
         "as reçu : tu n'as rien à modifier côté code, juste à rebuilder.",
         BODY,
     ))
 
-    story.append(p("v23.1.169 — Derniers bugs i18n (screenshots Daniel)", H3))
+    story.append(p("v23.1.170 — Crash chat + Suivre + Invite + Emails 404", H3))
+    story.append(bullet("<b>Crash chat post-paiement walker</b> : le webhook "
+                        "paiement émettait un payload Socket.io nested "
+                        "qui faisait s'afficher des IDs Mongo bruts en bulle "
+                        "de message + écran noir. Fix dans chat_controller et "
+                        "sitter_chat_controller + Get.delete(force:true) avant "
+                        "le redirect post-paiement."))
+    story.append(bullet("<b>Suivre walker/sitter</b> : bouton dynamique « Suivre "
+                        "walker » / « Suivre sitter » (résolution async du rôle). "
+                        "Nouveau bouton symétrique « Suis-moi » côté provider qui "
+                        "envoie un push notif à l'owner via "
+                        "<i>POST /bookings/:id/follow-request</i>."))
+    story.append(bullet("<b>Inviter ami</b> : bouton de partage qui balance lien "
+                        "+ texte i18n via SharePlus. Tap sur friend tile → "
+                        "ouvre PawMap centrée si l'ami partage sa position."))
+    story.append(bullet("<b>Partage annonce sitter</b> : sitter_homescreen "
+                        "envoyait juste la photo (texte sans lien). Mirror du "
+                        "pattern owner avec share_post_body.trParams + subject."))
+    story.append(bullet("<b>Cadre Boost disparu après publish photo</b> : layout "
+                        "fix dans home_header.dart (Expanded → Flexible/loose + "
+                        "Spacer) — les actions de droite gardent leur largeur."))
+    story.append(bullet("<b>Emails → 404 sur web</b> : nouveau catch-all "
+                        "<i>app/[...slug]/page.tsx</i> côté Next.js qui tente "
+                        "<i>hopetsit://&lt;path&gt;</i> puis affiche fallback App "
+                        "Store / Play Store / web liste équivalente. AASA enrichi "
+                        "avec /walk/*, /book/*, /wallet, /subscription, "
+                        "/paw-spot, /profile, /notifications, /invite/*, /post/* "
+                        "pour interception iOS. Domaine share unifié .app → .com."))
+    story.append(bullet("<b>Croix de fermeture sur page Signalement bug</b> : "
+                        "IconButton(Icons.close) en haut à droite de l'AppBar."))
+    story.append(bullet("<b>i18n hardcoded FR strings</b> : 21 nouvelles clés × "
+                        "6 langues (follow_*, live_tracking_*, friends_*, "
+                        "auth_multiple_roles_*, coin_shop_boost_wallet_*, "
+                        "sitter_app_status_*, pawmap_snack_premium_only_msg, "
+                        "map_boost_tier_*). Hardcoded strings remplacés dans "
+                        "create_report_sheet, sitter_application_screen, "
+                        "auth_controller, coin_shop_screen, map_boost_controller, "
+                        "friends_screen."))
+
+    story.append(p("v23.1.169 — Bugs i18n facture / PawSpot / catégorie", H3))
     story.append(bullet("Facture PDF : maintenant générée dans la langue de "
                         "l'app (6 langues) au lieu de toujours en français. "
                         "Le symbole € est maintenant lisible grâce à la fonte "

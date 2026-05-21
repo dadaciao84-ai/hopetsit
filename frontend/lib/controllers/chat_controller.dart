@@ -191,7 +191,20 @@ class ChatController extends GetxController {
           '';
 
       if (conversationId == currentChatId.value) {
-        final newMessage = _mapToChatMessage(messageData, userId);
+        // v23.1.170 — Daniel : "jai payer un walker on commence a secirre ds
+        // le chat et la il yavais que des numlero qui saffichet et ecran
+        // noir crash". Cause racine : le webhook paiement Airwallex émet
+        // `message:new` avec un payload NESTED `{ conversationId, message:
+        // {_id, body, senderId, ...} }`, alors que l'envoi normal émet flat
+        // `{ conversationId, _id, body, senderId, ... }`. `_mapToChatMessage`
+        // lit les champs au top-level → body=null → fallback affiche
+        // `Map.toString()` du nested (= IDs Mongo qui ressemblent à des
+        // chiffres), et _id=null → fallback `DateTime.now().millisecondsSinceEpoch`
+        // (= chiffres purs). On déballe avant le mapping.
+        final raw = messageData['message'] is Map<String, dynamic>
+            ? Map<String, dynamic>.from(messageData['message'] as Map)
+            : messageData;
+        final newMessage = _mapToChatMessage(raw, userId);
         // Check if message already exists to avoid duplicates
         final exists = currentChatMessages.any(
           (msg) => msg.id == newMessage.id,

@@ -36,9 +36,17 @@ class _IndividualChatScreenState extends State<IndividualChatScreen> {
   late TextEditingController _localMessageController;
   VoidCallback? _sharedControllerListener;
 
+  // v23.1.170 — Daniel : "il faut changer le bouton tu met suivre walker
+  // ou sitter". On résout le rôle au moment du premier load (async) puis
+  // on rebuild l'AppBar pour afficher "Suivre walker" / "Suivre sitter".
+  // Avant la résolution, on garde "Suivre" générique.
+  String? _providerRole;
+
   @override
   void initState() {
     super.initState();
+    // Résolution async du rôle pour le bouton dynamique.
+    _resolveProviderRole();
 
     // Ensure ChatController is properly initialized
     if (!Get.isRegistered<ChatController>()) {
@@ -153,6 +161,38 @@ class _IndividualChatScreenState extends State<IndividualChatScreen> {
   //   204      → snackbar "Le prestataire n'a pas encore partagé sa
   //              position"
   //   no book  → snackbar "Aucune réservation active à suivre"
+  // v23.1.170 — résout le rôle du provider à partir des bookings actifs
+  // pour pouvoir afficher dynamiquement "Suivre walker" / "Suivre sitter".
+  Future<void> _resolveProviderRole() async {
+    try {
+      final repo = Get.find<OwnerRepository>();
+      final bookings = await repo.getMyBookings();
+      String norm(String s) =>
+          s.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+      final wantedName = norm(widget.contactName);
+      final match = bookings.firstWhereOrNull((b) {
+        final pay = (b.paymentStatus ?? '').toLowerCase();
+        if (pay != 'paid') return false;
+        return norm(b.sitter.name) == wantedName ||
+            norm(b.sitter.name).contains(wantedName) ||
+            wantedName.contains(norm(b.sitter.name));
+      });
+      final role = match?.providerRole;
+      if (mounted && role != null && role.isNotEmpty) {
+        setState(() => _providerRole = role);
+      }
+    } catch (_) {
+      // silently fail — generic "Suivre" label remains
+    }
+  }
+
+  String _followLabel() {
+    final role = (_providerRole ?? '').toLowerCase();
+    if (role == 'walker') return 'follow_button_walker'.tr;
+    if (role == 'sitter') return 'follow_button_sitter'.tr;
+    return 'follow_button_generic'.tr;
+  }
+
   Future<void> _onSuivreTap() async {
     try {
       final repo = Get.find<OwnerRepository>();
@@ -191,10 +231,9 @@ class _IndividualChatScreenState extends State<IndividualChatScreen> {
 
       if (bookingId == null || bookingId.isEmpty) {
         CustomSnackbar.showWarning(
-          title: 'Pas de réservation à suivre',
-          message:
-              'Aucune réservation payée en cours avec ${widget.contactName}. '
-              'Le suivi en direct s\'active après paiement.',
+          title: 'follow_no_booking_title'.tr,
+          message: 'follow_no_booking_msg'
+              .trParams({'name': widget.contactName}),
         );
         return;
       }
@@ -206,8 +245,8 @@ class _IndividualChatScreenState extends State<IndividualChatScreen> {
 
       if (code == 'PAWFOLLOW_REQUIRED') {
         CustomSnackbar.showWarning(
-          title: 'PawFollow requis',
-          message: 'Active PawFollow pour suivre ton walker / sitter en direct.',
+          title: 'follow_pawfollow_required_title'.tr,
+          message: 'follow_pawfollow_required_msg'.tr,
         );
         await Future.delayed(const Duration(milliseconds: 700));
         Get.to(() => const CoinShopScreen(initialTab: 1));
@@ -215,8 +254,8 @@ class _IndividualChatScreenState extends State<IndividualChatScreen> {
       }
       if (code == 'NO_LOCATION_YET' || coords == null) {
         CustomSnackbar.showInfo(
-          title: 'Position pas encore partagée',
-          message: 'Le prestataire n\'a pas encore activé son partage de position.',
+          title: 'follow_no_position_title'.tr,
+          message: 'follow_no_position_msg'.tr,
         );
         return;
       }
@@ -231,7 +270,7 @@ class _IndividualChatScreenState extends State<IndividualChatScreen> {
       Get.to(() => LiveWalkMapScreen(bookingId: bookingId));
     } catch (e) {
       CustomSnackbar.showError(
-        title: 'Suivi indisponible',
+        title: 'follow_unavailable_title'.tr,
         message: e.toString().replaceAll('ApiException:', '').trim(),
       );
     }
@@ -321,7 +360,7 @@ class _IndividualChatScreenState extends State<IndividualChatScreen> {
                         size: 14.sp, color: Colors.white),
                     SizedBox(width: 4.w),
                     InterText(
-                      text: 'Suivre',
+                      text: _followLabel(),
                       fontSize: 12.sp,
                       fontWeight: FontWeight.w800,
                       color: Colors.white,

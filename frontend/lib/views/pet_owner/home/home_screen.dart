@@ -496,7 +496,14 @@ class _HomeScreenState extends State<HomeScreen> {
                         final petName = post.pets.isNotEmpty
                             ? post.pets.first.petName
                             : '';
-                        final link = 'https://hopetsit.app/post/${post.id}';
+                        // v23.1.170 — Daniel : "tout les boutons des email
+                        // ne marche pas". Audit a aussi révélé que les
+                        // share links pointaient sur hopetsit.app (un
+                        // domaine qui n'existe PAS) au lieu de hopetsit.com.
+                        // On unifie : tous les liens passent désormais par
+                        // hopetsit.com → intercepté par universal links
+                        // iOS/Android ou fallback web /post/:id.
+                        final link = 'https://hopetsit.com/post/${post.id}';
                         final subject = 'share_post_subject'.trParams({
                           'petName': petName.isEmpty ? 'HoPetSit' : petName,
                         });

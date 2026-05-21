@@ -103,8 +103,19 @@ class HomeHeader extends StatelessWidget implements PreferredSizeWidget {
                   ),
                 ),
                 SizedBox(width: 10.w),
-                Expanded(
+                // v23.1.170 — Daniel : "quand jai publier une nanonce avec
+                // une photo le cadre boost a disparu verifie sur les 3
+                // profile". Cause racine : l'Expanded ici consommait toute
+                // la largeur disponible quand userName/badge s'élargissait
+                // (rebuild post-publish), poussant les actions de droite
+                // (BoostQuickAction + cloche) à width 0 sur certains layouts.
+                // Fix : Flexible(loose) au lieu d'Expanded → le bloc
+                // userName+badge prend seulement ce dont il a besoin, les
+                // actions à droite gardent toujours leur largeur intrinsèque.
+                Flexible(
+                  fit: FlexFit.loose,
                   child: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Flexible(
                         child: InterText(
@@ -121,6 +132,7 @@ class HomeHeader extends StatelessWidget implements PreferredSizeWidget {
                     ],
                   ),
                 ),
+                const Spacer(),
                 SizedBox(width: 8.w),
                 // ─── RIGHT : caller actions + notification bell ────────
                 ...mergedActions,

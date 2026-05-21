@@ -267,7 +267,8 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
                 final petName = post.pets.isNotEmpty
                     ? post.pets.first.petName
                     : '';
-                final link = 'https://hopetsit.app/post/${post.id}';
+                // v23.1.170 — fix .app → .com (domaine inexistant).
+                final link = 'https://hopetsit.com/post/${post.id}';
                 final subject = 'share_post_subject'
                     .trParams({'petName': petName.isEmpty ? 'HoPetSit' : petName});
                 final shareText = 'share_post_body'.trParams({'link': link});
@@ -331,7 +332,8 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
               final petName = post.pets.isNotEmpty
                   ? post.pets.first.petName
                   : '';
-              final link = 'https://hopetsit.app/post/${post.id}';
+              // v23.1.170 — fix .app → .com (domaine inexistant).
+                final link = 'https://hopetsit.com/post/${post.id}';
               final subject = 'share_post_subject'
                   .trParams({'petName': petName.isEmpty ? 'HoPetSit' : petName});
               final shareText = 'share_post_body'.trParams({'link': link});

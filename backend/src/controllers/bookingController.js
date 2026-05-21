@@ -4275,6 +4275,86 @@ const getProviderLocation = async (req, res) => {
   }
 };
 
+/**
+ * v23.1.170 — POST /bookings/:id/follow-request (sitter/walker only)
+ *
+ * Daniel : "pareil du coter de walker et sitter y doive poivoir envoyer
+ * au owner suis moi et que les 3 profile recoive les notification".
+ *
+ * Bouton miroir côté provider : permet au sitter/walker d'envoyer une
+ * notification proactive au owner du booking pour proposer le suivi
+ * live. L'owner reçoit un push notif `live_tracking_request_received`
+ * qui ouvre LiveWalkMapScreen au tap.
+ *
+ * Sécurité :
+ *   - Auth obligatoire + rôle sitter ou walker
+ *   - Le booking doit être 'paid' (sinon refus 409)
+ *   - L'utilisateur doit être le provider du booking (sitter/walker concerné)
+ *   - Pas de rate limit explicite ici, mais le push notif est idempotent
+ *     (mêmes data → même bundle iOS / Android, override en cas de spam)
+ */
+const requestLiveTracking = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const userRole = req.user.role; // 'sitter' or 'walker'
+    const { id: bookingId } = req.params;
+
+    const booking = await Booking.findById(bookingId).lean();
+    if (!booking) return res.status(404).json({ error: 'Booking not found.' });
+
+    // Vérifie que l'utilisateur est bien le provider du booking.
+    const isProvider =
+      (userRole === 'sitter' && String(booking.sitterId) === String(userId)) ||
+      (userRole === 'walker' && String(booking.walkerId) === String(userId));
+    if (!isProvider) {
+      return res.status(403).json({ error: 'Not your booking.' });
+    }
+
+    const pay = (booking.paymentStatus || '').toLowerCase();
+    if (pay !== 'paid') {
+      return res.status(409).json({
+        error: 'Live tracking only available for paid bookings.',
+        code: 'BOOKING_NOT_PAID',
+      });
+    }
+
+    const ownerId = booking.ownerId;
+    if (!ownerId) {
+      return res.status(404).json({ error: 'Owner not found on booking.' });
+    }
+
+    // Push notif à l'owner avec deep-link vers la LiveWalkMapScreen.
+    try {
+      const { sendNotification } = require('../services/notificationSender');
+      const buildEmailLink = require('../utils/emailLinkBuilder').buildEmailLink;
+      await sendNotification({
+        userId: ownerId,
+        userRole: 'owner',
+        type: 'live_tracking_request_received',
+        title: 'live_tracking_request_title',
+        body: 'live_tracking_request_body',
+        data: {
+          bookingId: String(bookingId),
+          providerRole: userRole,
+          // Deep link → /walk/:bookingId qui ouvre LiveWalkMapScreen.
+          emailLink: buildEmailLink('walk', { bookingId: String(bookingId) }),
+        },
+      });
+    } catch (e) {
+      logger.warn('[booking.requestLiveTracking] notif failed', e);
+    }
+
+    return res.json({
+      success: true,
+      bookingId: String(bookingId),
+      ownerNotified: true,
+    });
+  } catch (e) {
+    logger.error('[booking.requestLiveTracking]', e);
+    return res.status(500).json({ error: 'Unable to request live tracking.' });
+  }
+};
+
 module.exports = {
   createBooking,
   listBookings,
@@ -4308,4 +4388,5 @@ module.exports = {
   _prepareOwnerPaymentForAgreedBooking,
   // v23.1 part 66 — PawFollow live tracking
   getProviderLocation,
+  requestLiveTracking,
 };

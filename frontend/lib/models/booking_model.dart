@@ -81,6 +81,10 @@ class BookingModel {
   final String? houseSittingVenue; // owners_home or sitters_home
   final int? duration; // Walk duration in minutes (e.g. 30/60) when applicable
   final String? specialInstructions; // Special instructions for the booking
+  // v23.1.170 — Daniel : bouton dynamique « Suivre walker » / « Suivre sitter ».
+  // On expose le rôle du provider tel qu'envoyé par l'API (`sitter` ou
+  // `walker`) pour pouvoir afficher dynamiquement le label du bouton.
+  final String? providerRole;
 
   BookingModel({
     required this.id,
@@ -109,6 +113,7 @@ class BookingModel {
     this.houseSittingVenue,
     this.duration,
     this.specialInstructions,
+    this.providerRole,
   }) : pets = pets ?? [];
 
   factory BookingModel.fromJson(Map<String, dynamic> json) {
@@ -127,6 +132,27 @@ class BookingModel {
     // Determine which field to use based on what's available.
     // Priority: sitter > walker > otherParty > {} (empty fallback).
     final finalSitterData = sitterData ?? walkerData ?? otherParty ?? {};
+
+    // v23.1.170 — Daniel : bouton "Suivre walker" / "Suivre sitter".
+    // On déduit le rôle depuis le champ source. Si l'API envoie `walker` →
+    // walker. Si elle envoie `sitter` → sitter. Si seulement `otherParty` →
+    // on lit `providerType` si présent, sinon fallback null.
+    String? inferredProviderRole;
+    if (walkerData != null) {
+      inferredProviderRole = 'walker';
+    } else if (sitterData != null) {
+      inferredProviderRole = 'sitter';
+    } else if (otherParty != null) {
+      inferredProviderRole = (otherParty['providerType'] ??
+              otherParty['role'] ??
+              json['providerType'])
+          ?.toString()
+          .toLowerCase();
+    } else {
+      inferredProviderRole = (json['providerType'] ?? json['providerRole'])
+          ?.toString()
+          .toLowerCase();
+    }
 
     // If 'owner' exists, use it; otherwise use 'otherParty' (for sitter flow)
     final finalOwnerData = ownerData ?? otherParty ?? {};
@@ -189,6 +215,7 @@ class BookingModel {
           json['houseSittingVenue'] as String? ??
           json['house_sitting_venue'] as String?,
       duration: json['duration'] as int?,
+      providerRole: inferredProviderRole,
       specialInstructions:
           json['specialInstructions'] as String? ??
           json['special_instructions'] as String?,

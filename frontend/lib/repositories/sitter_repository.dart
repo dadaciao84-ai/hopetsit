@@ -241,6 +241,25 @@ class SitterRepository {
     );
   }
 
+  /// v23.1.170 — POST /bookings/:id/follow-request
+  /// Bouton "Suis-moi" côté sitter/walker. Envoie une notif push au owner
+  /// pour proposer le suivi live. Retourne { success, bookingId, ownerNotified }.
+  Future<Map<String, dynamic>> requestLiveTracking({
+    required String bookingId,
+  }) async {
+    final response = await _apiClient.post(
+      '${ApiEndpoints.bookings}/$bookingId/follow-request',
+      body: const {},
+      requiresAuth: true,
+    );
+    if (response is Map<String, dynamic>) return response;
+    if (response is Map) return Map<String, dynamic>.from(response);
+    throw ApiException(
+      'Unexpected follow-request response.',
+      details: response,
+    );
+  }
+
   /// Requests cancellation for a booking (rejects the booking request).
   Future<Map<String, dynamic>> requestBookingCancellation({
     required String bookingId,

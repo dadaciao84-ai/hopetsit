@@ -992,5 +992,18 @@ router.get(
   require('../controllers/bookingController').getProviderLocation,
 );
 
+// v23.1.170 — Daniel : "pareil du coter de walker et sitter y doive
+//   poivoir envoyer au owner suis moi et que les 3 profile recoive les
+//   notification". Bouton miroir côté sitter/walker dans le chat : il
+//   POST sur cette route → backend pousse une push notif à l'owner du
+//   booking avec deep-link vers la LiveWalkMapScreen ; les 2 parties
+//   reçoivent aussi un événement socket pour rafraîchir l'UI.
+router.post(
+  '/:id/follow-request',
+  requireAuth,
+  requireRole('sitter', 'walker'),
+  require('../controllers/bookingController').requestLiveTracking,
+);
+
 module.exports = router;
 

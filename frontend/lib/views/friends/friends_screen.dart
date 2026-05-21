@@ -6,8 +6,12 @@ import 'package:hopetsit/controllers/auth_controller.dart';
 import 'package:hopetsit/controllers/friend_controller.dart';
 import 'package:hopetsit/models/friendship_model.dart';
 import 'package:hopetsit/utils/app_colors.dart';
+import 'package:hopetsit/utils/storage_keys.dart';
+import 'package:hopetsit/views/map/paw_map_screen.dart';
 import 'package:hopetsit/widgets/app_text.dart';
 import 'package:hopetsit/widgets/custom_snackbar_widget.dart';
+import 'package:get_storage/get_storage.dart';
+import 'package:share_plus/share_plus.dart';
 
 /// Friends management screen — 2 tabs.
 ///   1. Mes amis — accepted friendships with a per-friend "share my position"
@@ -34,13 +38,57 @@ class FriendsScreen extends StatelessWidget {
               Text('👥', style: TextStyle(fontSize: 20.sp)),
               SizedBox(width: 8.w),
               InterText(
-                text: 'Mes amis',
+                text: 'friends_screen_title'.tr,
                 fontSize: 18.sp,
                 fontWeight: FontWeight.w700,
                 color: AppColors.textPrimary(context),
               ),
             ],
           ),
+          // v23.1.170 — Daniel : "la demande inviter mais normal ou par
+          // mail ne marche pas, il faut corriger". On ajoute un bouton
+          // partage en haut à droite qui balance un message d'invitation
+          // + lien deep-link via SharePlus (le destinataire peut le coller
+          // dans WhatsApp/email/sms etc.).
+          actions: [
+            IconButton(
+              icon: Icon(Icons.ios_share_rounded,
+                  color: AppColors.primaryColor, size: 22.sp),
+              tooltip: 'friends_invite_link_tooltip'.tr,
+              onPressed: () async {
+                try {
+                  // v23.1.170 — On lit le profil utilisateur depuis le
+                  // GetStorage (clé canonique 'user_profile') pour extraire
+                  // id + name. Fallback générique si pas trouvé.
+                  String myId = '';
+                  String myName = '';
+                  try {
+                    final raw = GetStorage().read(StorageKeys.userProfile);
+                    if (raw is Map) {
+                      myId = (raw['id'] ?? raw['_id'] ?? '').toString();
+                      myName = (raw['name'] ?? '').toString();
+                    }
+                  } catch (_) {/* noop */}
+                  final link = myId.isNotEmpty
+                      ? 'https://hopetsit.com/invite?from=$myId'
+                      : 'https://hopetsit.com';
+                  final text = 'friends_invite_message'.trParams({
+                    'name': myName.isEmpty ? 'HoPetSit' : myName,
+                    'link': link,
+                  });
+                  await SharePlus.instance.share(ShareParams(
+                    text: text,
+                    subject: 'friends_invite_subject'.tr,
+                  ));
+                } catch (e) {
+                  CustomSnackbar.showError(
+                    title: 'common_error'.tr,
+                    message: e.toString(),
+                  );
+                }
+              },
+            ),
+          ],
           bottom: TabBar(
             labelColor: AppColors.primaryColor,
             unselectedLabelColor: AppColors.greyText,
@@ -332,7 +380,27 @@ class _FriendTile extends StatelessWidget {
       'Walker': AppColors.greenColor,
     }[other.model] ?? AppColors.primaryColor;
 
-    return Container(
+    // v23.1.170 — Daniel : "si une famille veux se suivre que juste en
+    // cliquand sur le nom ds sa liste damis par exemplet sa le geoloclaise".
+    // Tap sur la card → on ouvre directement la PawMap. La carte affiche
+    // déjà tous les amis qui partagent leur position via le socket
+    // `map:friend-position`. Si l'ami n'a pas activé son share, on affiche
+    // un snackbar explicatif pour lui demander d'activer.
+    return InkWell(
+      borderRadius: BorderRadius.circular(16.r),
+      onTap: () {
+        final theyShareWithMe = friendship.theirSharePosition;
+        if (!theyShareWithMe) {
+          CustomSnackbar.showInfo(
+            title: 'friends_tap_not_shared_title'.tr,
+            message: 'friends_tap_not_shared_msg'
+                .trParams({'name': other.name.isEmpty ? '—' : other.name}),
+          );
+          return;
+        }
+        Get.to(() => const PawMapScreen());
+      },
+      child: Container(
       padding: EdgeInsets.all(12.w),
       decoration: BoxDecoration(
         color: AppColors.card(context),
@@ -438,6 +506,7 @@ class _FriendTile extends StatelessWidget {
             ],
           ),
         ],
+      ),
       ),
     );
   }

@@ -1178,19 +1178,33 @@ class _SitterHomescreenState extends State<SitterHomescreen> {
                               onReportPost: () => _handleReportPost(
                                 postId: post.id,
                               ),
+                              // v23.1.170 — Daniel : "quand je partage la
+                              // demande dune publication sa menvoi lannonce
+                              // de la photo corrige sur les 3 profile".
+                              // Sitter envoyait `shareText = post.body` sans
+                              // lien deep-link → WhatsApp/Telegram/Instagram
+                              // priorise l'image et tronque le texte. On
+                              // mirror le pattern owner home (l.494) : texte
+                              // i18n avec @link + subject traduit.
                               onShare: () {
                                 () async {
                                   try {
-                                    final shareText = post.body.isNotEmpty
-                                        ? post.body
-                                        : (post.pets.isNotEmpty &&
-                                                  post
-                                                      .pets
-                                                      .first
-                                                      .petName
-                                                      .isNotEmpty
-                                              ? 'Meet ${post.pets.first.petName} — looking for a caring sitter. See photos and details on HoPetSit!'
-                                              : 'Looking for a caring pet sitter? Check out this post on HoPetSit!');
+                                    final petName = post.pets.isNotEmpty
+                                        ? post.pets.first.petName
+                                        : '';
+                                    // v23.1.170 — voir home_screen.dart
+                                    // pour le pourquoi du .com au lieu de
+                                    // .app (domaine inexistant).
+                                    final link =
+                                        'https://hopetsit.com/post/${post.id}';
+                                    final subject = 'share_post_subject'
+                                        .trParams({
+                                      'petName': petName.isEmpty
+                                          ? 'HoPetSit'
+                                          : petName,
+                                    });
+                                    final shareText = 'share_post_body'
+                                        .trParams({'link': link});
 
                                     final filesToShare = <XFile>[];
 
@@ -1234,9 +1248,20 @@ class _SitterHomescreenState extends State<SitterHomescreen> {
                                     }
 
                                     if (filesToShare.isNotEmpty) {
-                                      await SharePlus.instance.share(ShareParams(files: filesToShare, text: shareText,));
+                                      await SharePlus.instance.share(
+                                        ShareParams(
+                                          files: filesToShare,
+                                          text: shareText,
+                                          subject: subject,
+                                        ),
+                                      );
                                     } else {
-                                      await SharePlus.instance.share(ShareParams(text: shareText));
+                                      await SharePlus.instance.share(
+                                        ShareParams(
+                                          text: shareText,
+                                          subject: subject,
+                                        ),
+                                      );
                                     }
                                   } catch (error) {
                                     AppLogger.logError(

@@ -82,30 +82,31 @@ class MapBoostController extends GetxController {
   /// safety net so the shop never shows an empty list.
   static List<MapBoostPackage> _fallbackPackagesForCurrency(String cur) {
     return [
+      // v23.1.170 — labels traduits via .tr (audit i18n strings hardcodées).
       MapBoostPackage(
           tier: 'bronze',
           amount: 1.99,
           currency: cur,
           days: 3,
-          label: 'Découverte'),
+          label: 'map_boost_tier_discovery'.tr),
       MapBoostPackage(
           tier: 'silver',
           amount: 4.99,
           currency: cur,
           days: 7,
-          label: 'Visible'),
+          label: 'map_boost_tier_visible'.tr),
       MapBoostPackage(
           tier: 'gold',
           amount: 8.99,
           currency: cur,
           days: 15,
-          label: 'Pin Doré'),
+          label: 'map_boost_tier_gold_pin'.tr),
       MapBoostPackage(
           tier: 'platinum',
           amount: 14.99,
           currency: cur,
           days: 30,
-          label: 'Map Premium'),
+          label: 'map_boost_tier_map_premium'.tr),
     ];
   }
 

@@ -230,7 +230,9 @@ class _BoostTabState extends State<_BoostTab> with AutomaticKeepAliveClientMixin
       AlertDialog(
         title: const Text('Payer avec ton wallet ?'),
         content: Text(
-          'Débiter ${amount.toStringAsFixed(2)} $currency de ton wallet pour activer le boost ?',
+          'coin_shop_boost_wallet_confirm_msg'.trParams({
+            'amount': '${amount.toStringAsFixed(2)} $currency',
+          }),
         ),
         actions: [
           TextButton(onPressed: () => Get.back(result: false), child: const Text('Annuler')),
@@ -316,7 +318,7 @@ class _BoostTabState extends State<_BoostTab> with AutomaticKeepAliveClientMixin
         CustomSnackbar.showSuccess(
           title: 'boost_purchase_success_title'.tr,
           message: payWithWallet
-              ? 'Boost activé avec ton solde wallet 💰'
+              ? 'coin_shop_boost_wallet_success'.tr
               : 'boost_purchase_success_msg'.tr,
         );
         await _loadBoostStatus();

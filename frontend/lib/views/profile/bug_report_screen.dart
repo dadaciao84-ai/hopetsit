@@ -101,6 +101,16 @@ class _BugReportScreenState extends State<BugReportScreen> {
           fontWeight: FontWeight.w700,
           color: AppColors.textPrimary(context),
         ),
+        // v23.1.170 — Daniel : "sur la page signalement en haut a droite met
+        // une croix pour fermer la page". On ajoute le bouton close en plus
+        // de la flèche back par défaut (geste alternatif plus rapide).
+        actions: [
+          IconButton(
+            icon: Icon(Icons.close, color: accent, size: 24.sp),
+            tooltip: 'common_close'.tr,
+            onPressed: () => Get.back(),
+          ),
+        ],
       ),
       body: SafeArea(
         child: Padding(
