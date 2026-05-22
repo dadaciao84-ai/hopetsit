@@ -766,6 +766,28 @@ class _IndividualChatScreenState extends State<IndividualChatScreen> {
                 fontWeight: FontWeight.w300,
                 color: AppColors.textSecondary(context),
               ),
+              // v23.1.190 — Daniel : "rajoute effacer message dans le chat
+              // on peux pas effacer les message corrige sa". Long-press
+              // existait deja mais pas decouvrable. Bouton 3-points
+              // visible a cote du timestamp pour les messages envoyes
+              // qui ouvre la meme sheet Supprimer.
+              if (!message.isDeleted && message.isFromCurrentUser)
+                ...[
+                  const Spacer(),
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => _showDeleteMessageSheet(message, controller),
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(
+                          horizontal: 4.w, vertical: 2.h),
+                      child: Icon(
+                        Icons.more_horiz_rounded,
+                        size: 18.sp,
+                        color: AppColors.textSecondary(context),
+                      ),
+                    ),
+                  ),
+                ],
             ],
           ),
 

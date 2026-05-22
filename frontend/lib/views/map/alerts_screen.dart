@@ -19,6 +19,9 @@ import 'package:hopetsit/widgets/app_text.dart';
 class AlertsScreen extends StatelessWidget {
   const AlertsScreen({super.key});
 
+  // v23.1.190 — Daniel : "enleve accident". Reste 4 tabs (Tous / Perdus /
+  // Danger / Autres). Les animaux decedes restent dans Danger (severite
+  // urgente) ou via Autres selon le contexte.
   static const _tabs = <_TabDef>[
     _TabDef(key: 'all', labelKey: 'alerts_tab_all', filter: null),
     _TabDef(key: 'lost', labelKey: 'alerts_tab_lost', filter: [
@@ -27,8 +30,6 @@ class AlertsScreen extends StatelessWidget {
     _TabDef(key: 'danger', labelKey: 'alerts_tab_danger', filter: [
       ReportTypes.aggressiveDog,
       ReportTypes.hazard,
-    ]),
-    _TabDef(key: 'accident', labelKey: 'alerts_tab_accident', filter: [
       ReportTypes.deadAnimal,
     ]),
     _TabDef(key: 'other', labelKey: 'alerts_tab_other', filter: [

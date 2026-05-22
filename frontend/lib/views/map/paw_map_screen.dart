@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -66,6 +67,14 @@ class _PawMapScreenState extends State<PawMapScreen> {
   // v23.1.189 — Daniel : "sur map autour de vous quon puisse le fermer".
   // Bouton X qui hide la card "Autour de vous" pour cette session.
   final RxBool _aroundYouVisible = true.obs;
+
+  // v23.1.190 — Daniel : "pour les signalement au lieu de halo rouge
+  // emoji du signalement". Cache BitmapDescriptor par type de report,
+  // pre-calcule a partir des emojis (ReportTypes.emoji). _buildMarkers
+  // consulte ce cache pour rendre des markers emoji ronds au lieu des
+  // pins teardrop colorés.
+  final Map<String, BitmapDescriptor> _reportEmojiMarkers = {};
+  bool _emojiMarkersReady = false;
   final RxBool _showReports = true.obs;
   final RxBool _showFriends = true.obs;
   final RxBool _showRequests = true.obs;
@@ -155,6 +164,79 @@ class _PawMapScreenState extends State<PawMapScreen> {
     // Paris fallback is the initial value — the map renders immediately
     // and _bootstrap() upgrades to real location in the background.
     _bootstrap();
+
+    // v23.1.190 — pre-warm le cache emoji markers en background. Quand
+    // pret, setState force le rebuild des markers map.
+    _prewarmEmojiMarkers();
+  }
+
+  /// v23.1.190 — Daniel : "pour les signalement au lieu de halo rouge
+  /// emoji du signalement". Genere les BitmapDescriptors emoji pour les
+  /// 9 types de report (free + premium). Le rendu en bitmap est async
+  /// (Canvas → toImage → toByteData → fromBytes) donc on pre-warm le
+  /// cache UNE FOIS au mount.
+  Future<void> _prewarmEmojiMarkers() async {
+    const types = [
+      ReportTypes.lostPet,
+      ReportTypes.aggressiveDog,
+      ReportTypes.hazard,
+      ReportTypes.waterActive,
+      ReportTypes.waterBroken,
+      ReportTypes.foundPet,
+      ReportTypes.poop,
+      ReportTypes.deadAnimal,
+      ReportTypes.other,
+    ];
+    for (final t in types) {
+      try {
+        final bd = await _buildEmojiBitmap(ReportTypes.emoji(t));
+        _reportEmojiMarkers[t] = bd;
+      } catch (e) {
+        debugPrint('[PawMap] emoji marker $t failed: $e');
+      }
+    }
+    if (mounted) {
+      setState(() => _emojiMarkersReady = true);
+    }
+  }
+
+  /// Renders a circular white-bg marker with the emoji centered inside.
+  /// 120x120 pixels gives a crisp icon on retina screens. Returns a
+  /// BitmapDescriptor ready to assign to Marker(icon: ...).
+  Future<BitmapDescriptor> _buildEmojiBitmap(String emoji) async {
+    const double size = 120.0;
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+
+    // Ombre douce derriere le cercle.
+    final shadowPaint = Paint()
+      ..color = Colors.black.withValues(alpha: 0.18)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
+    canvas.drawCircle(const Offset(size / 2, size / 2 + 3), size / 2 - 4, shadowPaint);
+
+    // Cercle blanc.
+    final bgPaint = Paint()..color = Colors.white;
+    canvas.drawCircle(const Offset(size / 2, size / 2), size / 2 - 4, bgPaint);
+    // Anneau orange brand.
+    final ringPaint = Paint()
+      ..color = const Color(0xFFEF4324)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 4;
+    canvas.drawCircle(const Offset(size / 2, size / 2), size / 2 - 6, ringPaint);
+
+    // Emoji.
+    final tp = TextPainter(
+      text: TextSpan(text: emoji, style: const TextStyle(fontSize: 60)),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    tp.paint(
+      canvas,
+      Offset((size - tp.width) / 2, (size - tp.height) / 2),
+    );
+
+    final img = await recorder.endRecording().toImage(size.toInt(), size.toInt());
+    final bytes = await img.toByteData(format: ui.ImageByteFormat.png);
+    return BitmapDescriptor.bytes(bytes!.buffer.asUint8List());
   }
 
   @override
@@ -860,11 +942,17 @@ class _PawMapScreenState extends State<PawMapScreen> {
     if (_showReports.value) {
       for (final r in _reportController.reports) {
         if (r.isExpired) continue;
+        // v23.1.190 — Daniel : "pour les signalement au lieu de halo
+        // rouge emoji du signalement". On pioche dans le cache emoji
+        // pre-calcule, fallback sur le pin teardrop coloré si pas
+        // encore pret (pendant le pre-warm initial).
+        final emojiIcon = _reportEmojiMarkers[r.type];
         markers.add(
           Marker(
             markerId: MarkerId('report_${r.id}'),
             position: LatLng(r.latitude, r.longitude),
-            icon: BitmapDescriptor.defaultMarkerWithHue(_hueForReport(r.type)),
+            icon: emojiIcon ??
+                BitmapDescriptor.defaultMarkerWithHue(_hueForReport(r.type)),
             infoWindow: InfoWindow(
               title: '${ReportTypes.emoji(r.type)} ${ReportTypes.labelFr(r.type)}',
               snippet:
@@ -1810,12 +1898,17 @@ class _PawMapScreenState extends State<PawMapScreen> {
                 child: Icon(icon, color: Colors.white, size: 20.sp),
               ),
               SizedBox(height: 6.h),
+              // v23.1.190 — Daniel : "voir si tu peux pas ecrire famille
+              // et amis ds le bouton violet". maxLines=2 permet aux
+              // labels longs (Famille & Amis) de wrap sur 2 lignes au
+              // lieu d'etre tronques.
               InterText(
                 text: label,
                 fontSize: 11.sp,
                 fontWeight: FontWeight.w800,
                 color: color,
-                maxLines: 1,
+                maxLines: 2,
+                textAlign: TextAlign.center,
               ),
               SizedBox(height: 2.h),
               InterText(
@@ -1824,6 +1917,7 @@ class _PawMapScreenState extends State<PawMapScreen> {
                 fontWeight: FontWeight.w500,
                 color: AppColors.greyText,
                 maxLines: 1,
+                textAlign: TextAlign.center,
               ),
             ],
           ),

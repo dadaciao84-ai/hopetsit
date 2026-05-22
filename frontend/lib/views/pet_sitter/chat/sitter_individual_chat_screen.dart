@@ -489,6 +489,25 @@ class _SitterIndividualChatScreenState
                 fontWeight: FontWeight.w300,
                 color: AppColors.textSecondary(context),
               ),
+              // v23.1.190 — Bouton 3-points visible pour supprimer son
+              // propre message (en plus du long-press).
+              if (!message.isDeleted && message.isFromCurrentUser)
+                ...[
+                  const Spacer(),
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => _showSitterDeleteSheet(message, controller),
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(
+                          horizontal: 4.w, vertical: 2.h),
+                      child: Icon(
+                        Icons.more_horiz_rounded,
+                        size: 18.sp,
+                        color: AppColors.textSecondary(context),
+                      ),
+                    ),
+                  ),
+                ],
             ],
           ),
 

@@ -414,11 +414,15 @@ class _FriendTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final other = friendship.other!;
+    // v23.1.190 — Daniel : "le plus facile pour le code couleur famille
+    // et amis en violet walker en vert sitter en bleu". Owner = friend /
+    // famille → violet (cohérent avec la carte "Famille & Amis" du
+    // PawMap header). Walker = vert, Sitter = bleu (deja en place).
     final roleColor = {
-      'Owner': AppColors.primaryColor,
+      'Owner': const Color(0xFF8B5CF6),
       'Sitter': AppColors.sitterAccent,
       'Walker': AppColors.greenColor,
-    }[other.model] ?? AppColors.primaryColor;
+    }[other.model] ?? const Color(0xFF8B5CF6);
 
     // v23.1.170 — Daniel : "si une famille veux se suivre que juste en
     // cliquand sur le nom ds sa liste damis par exemplet sa le geoloclaise".
@@ -1498,11 +1502,12 @@ class _AddFriendTabState extends State<_AddFriendTab> {
     final name = (u['name'] ?? '').toString();
     final email = (u['email'] ?? '').toString();
     final avatar = (u['avatar'] ?? '').toString();
+    // v23.1.190 — owner = violet (Famille & Amis), walker = vert, sitter = bleu.
     final accent = role == 'walker'
         ? AppColors.greenColor
         : role == 'sitter'
             ? AppColors.sitterAccent
-            : AppColors.primaryColor;
+            : const Color(0xFF8B5CF6);
     return Container(
       margin: EdgeInsets.only(bottom: 8.h),
       padding: EdgeInsets.all(12.w),
