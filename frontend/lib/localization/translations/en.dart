@@ -160,6 +160,11 @@ const Map<String, String> enUSTranslations = <String, String>{
       'tracking_sheet_trust_msg': 'Live tracking strengthens safety and trust between you.',
       // v23.1.193 — short label for inline "Delete" pill button.
       'chat_delete_short': 'Delete',
+      // v23.1.194 — TrackingRequestSheet refonte mockup.
+      'tracking_sheet_title_v2': 'Booking details',
+      'tracking_sheet_panel_desc_v2': 'Follow your pet in real time during the booking.',
+      'tracking_sheet_phone': 'Phone',
+      'tracking_sheet_address': 'Departure address',
       // v23.1.187 — "Around you" floating card.
       'pawmap_around_you': 'Around you',
       'pawmap_around_you_see_all': 'See all',

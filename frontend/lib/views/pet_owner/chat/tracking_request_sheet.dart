@@ -1,17 +1,19 @@
 // v23.1.192 — Daniel mockup SUIVI EN DIRECT (cote OWNER) : ecran qui
 // s'ouvre quand l'owner tape "Suivre en direct mon animal" dans le chat.
 //
-// Contenu (mockup) :
-//   - Pet card (avatar, name, breed, dates, "En garde" badge)
-//   - "Suivi en direct • Disponible" + gros bouton orange "Suivre mon
-//     animal"
-//   - "Informations pratiques" : sitter / walker nom + photo + message
-//     + telephone + adresse de depart
-//   - Banner "Transparence & confiance" en bas
-//
-// Au tap "Suivre mon animal" → declenche le callback onConfirm qui
-// envoie la pawfollow_request (controleur de chat). Au tap "Plus tard"
-// → ferme sans envoyer.
+// v23.1.194 — Reverif 3x du mockup Daniel : refonte stricte pour matcher
+// EXACTEMENT le screenshot envoye (cote owner gauche) :
+//   - Titre : "Detail de la garde" (pas "Suivre mon animal")
+//   - Pet card : avatar + nom + emoji paw + race + badge "En garde" +
+//     dates dans encart orange (calendar icon)
+//   - Panel "Suivi en direct" : pill verte "Disponible" + description
+//     + GROS bouton orange seul (PAS de "Plus tard" cote owner)
+//   - "Informations pratiques" : 3 rows
+//       * Sitter / Walker + nom + bouton chat
+//       * Telephone + numero + bouton appel
+//       * Adresse de depart + adresse + bouton map
+//   - Banner "Transparence & confiance"
+//   - Le back AppBar suffit pour annuler
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -32,8 +34,6 @@ class TrackingRequestSheet extends StatelessWidget {
   });
 
   /// Booking lie a la conversation (pet, dates, sitter/walker info).
-  /// v23.1.193 — nullable : si pas de booking detecte, on utilise les
-  /// fallbacks (contact name + image) pour afficher le sheet quand meme.
   final BookingModel? booking;
 
   /// Nom du contact de la conversation (si pas de booking).
@@ -48,26 +48,24 @@ class TrackingRequestSheet extends StatelessWidget {
   static const _orange = Color(0xFFEF4324);
   static const _orangeBg = Color(0xFFFFF1ED);
 
-  String _formatDateRange() {
-    final b = booking;
-    if (b == null) return '';
-    final d = b.date;
-    final t = b.timeSlot;
-    if (d.isEmpty && t.isEmpty) return '';
-    return [d, t].where((s) => s.isNotEmpty).join(' · ');
-  }
-
   @override
   Widget build(BuildContext context) {
     final b = booking;
     final providerName = b?.sitter.name ?? fallbackContactName;
     final providerAvatar = b?.sitter.avatar.url ?? fallbackContactImage;
+    final providerPhone = (b != null && b.sitter.mobile.isNotEmpty)
+        ? '${b.sitter.mobile}'
+        : '';
+    final providerAddress = b?.sitter.address ?? '';
     final petName = b != null
         ? (b.pets.isNotEmpty ? b.pets.first.petName : b.petName)
         : '';
     final petBreed = b != null && b.pets.isNotEmpty ? b.pets.first.breed : '';
     final petAvatar =
         b != null && b.pets.isNotEmpty ? b.pets.first.avatar.url : '';
+    final dateText = b != null
+        ? [b.date, b.timeSlot].where((s) => s.isNotEmpty).join(' • ')
+        : '';
 
     return Scaffold(
       backgroundColor: AppColors.scaffold(context),
@@ -75,12 +73,13 @@ class TrackingRequestSheet extends StatelessWidget {
         backgroundColor: AppColors.appBar(context),
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_rounded,
-              color: _orange, size: 24.sp),
+          icon: Icon(Icons.arrow_back_rounded, color: _orange, size: 24.sp),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: InterText(
-          text: 'tracking_sheet_title'.tr,
+          // v23.1.194 — Daniel mockup : "Detail de la garde" (pas
+          // "Suivre mon animal" qui est le label du bouton).
+          text: 'tracking_sheet_title_v2'.tr,
           fontSize: 17.sp,
           fontWeight: FontWeight.w800,
           color: AppColors.textPrimary(context),
@@ -91,21 +90,30 @@ class TrackingRequestSheet extends StatelessWidget {
         child: ListView(
           padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 24.h),
           children: [
-            // ── Pet card (seulement si booking detecte) ─────────────
-            if (b != null) ...[
-              _buildPetCard(context, petName, petBreed, petAvatar),
-              SizedBox(height: 14.h),
-            ],
+            // ── Pet card (mockup) ─────────────────────────────────────
+            if (b != null)
+              _buildPetCard(context,
+                  name: petName,
+                  breed: petBreed,
+                  avatar: petAvatar,
+                  dateText: dateText),
+            if (b != null) SizedBox(height: 14.h),
 
-            // ── Suivi en direct + CTA ──────────────────────────────
+            // ── Panel "Suivi en direct" + gros bouton orange seul ─────
             _buildLiveTrackingPanel(context),
             SizedBox(height: 14.h),
 
-            // ── Infos pratiques ─────────────────────────────────────
-            _buildPracticalInfo(context, providerName, providerAvatar),
+            // ── Informations pratiques (3 rows mockup) ───────────────
+            _buildPracticalInfo(
+              context,
+              name: providerName,
+              avatar: providerAvatar,
+              phone: providerPhone,
+              address: providerAddress,
+            ),
             SizedBox(height: 14.h),
 
-            // ── Transparence & confiance ────────────────────────────
+            // ── Transparence & confiance ──────────────────────────────
             _buildTrustBanner(context),
           ],
         ),
@@ -113,8 +121,13 @@ class TrackingRequestSheet extends StatelessWidget {
     );
   }
 
-  Widget _buildPetCard(BuildContext context, String name, String breed, String avatar) {
-    final dates = _formatDateRange();
+  Widget _buildPetCard(
+    BuildContext context, {
+    required String name,
+    required String breed,
+    required String avatar,
+    required String dateText,
+  }) {
     return Container(
       padding: EdgeInsets.all(14.w),
       decoration: BoxDecoration(
@@ -158,7 +171,7 @@ class TrackingRequestSheet extends StatelessWidget {
                         Flexible(
                           child: InterText(
                             text: name.isEmpty ? '—' : name,
-                            fontSize: 16.sp,
+                            fontSize: 17.sp,
                             fontWeight: FontWeight.w800,
                             color: AppColors.textPrimary(context),
                             maxLines: 1,
@@ -181,7 +194,7 @@ class TrackingRequestSheet extends StatelessWidget {
               ),
               Container(
                 padding: EdgeInsets.symmetric(
-                    horizontal: 10.w, vertical: 4.h),
+                    horizontal: 10.w, vertical: 5.h),
                 decoration: BoxDecoration(
                   color: _orangeBg,
                   borderRadius: BorderRadius.circular(12.r),
@@ -189,18 +202,18 @@ class TrackingRequestSheet extends StatelessWidget {
                 ),
                 child: InterText(
                   text: 'tracking_sheet_in_care_badge'.tr,
-                  fontSize: 10.sp,
+                  fontSize: 11.sp,
                   fontWeight: FontWeight.w800,
                   color: _orange,
                 ),
               ),
             ],
           ),
-          if (dates.isNotEmpty) ...[
-            SizedBox(height: 10.h),
+          if (dateText.isNotEmpty) ...[
+            SizedBox(height: 12.h),
             Container(
               width: double.infinity,
-              padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
+              padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 10.h),
               decoration: BoxDecoration(
                 color: _orangeBg,
                 borderRadius: BorderRadius.circular(10.r),
@@ -212,9 +225,9 @@ class TrackingRequestSheet extends StatelessWidget {
                   SizedBox(width: 8.w),
                   Expanded(
                     child: InterText(
-                      text: dates,
+                      text: dateText,
                       fontSize: 12.sp,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w700,
                       color: AppColors.textPrimary(context),
                     ),
                   ),
@@ -250,13 +263,14 @@ class TrackingRequestSheet extends StatelessWidget {
               Expanded(
                 child: InterText(
                   text: 'tracking_sheet_panel_title'.tr,
-                  fontSize: 15.sp,
+                  fontSize: 16.sp,
                   fontWeight: FontWeight.w800,
                   color: AppColors.textPrimary(context),
                 ),
               ),
+              // Pill verte "Disponible" (mockup).
               Container(
-                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
+                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
                 decoration: BoxDecoration(
                   color: const Color(0xFF16A34A).withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(12.r),
@@ -286,13 +300,15 @@ class TrackingRequestSheet extends StatelessWidget {
               ),
             ],
           ),
-          SizedBox(height: 4.h),
+          SizedBox(height: 6.h),
           InterText(
-            text: 'tracking_sheet_panel_desc'.tr,
+            text: 'tracking_sheet_panel_desc_v2'.tr,
             fontSize: 12.sp,
             color: AppColors.textSecondary(context),
           ),
-          SizedBox(height: 12.h),
+          SizedBox(height: 14.h),
+          // v23.1.194 — mockup owner side : GROS bouton seul, PAS de
+          // "Plus tard". Le back arrow AppBar suffit pour annuler.
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
@@ -305,7 +321,7 @@ class TrackingRequestSheet extends StatelessWidget {
                 padding: EdgeInsets.symmetric(vertical: 4.h),
                 child: InterText(
                   text: 'tracking_sheet_follow_btn'.tr,
-                  fontSize: 14.sp,
+                  fontSize: 15.sp,
                   fontWeight: FontWeight.w800,
                   color: Colors.white,
                 ),
@@ -313,7 +329,7 @@ class TrackingRequestSheet extends StatelessWidget {
               style: ElevatedButton.styleFrom(
                 backgroundColor: _orange,
                 foregroundColor: Colors.white,
-                padding: EdgeInsets.symmetric(vertical: 12.h),
+                padding: EdgeInsets.symmetric(vertical: 14.h),
                 elevation: 3,
                 shadowColor: _orange.withValues(alpha: 0.5),
                 shape: RoundedRectangleBorder(
@@ -322,32 +338,18 @@ class TrackingRequestSheet extends StatelessWidget {
               ),
             ),
           ),
-          SizedBox(height: 6.h),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton(
-              onPressed: () => Navigator.of(context).pop(),
-              style: OutlinedButton.styleFrom(
-                side: BorderSide(color: _orange.withValues(alpha: 0.4)),
-                padding: EdgeInsets.symmetric(vertical: 12.h),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14.r),
-                ),
-              ),
-              child: InterText(
-                text: 'tracking_sheet_later'.tr,
-                fontSize: 13.sp,
-                fontWeight: FontWeight.w700,
-                color: _orange,
-              ),
-            ),
-          ),
         ],
       ),
     );
   }
 
-  Widget _buildPracticalInfo(BuildContext context, String name, String avatar) {
+  Widget _buildPracticalInfo(
+    BuildContext context, {
+    required String name,
+    required String avatar,
+    required String phone,
+    required String address,
+  }) {
     return Container(
       padding: EdgeInsets.all(14.w),
       decoration: BoxDecoration(
@@ -371,69 +373,125 @@ class TrackingRequestSheet extends StatelessWidget {
             fontWeight: FontWeight.w800,
             color: AppColors.textPrimary(context),
           ),
-          SizedBox(height: 12.h),
-          // Provider row.
-          Row(
-            children: [
-              ClipOval(
-                child: Container(
-                  width: 44.w,
-                  height: 44.w,
-                  color: _orange.withValues(alpha: 0.10),
-                  child: avatar.isNotEmpty
-                      ? CachedNetworkImage(
-                          imageUrl: avatar,
-                          fit: BoxFit.cover,
-                          errorWidget: (_, __, ___) =>
-                              Icon(Icons.person, color: _orange, size: 22.sp),
-                        )
-                      : Icon(Icons.person, color: _orange, size: 22.sp),
-                ),
+          SizedBox(height: 14.h),
+
+          // Row 1 : Sitter / Walker avec avatar + bouton chat (mockup).
+          _infoRow(
+            context,
+            leading: ClipOval(
+              child: Container(
+                width: 38.w,
+                height: 38.w,
+                color: _orange.withValues(alpha: 0.10),
+                child: avatar.isNotEmpty
+                    ? CachedNetworkImage(
+                        imageUrl: avatar,
+                        fit: BoxFit.cover,
+                        errorWidget: (_, __, ___) =>
+                            Icon(Icons.person, color: _orange, size: 22.sp),
+                      )
+                    : Icon(Icons.person, color: _orange, size: 22.sp),
               ),
-              SizedBox(width: 10.w),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    InterText(
-                      text: 'tracking_sheet_sitter_walker'.tr,
-                      fontSize: 10.sp,
-                      color: AppColors.greyText,
-                    ),
-                    SizedBox(height: 1.h),
-                    InterText(
-                      text: name.isEmpty ? '—' : name,
-                      fontSize: 13.sp,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary(context),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+            ),
+            labelKey: 'tracking_sheet_sitter_walker',
+            value: name.isEmpty ? '—' : name,
+            trailingIcon: Icons.chat_bubble_rounded,
+            trailingBg: _orange.withValues(alpha: 0.10),
+            trailingColor: _orange,
+            onTrailingTap: () => Navigator.of(context).pop(),
           ),
-          SizedBox(height: 10.h),
-          Divider(height: 1, color: AppColors.divider(context)),
-          SizedBox(height: 10.h),
-          // Note de transparence (telephone + adresse pas exposes pour
-          // privacy — l'owner contacte via chat ; on garde la place pour
-          // un futur module ou ils sont opt-in).
-          Row(
-            children: [
-              Icon(Icons.chat_bubble_outline_rounded,
-                  color: _orange, size: 18.sp),
-              SizedBox(width: 8.w),
-              Expanded(
-                child: InterText(
-                  text: 'tracking_sheet_contact_via_chat'.tr,
-                  fontSize: 11.sp,
-                  color: AppColors.textSecondary(context),
-                ),
-              ),
-            ],
-          ),
+
+          // Row 2 : Telephone + numero + bouton phone (mockup).
+          if (phone.isNotEmpty) ...[
+            SizedBox(height: 14.h),
+            _infoRow(
+              context,
+              leading: Icon(Icons.phone_outlined,
+                  color: AppColors.greyText, size: 22.sp),
+              labelKey: 'tracking_sheet_phone',
+              value: phone,
+              trailingIcon: Icons.call_rounded,
+              trailingBg: _orange.withValues(alpha: 0.10),
+              trailingColor: _orange,
+              onTrailingTap: () {
+                // TODO v23.1.195 : url_launcher tel: scheme.
+              },
+            ),
+          ],
+
+          // Row 3 : Adresse de depart + adresse + bouton map (mockup).
+          if (address.isNotEmpty) ...[
+            SizedBox(height: 14.h),
+            _infoRow(
+              context,
+              leading: Icon(Icons.location_on_outlined,
+                  color: AppColors.greyText, size: 22.sp),
+              labelKey: 'tracking_sheet_address',
+              value: address,
+              trailingIcon: Icons.map_rounded,
+              trailingBg: _orange.withValues(alpha: 0.10),
+              trailingColor: _orange,
+              onTrailingTap: () {
+                // TODO v23.1.195 : url_launcher geo: scheme.
+              },
+            ),
+          ],
         ],
       ),
+    );
+  }
+
+  Widget _infoRow(
+    BuildContext context, {
+    required Widget leading,
+    required String labelKey,
+    required String value,
+    required IconData trailingIcon,
+    required Color trailingBg,
+    required Color trailingColor,
+    required VoidCallback onTrailingTap,
+  }) {
+    return Row(
+      children: [
+        SizedBox(width: 38.w, height: 38.w, child: Center(child: leading)),
+        SizedBox(width: 10.w),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              InterText(
+                text: labelKey.tr,
+                fontSize: 11.sp,
+                color: AppColors.greyText,
+              ),
+              SizedBox(height: 2.h),
+              InterText(
+                text: value,
+                fontSize: 13.sp,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary(context),
+                maxLines: 2,
+              ),
+            ],
+          ),
+        ),
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(20.r),
+            onTap: onTrailingTap,
+            child: Container(
+              width: 38.w,
+              height: 38.w,
+              decoration: BoxDecoration(
+                color: trailingBg,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(trailingIcon, color: trailingColor, size: 18.sp),
+            ),
+          ),
+        ),
+      ],
     );
   }
 

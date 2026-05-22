@@ -161,6 +161,13 @@ const Map<String, String> frFRTranslations = <String, String>{
       'tracking_sheet_trust_msg': 'Le suivi en direct renforce la securite et la confiance entre vous.',
       // v23.1.193 — version courte du label pour le pill "Effacer" inline.
       'chat_delete_short': 'Effacer',
+      // v23.1.194 — Refonte TrackingRequestSheet pour matcher EXACTEMENT
+      // le mockup Daniel (titre Detail de la garde + Informations
+      // pratiques avec 3 rows phone/address/sitter).
+      'tracking_sheet_title_v2': 'Détails de la garde',
+      'tracking_sheet_panel_desc_v2': 'Suivez votre animal en temps réel pendant la garde.',
+      'tracking_sheet_phone': 'Téléphone',
+      'tracking_sheet_address': 'Adresse de départ',
       // v23.1.187 — "Autour de vous" floating card.
       'pawmap_around_you': 'Autour de vous',
       'pawmap_around_you_see_all': 'Voir tout',
