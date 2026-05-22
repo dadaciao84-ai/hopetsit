@@ -19,6 +19,8 @@ import 'package:hopetsit/services/location_service.dart';
 import 'package:hopetsit/utils/app_colors.dart';
 import 'package:hopetsit/views/boost/coin_shop_screen.dart';
 import 'package:hopetsit/views/friends/friends_screen.dart';
+import 'package:hopetsit/views/map/alerts_screen.dart';
+import 'package:hopetsit/views/map/report_category_grid_screen.dart';
 import 'package:hopetsit/views/map/widgets/create_report_sheet.dart';
 import 'package:hopetsit/widgets/app_text.dart';
 import 'package:hopetsit/widgets/custom_snackbar_widget.dart';
@@ -1411,6 +1413,16 @@ class _PawMapScreenState extends State<PawMapScreen> {
                   bottom: 24.h,
                   child: _buildReportFab(),
                 ),
+
+                // v23.1.187 — Daniel mockup : carte "Autour de vous" flottante
+                // en bas de la PawMap. Liste compacte des 3 signalements les
+                // plus proches avec badge severite + tap → AlertsScreen.
+                Positioned(
+                  left: 12.w,
+                  right: 12.w,
+                  bottom: 12.h,
+                  child: _buildAroundYouCard(),
+                ),
               ],
             ),
           ),
@@ -1483,6 +1495,153 @@ class _PawMapScreenState extends State<PawMapScreen> {
   /// the PawMap so free users can contribute immediately and paying users see
   /// the fastest path to create a common signal. Tap pushes a pre-selected
   /// CreateReportSheet.
+  /// v23.1.187 — Daniel mockup : carte "Autour de vous" flottante en bas
+  /// de la PawMap. Liste compacte des 3 signalements les plus proches
+  /// du centre courant, avec un badge severite + un tap "Voir tout" qui
+  /// ouvre AlertsScreen. Auto-cache si aucune alerte autour.
+  Widget _buildAroundYouCard() {
+    return Obx(() {
+      final reports = _reportController.reports;
+      if (reports.isEmpty) return const SizedBox.shrink();
+      // Trie par distance approx au _currentCenter et garde les 3 premiers.
+      final list = reports.toList()
+        ..sort((a, b) {
+          final da = _approxKm(a.latitude, a.longitude);
+          final db = _approxKm(b.latitude, b.longitude);
+          return da.compareTo(db);
+        });
+      final top = list.take(3).toList();
+      return Container(
+        padding: EdgeInsets.fromLTRB(12.w, 10.h, 12.w, 10.h),
+        decoration: BoxDecoration(
+          color: AppColors.card(context),
+          borderRadius: BorderRadius.circular(18.r),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.10),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: InterText(
+                    text: 'pawmap_around_you'.tr,
+                    fontSize: 13.sp,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary(context),
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () => Get.to(() => const AlertsScreen()),
+                  child: InterText(
+                    text: 'pawmap_around_you_see_all'.tr,
+                    fontSize: 11.sp,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primaryColor,
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 8.h),
+            ...top.map((r) => Padding(
+                  padding: EdgeInsets.symmetric(vertical: 4.h),
+                  child: _buildAroundYouRow(r),
+                )),
+          ],
+        ),
+      );
+    });
+  }
+
+  double _approxKm(double lat, double lng) {
+    // Pythagore en degres convertis grossierement en km (~111 km/deg).
+    final dLat = (lat - _currentCenter.latitude).abs();
+    final dLng = (lng - _currentCenter.longitude).abs();
+    return (dLat * dLat + dLng * dLng) * 111 * 111;
+  }
+
+  Widget _buildAroundYouRow(MapReport r) {
+    Color sev;
+    String sevLabel;
+    switch (r.type) {
+      case 'lost_pet':
+      case 'aggressive_dog':
+      case 'dead_animal':
+        sev = const Color(0xFFDC2626);
+        sevLabel = 'alerts_severity_urgent'.tr;
+        break;
+      case 'hazard':
+      case 'water_broken':
+      case 'poop':
+        sev = const Color(0xFFF59E0B);
+        sevLabel = 'alerts_severity_medium'.tr;
+        break;
+      default:
+        sev = const Color(0xFF16A34A);
+        sevLabel = 'alerts_severity_info'.tr;
+    }
+    final emoji = ReportTypes.emoji(r.type);
+    final key = 'map_report_label_${r.type}';
+    final tr = key.tr;
+    final typeLabel = tr == key ? r.type : tr;
+    return Row(
+      children: [
+        Container(
+          width: 32.w,
+          height: 32.w,
+          decoration: BoxDecoration(
+            color: sev.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(8.r),
+          ),
+          child: Center(child: Text(emoji, style: TextStyle(fontSize: 16.sp))),
+        ),
+        SizedBox(width: 10.w),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              InterText(
+                text: typeLabel,
+                fontSize: 12.sp,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary(context),
+                maxLines: 1,
+              ),
+              if (r.city.isNotEmpty)
+                InterText(
+                  text: r.city,
+                  fontSize: 10.sp,
+                  color: AppColors.greyText,
+                  maxLines: 1,
+                ),
+            ],
+          ),
+        ),
+        Container(
+          padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+          decoration: BoxDecoration(
+            color: sev.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(8.r),
+            border: Border.all(color: sev.withValues(alpha: 0.4)),
+          ),
+          child: InterText(
+            text: sevLabel,
+            fontSize: 9.sp,
+            fontWeight: FontWeight.w800,
+            color: sev,
+          ),
+        ),
+      ],
+    );
+  }
+
   /// v23.1.184 — Daniel : "je veux que tu reorganise la paw map dans ce
   /// style" (mockup avec 4 grosses cartes colorees Suivre / Famille &
   /// Amis / Alertes / Signaler en haut).
@@ -1527,26 +1686,21 @@ class _PawMapScreenState extends State<PawMapScreen> {
             ),
           ),
           SizedBox(width: 8.w),
-          // 3. Alertes — bascule sur la couche reports + scroll a la liste.
+          // 3. Alertes — ouvre l'ecran AlertsScreen dedie avec onglets
+          // (Tous / Perdus / Danger / Accident / Autres) et badges de
+          // severite. v23.1.186 (mockup Daniel).
           Expanded(
             child: _quickActionCard(
               icon: Icons.notifications_active_rounded,
               label: 'pawmap_quick_alerts'.tr,
               sublabel: 'pawmap_quick_alerts_sub'.tr,
               color: const Color(0xFFF59E0B),
-              onTap: () {
-                // Bascule la couche reports en visible (alertes
-                // signalees sur la carte). Si elle l'est deja, force
-                // un reload pour rafraichir.
-                _showReports.value = true;
-                _showPois.value = false;
-                _reloadAtCenter();
-              },
+              onTap: () => Get.to(() => const AlertsScreen()),
             ),
           ),
           SizedBox(width: 8.w),
-          // 4. Signaler — ouvre le CreateReportSheet (= mini-FAB toujours
-          // visible en haut, plus besoin de chercher le FAB en bas).
+          // 4. Signaler — ouvre la grille 2x3 ReportCategoryGridScreen
+          // avec 6 grosses cards categorisees. v23.1.186 (mockup Daniel).
           Expanded(
             child: _quickActionCard(
               icon: Icons.add_circle_rounded,
@@ -1554,11 +1708,10 @@ class _PawMapScreenState extends State<PawMapScreen> {
               sublabel: 'pawmap_quick_report_sub'.tr,
               color: const Color(0xFFDC2626),
               onTap: () async {
-                final created = await CreateReportSheet.show(
-                  context,
-                  initialPoint: _currentCenter,
+                final created = await Get.to(
+                  () => const ReportCategoryGridScreen(),
                 );
-                if (created) await _reloadAtCenter();
+                if (created == true) await _reloadAtCenter();
               },
             ),
           ),

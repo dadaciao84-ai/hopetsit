@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:hopetsit/controllers/auth_controller.dart';
 import 'package:hopetsit/controllers/friend_controller.dart';
+import 'package:hopetsit/data/network/api_client.dart';
 import 'package:hopetsit/models/friendship_model.dart';
 import 'package:hopetsit/utils/app_colors.dart';
 import 'package:hopetsit/utils/storage_keys.dart';
@@ -33,8 +34,12 @@ class FriendsScreen extends StatelessWidget {
     // + permet d'inviter / retirer depuis la liste d'amis acceptés.
     // On précharge la famille à l'ouverture de l'écran.
     controller.loadFamily();
+    // v23.1.185 — Daniel mockup : 5 tabs Mes amis / Ajouter / Live /
+    // Animaux / Messages (au lieu des anciens 3 Mes amis / Demandes /
+    // Famille). Les demandes pending sont desormais gerees inline dans
+    // la cloche notif (v183 : NotificationCard accept/refuse buttons).
     return DefaultTabController(
-      length: 3,
+      length: 5,
       child: Scaffold(
         backgroundColor: AppColors.scaffold(context),
         appBar: AppBar(
@@ -104,19 +109,24 @@ class FriendsScreen extends StatelessWidget {
             ),
           ],
           bottom: TabBar(
+            isScrollable: true,
             labelColor: AppColors.primaryColor,
             unselectedLabelColor: AppColors.greyText,
             indicatorColor: AppColors.primaryColor,
             tabs: [
+              // 1. Mes amis — accepted friendships + status + distance.
               Tab(icon: const Icon(Icons.people_rounded),
                   text: 'friends_tab_friends'.tr),
+              // 2. Ajouter — search by name/email + invite link (avec
+              // un badge si demandes pending pour ne pas perdre le
+              // count visible).
               Tab(
                 icon: Obx(() {
                   final n = controller.incomingRequests.length;
                   return Stack(
                     clipBehavior: Clip.none,
                     children: [
-                      const Icon(Icons.mail_outline_rounded),
+                      const Icon(Icons.person_add_alt_1_rounded),
                       if (n > 0)
                         Positioned(
                           right: -6,
@@ -143,12 +153,22 @@ class FriendsScreen extends StatelessWidget {
                     ],
                   );
                 }),
-                text: 'friends_tab_requests'.tr,
+                text: 'friends_tab_add'.tr,
               ),
-              // v23.1.172 — Onglet Famille (PawFollow Famille).
+              // 3. Live — famille PawFollow + amis broadcastant en direct.
               Tab(
-                icon: const Icon(Icons.family_restroom_rounded),
-                text: 'friends_tab_family'.tr,
+                icon: const Icon(Icons.gps_fixed_rounded),
+                text: 'friends_tab_live'.tr,
+              ),
+              // 4. Animaux — pets des amis/famille (sub-screen, fetch by friendsIds).
+              Tab(
+                icon: const Icon(Icons.pets_rounded),
+                text: 'friends_tab_pets'.tr,
+              ),
+              // 5. Messages — chats avec mes amis (filtre client-side).
+              Tab(
+                icon: const Icon(Icons.chat_bubble_outline_rounded),
+                text: 'friends_tab_messages'.tr,
               ),
             ],
           ),
@@ -156,27 +176,14 @@ class FriendsScreen extends StatelessWidget {
         body: TabBarView(
           children: [
             _FriendsTab(controller: controller),
-            _RequestsTab(controller: controller),
+            _AddFriendTab(controller: controller),
             _FamilyTab(controller: controller),
+            _PetsTab(controller: controller),
+            _MessagesTab(controller: controller),
           ],
         ),
-        // v23.1 part 69 — Bug 9 : Daniel "Comment sajoute les amis ?".
-        // Adds a clear "+ Ajouter un ami" FAB that opens a search-by-
-        // email dialog. The empty state was just text so the user had
-        // no idea how to find people. FAB is always visible.
-        floatingActionButton: FloatingActionButton.extended(
-          backgroundColor: AppColors.primaryColor,
-          icon: const Icon(Icons.person_add_alt_1_rounded, color: Colors.white),
-          label: Text(
-            'Ajouter un ami',
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w700,
-              fontSize: 14.sp,
-            ),
-          ),
-          onPressed: () => _showAddFriendDialog(context, controller),
-        ),
+        // v23.1.185 — Le FAB "Ajouter un ami" disparait : l'onglet
+        // "Ajouter" remplit cette fonction maintenant (mockup Daniel).
       ),
     );
   }
@@ -1301,6 +1308,619 @@ class _FamilyMemberTile extends StatelessWidget {
               }
             },
           ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// v23.1.185 — Daniel mockup : nouvelles tabs Ajouter / Animaux / Messages.
+// Le tab Demandes est supprime (notification cards v183 gerent l'accept/
+// refuse inline dans la cloche).
+// ─────────────────────────────────────────────────────────────────────────
+
+class _AddFriendTab extends StatefulWidget {
+  const _AddFriendTab({required this.controller});
+  final FriendController controller;
+
+  @override
+  State<_AddFriendTab> createState() => _AddFriendTabState();
+}
+
+class _AddFriendTabState extends State<_AddFriendTab> {
+  final TextEditingController _searchCtrl = TextEditingController();
+  final RxList<Map<String, dynamic>> _results = <Map<String, dynamic>>[].obs;
+  final RxBool _loading = false.obs;
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _onSearch(String q) async {
+    if (q.length < 2) {
+      _results.clear();
+      return;
+    }
+    _loading.value = true;
+    try {
+      _results.assignAll(await widget.controller.searchUsers(q));
+    } finally {
+      _loading.value = false;
+    }
+  }
+
+  Future<void> _onShareInvite() async {
+    try {
+      String myId = '';
+      String myName = '';
+      try {
+        final raw = GetStorage().read(StorageKeys.userProfile);
+        if (raw is Map) {
+          myId = (raw['id'] ?? raw['_id'] ?? '').toString();
+          myName = (raw['name'] ?? '').toString();
+        }
+      } catch (_) {/* noop */}
+      final link = myId.isNotEmpty
+          ? 'https://hopetsit.com/invite?from=$myId'
+          : 'https://hopetsit.com';
+      final text = 'friends_invite_message'.trParams({
+        'name': myName.isEmpty ? 'HoPetSit' : myName,
+        'link': link,
+      });
+      await SharePlus.instance.share(ShareParams(
+        text: text,
+        subject: 'friends_invite_subject'.tr,
+      ));
+    } catch (e) {
+      CustomSnackbar.showError(
+        title: 'common_error'.tr,
+        message: e.toString(),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 24.h),
+      children: [
+        // Bouton partage lien (WhatsApp / SMS / email).
+        OutlinedButton.icon(
+          onPressed: _onShareInvite,
+          icon: Icon(Icons.ios_share_rounded,
+              color: AppColors.primaryColor, size: 20.sp),
+          label: Padding(
+            padding: EdgeInsets.symmetric(vertical: 4.h),
+            child: InterText(
+              text: 'friends_add_share_link'.tr,
+              fontSize: 13.sp,
+              fontWeight: FontWeight.w700,
+              color: AppColors.primaryColor,
+            ),
+          ),
+          style: OutlinedButton.styleFrom(
+            side: BorderSide(
+              color: AppColors.primaryColor.withValues(alpha: 0.4),
+              width: 1.2,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14.r),
+            ),
+            minimumSize: Size(double.infinity, 48.h),
+          ),
+        ),
+        SizedBox(height: 14.h),
+        // Recherche par nom / email.
+        Container(
+          decoration: BoxDecoration(
+            color: AppColors.inputFill(context),
+            borderRadius: BorderRadius.circular(14.r),
+            border: Border.all(color: AppColors.divider(context)),
+          ),
+          child: TextField(
+            controller: _searchCtrl,
+            decoration: InputDecoration(
+              hintText: 'friends_add_search_hint'.tr,
+              prefixIcon: Icon(Icons.search_rounded,
+                  color: AppColors.greyText, size: 22.sp),
+              border: InputBorder.none,
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: 14.w,
+                vertical: 14.h,
+              ),
+            ),
+            onChanged: _onSearch,
+          ),
+        ),
+        SizedBox(height: 10.h),
+        InterText(
+          text: 'friends_add_search_help'.tr,
+          fontSize: 11.sp,
+          color: AppColors.greyText,
+        ),
+        SizedBox(height: 14.h),
+        // Resultats.
+        Obx(() {
+          if (_loading.value) {
+            return Padding(
+              padding: EdgeInsets.symmetric(vertical: 24.h),
+              child: const Center(child: CircularProgressIndicator()),
+            );
+          }
+          if (_results.isEmpty) {
+            if (_searchCtrl.text.isEmpty) {
+              return Padding(
+                padding: EdgeInsets.symmetric(vertical: 24.h),
+                child: Center(
+                  child: Column(
+                    children: [
+                      Icon(Icons.person_search_rounded,
+                          color: AppColors.greyText.withValues(alpha: 0.5),
+                          size: 48.sp),
+                      SizedBox(height: 8.h),
+                      InterText(
+                        text: 'friends_add_search_empty'.tr,
+                        fontSize: 13.sp,
+                        color: AppColors.greyText,
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+            return Padding(
+              padding: EdgeInsets.symmetric(vertical: 24.h),
+              child: Center(
+                child: InterText(
+                  text: 'friends_add_no_results'.tr,
+                  fontSize: 13.sp,
+                  color: AppColors.greyText,
+                ),
+              ),
+            );
+          }
+          return Column(
+            children: _results
+                .map((u) => _buildResultTile(u, context))
+                .toList(),
+          );
+        }),
+      ],
+    );
+  }
+
+  Widget _buildResultTile(Map<String, dynamic> u, BuildContext context) {
+    final id = (u['id'] ?? '').toString();
+    final role = (u['role'] ?? '').toString();
+    final name = (u['name'] ?? '').toString();
+    final email = (u['email'] ?? '').toString();
+    final avatar = (u['avatar'] ?? '').toString();
+    final accent = role == 'walker'
+        ? AppColors.greenColor
+        : role == 'sitter'
+            ? AppColors.sitterAccent
+            : AppColors.primaryColor;
+    return Container(
+      margin: EdgeInsets.only(bottom: 8.h),
+      padding: EdgeInsets.all(12.w),
+      decoration: BoxDecoration(
+        color: AppColors.card(context),
+        borderRadius: BorderRadius.circular(14.r),
+        boxShadow: AppColors.cardShadow(context),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 22.r,
+            backgroundColor: accent.withValues(alpha: 0.15),
+            backgroundImage: avatar.isNotEmpty ? NetworkImage(avatar) : null,
+            child: avatar.isEmpty
+                ? Icon(Icons.person, color: accent, size: 22.sp)
+                : null,
+          ),
+          SizedBox(width: 12.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                InterText(
+                  text: name.isNotEmpty ? name : email,
+                  fontSize: 13.sp,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary(context),
+                  maxLines: 1,
+                ),
+                SizedBox(height: 2.h),
+                InterText(
+                  text: '$role · $email',
+                  fontSize: 10.sp,
+                  color: AppColors.greyText,
+                  maxLines: 1,
+                ),
+              ],
+            ),
+          ),
+          SizedBox(width: 8.w),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: accent,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20.r),
+              ),
+              padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
+            ),
+            onPressed: () async {
+              final err = await widget.controller.sendRequest(id, role);
+              if (!context.mounted) return;
+              if (err.isEmpty) {
+                CustomSnackbar.showSuccess(
+                  title: 'friends_invite_sent_title'.tr,
+                  message: 'friends_invite_sent_msg'.trParams({'name': name}),
+                );
+                _searchCtrl.clear();
+                _results.clear();
+              } else {
+                final msg = err == 'ALREADY_PENDING'
+                    ? 'friends_invite_err_already_pending'.tr
+                    : err == 'ALREADY_ACCEPTED'
+                        ? 'friends_invite_err_already_accepted'.tr
+                        : err == 'SELF'
+                            ? 'friends_invite_err_self'.tr
+                            : err;
+                CustomSnackbar.showError(
+                  title: 'friends_invite_err_title'.tr,
+                  message: msg,
+                );
+              }
+            },
+            child: InterText(
+              text: 'friends_add_btn'.tr,
+              fontSize: 12.sp,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// _PetsTab — Animaux : v23.1.185 Daniel mockup. Liste les animaux de mes
+// amis acceptes + membres famille pour pouvoir les suivre / contacter
+// rapidement. Endpoint dedie : GET /friends/pets renvoie tous les pets
+// des friendships acceptes.
+// ─────────────────────────────────────────────────────────────────────────
+
+class _PetsTab extends StatefulWidget {
+  const _PetsTab({required this.controller});
+  final FriendController controller;
+
+  @override
+  State<_PetsTab> createState() => _PetsTabState();
+}
+
+class _PetsTabState extends State<_PetsTab> {
+  final RxBool _loading = true.obs;
+  final RxList<Map<String, dynamic>> _pets = <Map<String, dynamic>>[].obs;
+  final RxnString _error = RxnString();
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    _loading.value = true;
+    _error.value = null;
+    try {
+      final api = Get.find<ApiClient>();
+      final r = await api.get('/friends/pets', requiresAuth: true);
+      if (r is Map && r['pets'] is List) {
+        _pets.assignAll(
+          (r['pets'] as List)
+              .whereType<Map>()
+              .map((p) => Map<String, dynamic>.from(p))
+              .toList(),
+        );
+      } else {
+        _pets.clear();
+      }
+    } catch (e) {
+      _error.value = e.toString();
+      _pets.clear();
+    } finally {
+      _loading.value = false;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return RefreshIndicator(
+      onRefresh: _load,
+      child: Obx(() {
+        if (_loading.value && _pets.isEmpty) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (_pets.isEmpty) {
+          return ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: EdgeInsets.all(24.w),
+            children: [
+              SizedBox(height: 40.h),
+              Center(
+                child: Column(
+                  children: [
+                    Text('🐾', style: TextStyle(fontSize: 50.sp)),
+                    SizedBox(height: 12.h),
+                    InterText(
+                      text: 'friends_pets_empty_title'.tr,
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary(context),
+                    ),
+                    SizedBox(height: 6.h),
+                    InterText(
+                      text: 'friends_pets_empty_msg'.tr,
+                      fontSize: 12.sp,
+                      color: AppColors.greyText,
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        }
+        return ListView.separated(
+          padding: EdgeInsets.all(12.w),
+          itemCount: _pets.length,
+          separatorBuilder: (_, __) => SizedBox(height: 8.h),
+          itemBuilder: (_, i) => _buildPetTile(_pets[i], context),
+        );
+      }),
+    );
+  }
+
+  Widget _buildPetTile(Map<String, dynamic> p, BuildContext context) {
+    final petName = (p['petName'] ?? p['name'] ?? '').toString();
+    final ownerName = (p['ownerName'] ?? '').toString();
+    final breed = (p['breed'] ?? '').toString();
+    final avatar = (p['avatar'] ?? '').toString();
+    final ownerRole = (p['ownerRole'] ?? 'owner').toString().toLowerCase();
+    final accent = AppColors.roleAccent(ownerRole);
+    return Container(
+      padding: EdgeInsets.all(12.w),
+      decoration: BoxDecoration(
+        color: AppColors.card(context),
+        borderRadius: BorderRadius.circular(14.r),
+        boxShadow: AppColors.cardShadow(context),
+      ),
+      child: Row(
+        children: [
+          ClipOval(
+            child: Container(
+              width: 50.r,
+              height: 50.r,
+              color: accent.withValues(alpha: 0.15),
+              child: avatar.isNotEmpty
+                  ? CachedNetworkImage(
+                      imageUrl: avatar,
+                      fit: BoxFit.cover,
+                      errorWidget: (_, __, ___) =>
+                          Icon(Icons.pets, color: accent, size: 24.sp),
+                    )
+                  : Icon(Icons.pets, color: accent, size: 24.sp),
+            ),
+          ),
+          SizedBox(width: 12.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                InterText(
+                  text: petName.isEmpty ? '—' : petName,
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textPrimary(context),
+                ),
+                SizedBox(height: 2.h),
+                InterText(
+                  text: ownerName.isNotEmpty
+                      ? 'friends_pets_owned_by'.trParams({'name': ownerName})
+                      : (breed.isNotEmpty ? breed : '—'),
+                  fontSize: 11.sp,
+                  color: AppColors.greyText,
+                  maxLines: 1,
+                ),
+              ],
+            ),
+          ),
+          Icon(Icons.chevron_right_rounded,
+              color: AppColors.greyText, size: 22.sp),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// _MessagesTab — v23.1.185 Daniel mockup. Liste les conversations
+// recentes avec mes amis (filtre client-side sur la chat list pour ne
+// garder que celles dont l'autre partie est dans ma liste d'amis).
+// ─────────────────────────────────────────────────────────────────────────
+
+class _MessagesTab extends StatefulWidget {
+  const _MessagesTab({required this.controller});
+  final FriendController controller;
+
+  @override
+  State<_MessagesTab> createState() => _MessagesTabState();
+}
+
+class _MessagesTabState extends State<_MessagesTab> {
+  final RxBool _loading = true.obs;
+  final RxList<Map<String, dynamic>> _chats = <Map<String, dynamic>>[].obs;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    _loading.value = true;
+    try {
+      final api = Get.find<ApiClient>();
+      final r = await api.get('/conversations/list', requiresAuth: true);
+      if (r is Map && r['conversations'] is List) {
+        _chats.assignAll(
+          (r['conversations'] as List)
+              .whereType<Map>()
+              .map((c) => Map<String, dynamic>.from(c))
+              .toList(),
+        );
+      } else if (r is List) {
+        _chats.assignAll(
+          r.whereType<Map>().map((c) => Map<String, dynamic>.from(c)).toList(),
+        );
+      } else {
+        _chats.clear();
+      }
+    } catch (e) {
+      _chats.clear();
+    } finally {
+      _loading.value = false;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return RefreshIndicator(
+      onRefresh: _load,
+      child: Obx(() {
+        if (_loading.value && _chats.isEmpty) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (_chats.isEmpty) {
+          return ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: EdgeInsets.all(24.w),
+            children: [
+              SizedBox(height: 40.h),
+              Center(
+                child: Column(
+                  children: [
+                    Icon(Icons.chat_bubble_outline_rounded,
+                        color: AppColors.greyText.withValues(alpha: 0.5),
+                        size: 50.sp),
+                    SizedBox(height: 12.h),
+                    InterText(
+                      text: 'friends_messages_empty_title'.tr,
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary(context),
+                    ),
+                    SizedBox(height: 6.h),
+                    InterText(
+                      text: 'friends_messages_empty_msg'.tr,
+                      fontSize: 12.sp,
+                      color: AppColors.greyText,
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        }
+        return ListView.separated(
+          padding: EdgeInsets.all(12.w),
+          itemCount: _chats.length,
+          separatorBuilder: (_, __) => SizedBox(height: 8.h),
+          itemBuilder: (_, i) => _buildChatTile(_chats[i], context),
+        );
+      }),
+    );
+  }
+
+  Widget _buildChatTile(Map<String, dynamic> c, BuildContext context) {
+    final name = (c['contactName'] ?? c['name'] ?? '').toString();
+    final lastMsg = (c['lastMessage'] ?? '').toString();
+    final avatar = (c['contactImage'] ?? c['avatar'] ?? '').toString();
+    final unread = (c['unreadCount'] ?? 0) is int
+        ? (c['unreadCount'] as int)
+        : 0;
+    return Container(
+      padding: EdgeInsets.all(12.w),
+      decoration: BoxDecoration(
+        color: AppColors.card(context),
+        borderRadius: BorderRadius.circular(14.r),
+        boxShadow: AppColors.cardShadow(context),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 22.r,
+            backgroundColor: AppColors.primaryColor.withValues(alpha: 0.15),
+            backgroundImage:
+                (avatar.isNotEmpty && avatar.startsWith('http'))
+                    ? NetworkImage(avatar)
+                    : null,
+            child: avatar.isEmpty
+                ? Icon(Icons.person,
+                    color: AppColors.primaryColor, size: 22.sp)
+                : null,
+          ),
+          SizedBox(width: 12.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                InterText(
+                  text: name.isEmpty ? '—' : name,
+                  fontSize: 13.sp,
+                  fontWeight: unread > 0
+                      ? FontWeight.w800
+                      : FontWeight.w700,
+                  color: AppColors.textPrimary(context),
+                  maxLines: 1,
+                ),
+                SizedBox(height: 2.h),
+                InterText(
+                  text: lastMsg.isEmpty ? '—' : lastMsg,
+                  fontSize: 11.sp,
+                  color: AppColors.greyText,
+                  maxLines: 1,
+                ),
+              ],
+            ),
+          ),
+          if (unread > 0)
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 7.w, vertical: 2.h),
+              decoration: const BoxDecoration(
+                color: Colors.red,
+                shape: BoxShape.circle,
+              ),
+              constraints: BoxConstraints(minWidth: 18.w, minHeight: 18.w),
+              child: Center(
+                child: Text(
+                  '$unread',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 10.sp,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );

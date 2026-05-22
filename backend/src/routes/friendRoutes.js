@@ -764,6 +764,94 @@ router.delete('/family/member/:userId', requireAuth, async (req, res) => {
 });
 
 /**
+ * v23.1.185 — Daniel mockup : nouvel onglet "Animaux" dans Famille &
+ * Amis qui liste les pets de mes amis acceptes + membres famille
+ * actifs. Permet de les contacter / suivre en un tap.
+ *
+ * GET /friends/pets
+ * Renvoie { pets: [{ id, petName, breed, avatar, ownerId, ownerRole,
+ * ownerName }] }.
+ */
+router.get('/pets', requireAuth, async (req, res) => {
+  try {
+    const user = me(req);
+    // 1) Collecte les userIds de mes amis acceptes + membres famille active.
+    const friends = await Friendship.find({
+      $or: [
+        { requesterId: user.id, requesterModel: user.model, status: 'accepted' },
+        { addresseeId: user.id, addresseeModel: user.model, status: 'accepted' },
+      ],
+    }).lean();
+    const friendIds = new Set();
+    for (const f of friends) {
+      const otherId = String(f.requesterId) === String(user.id)
+        ? f.addresseeId : f.requesterId;
+      friendIds.add(String(otherId));
+    }
+    // Famille : titulaire ou membre actif.
+    const now = new Date();
+    const ownSub = await UserSubscription.findOne({
+      userId: user.id,
+      userModel: user.model,
+      plan: 'famille',
+      status: 'active',
+      currentPeriodEnd: { $gt: now },
+    }).lean();
+    if (ownSub && Array.isArray(ownSub.familyMembers)) {
+      for (const m of ownSub.familyMembers) {
+        if (!m.status || m.status === 'active') friendIds.add(String(m.userId));
+      }
+    }
+    const subsHostingMe = await UserSubscription.find({
+      'familyMembers.userId': user.id,
+      plan: 'famille',
+      status: 'active',
+      currentPeriodEnd: { $gt: now },
+    }).lean();
+    for (const sub of subsHostingMe) {
+      friendIds.add(String(sub.userId));
+      for (const m of (sub.familyMembers || [])) {
+        if ((!m.status || m.status === 'active')
+            && String(m.userId) !== String(user.id)) {
+          friendIds.add(String(m.userId));
+        }
+      }
+    }
+    if (friendIds.size === 0) {
+      return res.json({ pets: [] });
+    }
+    // 2) Resolve owner mini + fetch pets. Seuls les Owner ont des pets.
+    const Owner = require('../models/Owner');
+    const Pet = require('../models/Pet');
+    const ownerIds = Array.from(friendIds);
+    const owners = await Owner.find({ _id: { $in: ownerIds } })
+      .select('name avatar')
+      .lean();
+    const ownerById = {};
+    for (const o of owners) ownerById[String(o._id)] = o;
+    const pets = await Pet.find({ ownerId: { $in: ownerIds } })
+      .select('petName breed avatar ownerId photos')
+      .lean();
+    const enriched = pets.map((p) => {
+      const owner = ownerById[String(p.ownerId)] || {};
+      return {
+        id: String(p._id),
+        petName: p.petName || '',
+        breed: p.breed || '',
+        avatar: p.avatar?.url || (Array.isArray(p.photos) && p.photos[0]?.url) || '',
+        ownerId: String(p.ownerId),
+        ownerRole: 'owner',
+        ownerName: owner.name || '',
+      };
+    });
+    res.json({ pets: enriched });
+  } catch (e) {
+    logger.error('[friends/pets]', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+/**
  * v23.1.183 — Daniel : "developpe le sous menu amis famislle pour
  * accepter refuse rbloquer les demande damis et famille".
  *
