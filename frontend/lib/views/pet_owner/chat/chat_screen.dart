@@ -285,12 +285,79 @@ class ChatScreen extends StatelessWidget {
               ),
             ),
 
-            // Time
-            InterText(
-              text: controller.formatTime(conversation.lastMessageTime),
-              fontSize: 12.sp,
-              fontWeight: FontWeight.w400,
-              color: AppColors.textSecondary(context),
+            // Time + bouton Effacer visible (v23.1.196).
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                InterText(
+                  text: controller.formatTime(conversation.lastMessageTime),
+                  fontSize: 12.sp,
+                  fontWeight: FontWeight.w400,
+                  color: AppColors.textSecondary(context),
+                ),
+                SizedBox(height: 6.h),
+                // v23.1.196 — Daniel : "photo 14 aucun bouton effacer".
+                // Le long-press (v195) etait invisible. Maintenant bouton
+                // visible avec icone trash + texte "Effacer" rouge.
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(10.r),
+                    onTap: () async {
+                      final confirmed = await Get.dialog<bool>(
+                        AlertDialog(
+                          title: Text('chat_delete_conv_title'.tr),
+                          content: Text('chat_delete_conv_msg'.trParams(
+                              {'name': conversation.contactName})),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Get.back(result: false),
+                              child: Text('common_cancel'.tr),
+                            ),
+                            TextButton(
+                              onPressed: () => Get.back(result: true),
+                              child: Text(
+                                'chat_delete_conv_confirm'.tr,
+                                style: TextStyle(color: AppColors.errorColor),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (confirmed == true) {
+                        await controller.deleteConversation(conversation.id);
+                      }
+                    },
+                    child: Container(
+                      padding: EdgeInsets.symmetric(
+                          horizontal: 8.w, vertical: 3.h),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(10.r),
+                        border: Border.all(
+                          color: Colors.red.withValues(alpha: 0.3),
+                          width: 0.8,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.delete_outline_rounded,
+                              size: 12.sp, color: Colors.red),
+                          SizedBox(width: 3.w),
+                          InterText(
+                            text: 'chat_delete_short'.tr,
+                            fontSize: 10.sp,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.red,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),

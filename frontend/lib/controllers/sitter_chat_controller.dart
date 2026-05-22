@@ -739,6 +739,34 @@ class SitterChatController extends GetxController {
   ///   - ajouté un snackbar d'erreur visible en cas d'échec (avant c'était
   ///     un revert silencieux → l'user ne comprenait pas pourquoi le
   ///     message "réapparaissait" tout seul).
+  /// v23.1.196 — Daniel : "ajouter effacer pour effacer la conversation
+  /// en entier". Supprime hard la conv + tous ses messages cote backend,
+  /// puis retire de la liste locale. Optimistic + rollback si echec.
+  Future<bool> deleteConversation(String conversationId) async {
+    final idx = conversations.indexWhere((c) => c.id == conversationId);
+    if (idx < 0) return false;
+    final removed = conversations[idx];
+    conversations.removeAt(idx);
+    try {
+      final ok = await _chatRepository.deleteConversation(
+        conversationId: conversationId,
+      );
+      if (!ok) {
+        conversations.insert(idx, removed);
+        Get.snackbar('common_error'.tr, 'common_try_again'.tr);
+        return false;
+      }
+      return true;
+    } catch (e) {
+      conversations.insert(idx, removed);
+      Get.snackbar(
+        'common_error'.tr,
+        e.toString().replaceAll('ApiException:', '').trim(),
+      );
+      return false;
+    }
+  }
+
   Future<bool> deleteMessage(String messageId) async {
     if (currentChatId.value.isEmpty) return false;
     final idx = currentChatMessages.indexWhere((m) => m.id == messageId);
