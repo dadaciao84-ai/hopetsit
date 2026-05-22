@@ -132,6 +132,14 @@ const Map<String, String> frFRTranslations = <String, String>{
       // v23.1.187 — "Autour de vous" floating card.
       'pawmap_around_you': 'Autour de vous',
       'pawmap_around_you_see_all': 'Voir tout',
+      // v23.1.188 — Carte chat pawfollow_request style mockup Daniel.
+      'pawfollow_card_title': 'Suivi en direct',
+      'pawfollow_bullet_transparency': 'Le proprietaire pourra voir la position de l\'animal en temps reel.',
+      'pawfollow_bullet_control': 'Vous gardez le controle a tout moment.',
+      'pawfollow_bullet_anytime_off': 'Le suivi peut etre desactive a tout moment.',
+      'pawfollow_later': 'Plus tard',
+      'pawfollow_trust_title': 'Transparence & confiance',
+      'pawfollow_trust_msg': 'Le suivi en direct renforce la securite et la confiance entre vous.',
       // v23.1 — likes count pill
       'post_likes_singular': 'j\'aime',
       'post_likes_plural': 'j\'aime',

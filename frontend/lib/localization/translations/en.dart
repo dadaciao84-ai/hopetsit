@@ -132,6 +132,14 @@ const Map<String, String> enUSTranslations = <String, String>{
       // v23.1.187 — "Around you" floating card.
       'pawmap_around_you': 'Around you',
       'pawmap_around_you_see_all': 'See all',
+      // v23.1.188 — pawfollow_request card mockup style.
+      'pawfollow_card_title': 'Live tracking',
+      'pawfollow_bullet_transparency': 'The owner will be able to see the pet\'s position in real time.',
+      'pawfollow_bullet_control': 'You stay in control at all times.',
+      'pawfollow_bullet_anytime_off': 'Tracking can be stopped at any moment.',
+      'pawfollow_later': 'Later',
+      'pawfollow_trust_title': 'Transparency & trust',
+      'pawfollow_trust_msg': 'Live tracking strengthens safety and trust between you.',
       // v23.1 — likes count pill
       'post_likes_singular': 'like',
       'post_likes_plural': 'likes',
