@@ -489,21 +489,41 @@ class _SitterIndividualChatScreenState
                 fontWeight: FontWeight.w300,
                 color: AppColors.textSecondary(context),
               ),
-              // v23.1.190 — Bouton 3-points visible pour supprimer son
-              // propre message (en plus du long-press).
+              // v23.1.193 — Bouton "Effacer" visible (au lieu du 3-pts).
               if (!message.isDeleted && message.isFromCurrentUser)
                 ...[
                   const Spacer(),
-                  GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () => _showSitterDeleteSheet(message, controller),
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(
-                          horizontal: 4.w, vertical: 2.h),
-                      child: Icon(
-                        Icons.more_horiz_rounded,
-                        size: 18.sp,
-                        color: AppColors.textSecondary(context),
+                  Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () =>
+                          _showSitterDeleteSheet(message, controller),
+                      borderRadius: BorderRadius.circular(10.r),
+                      child: Container(
+                        padding: EdgeInsets.symmetric(
+                            horizontal: 8.w, vertical: 3.h),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(10.r),
+                          border: Border.all(
+                            color: Colors.red.withValues(alpha: 0.3),
+                            width: 0.8,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.delete_outline_rounded,
+                                size: 12.sp, color: Colors.red),
+                            SizedBox(width: 3.w),
+                            InterText(
+                              text: 'chat_delete_message'.tr,
+                              fontSize: 10.sp,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.red,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),

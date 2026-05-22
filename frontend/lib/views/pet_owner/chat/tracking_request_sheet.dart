@@ -25,12 +25,22 @@ import 'package:hopetsit/widgets/app_text.dart';
 class TrackingRequestSheet extends StatelessWidget {
   const TrackingRequestSheet({
     super.key,
-    required this.booking,
+    this.booking,
+    this.fallbackContactName = '',
+    this.fallbackContactImage = '',
     required this.onConfirm,
   });
 
   /// Booking lie a la conversation (pet, dates, sitter/walker info).
-  final BookingModel booking;
+  /// v23.1.193 — nullable : si pas de booking detecte, on utilise les
+  /// fallbacks (contact name + image) pour afficher le sheet quand meme.
+  final BookingModel? booking;
+
+  /// Nom du contact de la conversation (si pas de booking).
+  final String fallbackContactName;
+
+  /// Image du contact de la conversation (si pas de booking).
+  final String fallbackContactImage;
 
   /// Callback declenche au tap "Suivre mon animal".
   final Future<void> Function() onConfirm;
@@ -39,28 +49,25 @@ class TrackingRequestSheet extends StatelessWidget {
   static const _orangeBg = Color(0xFFFFF1ED);
 
   String _formatDateRange() {
-    // BookingModel n'a que `date` (string) et `timeSlot` (string), pas
-    // de DateTime end. On affiche juste la date + creneau pour le
-    // moment ; un futur sprint pourra parser et formatter.
-    final d = booking.date;
-    final t = booking.timeSlot;
+    final b = booking;
+    if (b == null) return '';
+    final d = b.date;
+    final t = b.timeSlot;
     if (d.isEmpty && t.isEmpty) return '';
     return [d, t].where((s) => s.isNotEmpty).join(' · ');
   }
 
   @override
   Widget build(BuildContext context) {
-    final providerName = booking.sitter.name;
-    final providerAvatar = booking.sitter.avatar.url;
-    final petName = (booking.pets.isNotEmpty
-        ? booking.pets.first.petName
-        : booking.petName);
-    final petBreed = booking.pets.isNotEmpty
-        ? booking.pets.first.breed
+    final b = booking;
+    final providerName = b?.sitter.name ?? fallbackContactName;
+    final providerAvatar = b?.sitter.avatar.url ?? fallbackContactImage;
+    final petName = b != null
+        ? (b.pets.isNotEmpty ? b.pets.first.petName : b.petName)
         : '';
-    final petAvatar = booking.pets.isNotEmpty
-        ? booking.pets.first.avatar.url
-        : '';
+    final petBreed = b != null && b.pets.isNotEmpty ? b.pets.first.breed : '';
+    final petAvatar =
+        b != null && b.pets.isNotEmpty ? b.pets.first.avatar.url : '';
 
     return Scaffold(
       backgroundColor: AppColors.scaffold(context),
@@ -84,9 +91,11 @@ class TrackingRequestSheet extends StatelessWidget {
         child: ListView(
           padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 24.h),
           children: [
-            // ── Pet card ────────────────────────────────────────────
-            _buildPetCard(context, petName, petBreed, petAvatar),
-            SizedBox(height: 14.h),
+            // ── Pet card (seulement si booking detecte) ─────────────
+            if (b != null) ...[
+              _buildPetCard(context, petName, petBreed, petAvatar),
+              SizedBox(height: 14.h),
+            ],
 
             // ── Suivi en direct + CTA ──────────────────────────────
             _buildLiveTrackingPanel(context),

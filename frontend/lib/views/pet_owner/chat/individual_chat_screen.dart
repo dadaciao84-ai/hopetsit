@@ -9,6 +9,7 @@ import 'package:hopetsit/repositories/owner_repository.dart';
 import 'package:hopetsit/utils/app_colors.dart';
 import 'package:hopetsit/utils/app_images.dart';
 import 'package:hopetsit/utils/storage_keys.dart';
+import 'package:hopetsit/models/booking_model.dart';
 import 'package:hopetsit/views/boost/coin_shop_screen.dart';
 import 'package:hopetsit/views/pet_owner/chat/tracking_request_sheet.dart';
 import 'package:hopetsit/views/pet_owner/walk/live_walk_map_screen.dart';
@@ -400,57 +401,31 @@ class _IndividualChatScreenState extends State<IndividualChatScreen> {
           ..sort((a, b) => (b.updatedAt).compareTo(a.updatedAt));
       final bookingId = candidate.isNotEmpty ? candidate.first.id : null;
 
-      if (bookingId == null || bookingId.isEmpty) {
-        // v23.1.182 — Daniel : "sa mouvre pas de balade en cour au lieu
-        // denvoyer linviutation au walker ou sitter". Pas de booking
-        // payé → on bascule sur l'endpoint conversation-based qui crée
-        // la carte pawfollow_request dans le chat et notifie le provider
-        // SANS avoir besoin d'un booking.
-        try {
-          await repo.requestLiveTrackingByConversation(
-            conversationId: widget.conversationId,
-          );
-          if (mounted) {
-            CustomSnackbar.showSuccess(
-              title: 'pawfollow_request_sent_title'.tr,
-              message: 'pawfollow_request_sent_msg'.tr,
-            );
-            await chatController.loadChatMessages(
-              widget.conversationId,
-              contactName: widget.contactName,
-            );
-          }
-        } catch (e) {
-          if (mounted) {
-            CustomSnackbar.showError(
-              title: 'follow_unavailable_title'.tr,
-              message: e.toString().replaceAll('ApiException:', '').trim(),
-            );
-          }
-        }
-        // v23.1.182 — IMPORTANT : on return ici, on n'ouvre PAS
-        // LiveWalkMapScreen (cause du crash + écran noir signalé par
-        // Daniel "ecran noir et crash de lapp"). Le map screen
-        // expectait un bookingId valide ET des positions live ; sans
-        // booking + walk actif, il crashait sur walk['_id'] / positions.
-        return;
-      }
-
-      // v23.1.192 — Daniel mockup : "voici encore comment le chat doit
-      // etre avec les boiton suivre mon animal". On ouvre le full-screen
-      // TrackingRequestSheet (pet card + sitter info + gros bouton +
-      // bandeau confiance). Le sheet appelle requestLiveTracking dans
-      // son onConfirm — la pawfollow_request est creee, le owner refresh
-      // automatiquement la conv au close du sheet.
-      final booking = candidate.first;
+      // v23.1.193 — Daniel : "chat rien changer aucun bouton". Avant on
+      // n'ouvrait le sheet QUE si bookingId trouve via fuzzy match nom
+      // → quand le match foirait (espaces, casse, walker vs sitter),
+      // Daniel ne voyait rien. Maintenant on ouvre TOUJOURS le sheet :
+      //   - Si booking trouve → onConfirm = requestLiveTracking(bookingId)
+      //   - Sinon → onConfirm = requestLiveTrackingByConversation
+      // Le sheet utilise booking pour les details si dispo, sinon
+      // fallback sur les infos de la conversation (contact name + avatar).
+      final BookingModel? booking =
+          candidate.isNotEmpty ? candidate.first : null;
       if (mounted) {
         await Get.to(() => TrackingRequestSheet(
               booking: booking,
+              fallbackContactName: widget.contactName,
+              fallbackContactImage: widget.contactImage,
               onConfirm: () async {
                 try {
-                  await repo.requestLiveTracking(bookingId: bookingId);
+                  if (booking != null && bookingId != null && bookingId.isNotEmpty) {
+                    await repo.requestLiveTracking(bookingId: bookingId);
+                  } else {
+                    await repo.requestLiveTrackingByConversation(
+                      conversationId: widget.conversationId,
+                    );
+                  }
                 } catch (e) {
-                  // Sheet affichera l'erreur via snackbar parent.
                   if (mounted) {
                     CustomSnackbar.showError(
                       title: 'follow_unavailable_title'.tr,
@@ -748,24 +723,44 @@ class _IndividualChatScreenState extends State<IndividualChatScreen> {
                 fontWeight: FontWeight.w300,
                 color: AppColors.textSecondary(context),
               ),
-              // v23.1.190 — Daniel : "rajoute effacer message dans le chat
-              // on peux pas effacer les message corrige sa". Long-press
-              // existait deja mais pas decouvrable. Bouton 3-points
-              // visible a cote du timestamp pour les messages envoyes
-              // qui ouvre la meme sheet Supprimer.
+              // v23.1.193 — Daniel : "peux pas effacer message". Le 3-pts
+              // discret n'etait pas trouve. Maintenant : bouton texte
+              // "Effacer" rouge visible a cote du timestamp pour les
+              // messages envoyes par soi → 1 tap ouvre la sheet Supprimer.
               if (!message.isDeleted && message.isFromCurrentUser)
                 ...[
                   const Spacer(),
-                  GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () => _showDeleteMessageSheet(message, controller),
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(
-                          horizontal: 4.w, vertical: 2.h),
-                      child: Icon(
-                        Icons.more_horiz_rounded,
-                        size: 18.sp,
-                        color: AppColors.textSecondary(context),
+                  Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () =>
+                          _showDeleteMessageSheet(message, controller),
+                      borderRadius: BorderRadius.circular(10.r),
+                      child: Container(
+                        padding: EdgeInsets.symmetric(
+                            horizontal: 8.w, vertical: 3.h),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(10.r),
+                          border: Border.all(
+                            color: Colors.red.withValues(alpha: 0.3),
+                            width: 0.8,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.delete_outline_rounded,
+                                size: 12.sp, color: Colors.red),
+                            SizedBox(width: 3.w),
+                            InterText(
+                              text: 'chat_delete_message'.tr,
+                              fontSize: 10.sp,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.red,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
