@@ -63,6 +63,9 @@ class _PawMapScreenState extends State<PawMapScreen> {
   /// rendered for sitter/walker roles (it stays true internally but the UI
   /// hides it for owners).
   final RxBool _showPois = true.obs;
+  // v23.1.189 — Daniel : "sur map autour de vous quon puisse le fermer".
+  // Bouton X qui hide la card "Autour de vous" pour cette session.
+  final RxBool _aroundYouVisible = true.obs;
   final RxBool _showReports = true.obs;
   final RxBool _showFriends = true.obs;
   final RxBool _showRequests = true.obs;
@@ -335,6 +338,70 @@ class _PawMapScreenState extends State<PawMapScreen> {
     } catch (e) {
       debugPrint('[PawMap] bootstrap error: $e');
     }
+  }
+
+  /// v23.1.189 — Daniel : "faire bouton cherche une ville". Ouvre un
+  /// dialog texte qui geocode la ville saisie et centre la map dessus +
+  /// reload les POI / reports.
+  Future<void> _onSearchCity() async {
+    final ctrl = TextEditingController();
+    final query = await showDialog<String>(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18.r),
+          ),
+          title: Row(
+            children: [
+              Icon(Icons.search_rounded,
+                  color: AppColors.primaryColor, size: 22.sp),
+              SizedBox(width: 8.w),
+              Expanded(
+                child: InterText(
+                  text: 'pawmap_search_city'.tr,
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+          content: TextField(
+            controller: ctrl,
+            autofocus: true,
+            textInputAction: TextInputAction.search,
+            decoration: InputDecoration(
+              hintText: 'pawmap_search_city_hint'.tr,
+              prefixIcon: const Icon(Icons.location_city_rounded),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12.r),
+              ),
+            ),
+            onSubmitted: (v) => Navigator.of(ctx).pop(v.trim()),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: Text('common_cancel'.tr),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryColor,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10.r),
+                ),
+              ),
+              onPressed: () => Navigator.of(ctx).pop(ctrl.text.trim()),
+              child: Text('pawmap_search_city_btn'.tr),
+            ),
+          ],
+        );
+      },
+    );
+    if (query == null || query.isEmpty) return;
+    // Delegue au handler existant qui utilise LocationService + reload.
+    await _searchCity(query);
   }
 
   Future<void> _reloadAtCenter() async {
@@ -1061,110 +1128,15 @@ class _PawMapScreenState extends State<PawMapScreen> {
           ],
         ),
         actions: [
-          // v21.1.1 — header actions modernisées :
-          //   * "Suivre" devient un pill plein avec gradient (au lieu d'un
-          //     contour) → mieux visible comme action primaire de tracking.
-          //     OFF = gradient orange app primary, ON = gradient vert live.
-          //   * "+ Amis" remplace l'icône bouton plat → CTA explicite pour
-          //     ajouter/gérer les amis (lié à PawFollow).
-          //   * Refresh garde son icon button discret.
-          Obx(() {
-            final on = _liveMap.broadcasting.value;
-            final c1 = on ? const Color(0xFF16A34A) : AppColors.primaryColor;
-            final c2 = on ? const Color(0xFF059669) : const Color(0xFFFF6B45);
-            return Padding(
-              padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 8.h),
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: _toggleBroadcast,
-                  borderRadius: BorderRadius.circular(22.r),
-                  child: Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 12.w,
-                      vertical: 8.h,
-                    ),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [c1, c2],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(22.r),
-                      boxShadow: [
-                        BoxShadow(
-                          color: c1.withValues(alpha: 0.35),
-                          blurRadius: 8,
-                          offset: const Offset(0, 3),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          on
-                              ? Icons.gps_fixed_rounded
-                              : Icons.location_searching_rounded,
-                          size: 14.sp,
-                          color: Colors.white,
-                        ),
-                        SizedBox(width: 5.w),
-                        InterText(
-                          text: on ? 'pawmap_appbar_live'.tr : 'pawmap_appbar_follow'.tr,
-                          fontSize: 12.sp,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            );
-          }),
-          // CTA "+ Amis" — visible call-to-action pour gérer/ajouter les amis
-          // qu'on suit (PawFollow). Pill clair primary tinted, plus parlant
-          // que l'icône people_outline anonyme.
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 8.h),
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: () => Get.to(() => const FriendsScreen()),
-                borderRadius: BorderRadius.circular(22.r),
-                child: Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 10.w,
-                    vertical: 8.h,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryColor.withValues(alpha: 0.10),
-                    borderRadius: BorderRadius.circular(22.r),
-                    border: Border.all(
-                      color: AppColors.primaryColor.withValues(alpha: 0.30),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.person_add_alt_1_rounded,
-                        size: 14.sp,
-                        color: AppColors.primaryColor,
-                      ),
-                      SizedBox(width: 4.w),
-                      InterText(
-                        text: 'pawmap_appbar_friends'.tr,
-                        fontSize: 12.sp,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.primaryColor,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
+          // v23.1.189 — Daniel : "en haut le suivre et amis horizontale ne
+          // serve plus". Les 2 pills Suivre + Amis sont supprimees car les
+          // 4 grosses cartes ci-dessous (v184) remplissent deja ces actions.
+          // On ne garde que la loupe pour ouvrir la recherche ville + le
+          // refresh.
+          IconButton(
+            tooltip: 'pawmap_search_city'.tr,
+            icon: const Icon(Icons.search_rounded),
+            onPressed: _onSearchCity,
           ),
           IconButton(
             tooltip: 'pawmap_appbar_refresh'.tr,
@@ -1356,49 +1328,21 @@ class _PawMapScreenState extends State<PawMapScreen> {
                 // Barre de recherche ville (gauche) + bouton géoloc (droite)
                 // en haut de la map. Les deux sont visibles en permanence
                 // pour un accès rapide.
+                // v23.1.189 — Daniel : "geolocalicasation + et -" plus
+                // modernes. La search-bar est seule sur la 1ere ligne ;
+                // les boutons + / - / geoloc sont regroupes dans un
+                // pill vertical blanc plein a droite (style Google Maps
+                // moderne) avec un divider fin entre chaque action.
                 Positioned(
                   top: 12.h,
                   left: 12.w,
                   right: 12.w,
-                  child: Row(
-                    children: [
-                      Expanded(child: _buildCitySearchBar(context)),
-                      SizedBox(width: 8.w),
-                      Material(
-                        color: Colors.white,
-                        shape: const CircleBorder(),
-                        elevation: 4,
-                        child: InkWell(
-                          customBorder: const CircleBorder(),
-                          onTap: _recenterOnUser,
-                          child: Padding(
-                            padding: EdgeInsets.all(11.w),
-                            child: Icon(
-                              Icons.my_location_rounded,
-                              color: AppColors.primaryColor,
-                              size: 22.sp,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                  child: _buildCitySearchBar(context),
                 ),
-
-                // v23.1 part 68 — Daniel : "mettre bouton + - en haut a
-                // droit en dessous du petit bouton ma position". Custom
-                // zoom +/- pair, vertical, white pills, calls
-                // _mapCtl.future.then(c => c.animateCamera(zoomIn/Out)).
                 Positioned(
-                  top: 64.h,
+                  top: 74.h,
                   right: 12.w,
-                  child: Column(
-                    children: [
-                      _buildZoomBtn(Icons.add_rounded, _zoomIn),
-                      SizedBox(height: 6.h),
-                      _buildZoomBtn(Icons.remove_rounded, _zoomOut),
-                    ],
-                  ),
+                  child: _buildMapControlsStack(),
                 ),
 
                 // v23.1 part 67 — Daniel : "2 boutons qui se chevauchent".
@@ -1433,6 +1377,82 @@ class _PawMapScreenState extends State<PawMapScreen> {
 
   /// v23.1 part 68 — Daniel : "mettre bouton + - en haut a droit".
   /// Small white pill that wraps a zoom-in / zoom-out icon.
+  /// v23.1.189 — Daniel : "geolocalicasation + et - paw follow et pawspot
+  /// un design beaucoupl plus moderne et jolie". Pill vertical blanc qui
+  /// regroupe zoom + / zoom - / geoloc cible dans une seule unite, style
+  /// Google Maps moderne avec divider fin entre chaque action et ombre
+  /// douce floue.
+  Widget _buildMapControlsStack() {
+    return Container(
+      width: 44.w,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22.r),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.12),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 2,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildStackedControl(
+            icon: Icons.my_location_rounded,
+            onTap: _recenterOnUser,
+            tone: AppColors.primaryColor,
+          ),
+          _stackedDivider(),
+          _buildStackedControl(
+            icon: Icons.add_rounded,
+            onTap: _zoomIn,
+            tone: AppColors.textPrimary(context),
+          ),
+          _stackedDivider(),
+          _buildStackedControl(
+            icon: Icons.remove_rounded,
+            onTap: _zoomOut,
+            tone: AppColors.textPrimary(context),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStackedControl({
+    required IconData icon,
+    required VoidCallback onTap,
+    required Color tone,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(22.r),
+        child: SizedBox(
+          width: 44.w,
+          height: 44.w,
+          child: Icon(icon, color: tone, size: 22.sp),
+        ),
+      ),
+    );
+  }
+
+  Widget _stackedDivider() {
+    return Container(
+      height: 1,
+      margin: EdgeInsets.symmetric(horizontal: 8.w),
+      color: AppColors.greyText.withValues(alpha: 0.15),
+    );
+  }
+
   Widget _buildZoomBtn(IconData icon, VoidCallback onTap) {
     return Material(
       color: Colors.white,
@@ -1501,6 +1521,9 @@ class _PawMapScreenState extends State<PawMapScreen> {
   /// ouvre AlertsScreen. Auto-cache si aucune alerte autour.
   Widget _buildAroundYouCard() {
     return Obx(() {
+      // v23.1.189 — bouton X dans la card cache la card pour cette
+      // session. _aroundYouVisible repasse a true au prochain mount.
+      if (!_aroundYouVisible.value) return const SizedBox.shrink();
       final reports = _reportController.reports;
       if (reports.isEmpty) return const SizedBox.shrink();
       // Trie par distance approx au _currentCenter et garde les 3 premiers.
@@ -1545,6 +1568,22 @@ class _PawMapScreenState extends State<PawMapScreen> {
                     fontSize: 11.sp,
                     fontWeight: FontWeight.w700,
                     color: AppColors.primaryColor,
+                  ),
+                ),
+                SizedBox(width: 8.w),
+                // v23.1.189 — bouton X pour cacher la card.
+                GestureDetector(
+                  onTap: () => _aroundYouVisible.value = false,
+                  behavior: HitTestBehavior.opaque,
+                  child: Container(
+                    width: 24.w,
+                    height: 24.w,
+                    decoration: BoxDecoration(
+                      color: AppColors.greyText.withValues(alpha: 0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.close_rounded,
+                        size: 14.sp, color: AppColors.greyText),
                   ),
                 ),
               ],
@@ -2044,6 +2083,10 @@ class _PawMapScreenState extends State<PawMapScreen> {
   // visible (ex "PawPass", "PawSpot") au lieu d'un cercle anonyme. Beaucoup
   // plus parlant pour les freemium users qui découvrent la boutique.
   // Shadow colorée pour profondeur, gradient subtle pour donner du relief.
+  /// v23.1.189 — Daniel : "paw follow et pawspot un design beaucoupl plus
+  /// moderne et jolie". Pastille glassy : fond blanc translucide, accent
+  /// vif a gauche (pastille couleur ronde + icone blanche dessus), label
+  /// en gras a droite, ombre douce + halo coloré soft.
   Widget _buildMapCornerButton({
     required Color color,
     required IconData icon,
@@ -2054,34 +2097,58 @@ class _PawMapScreenState extends State<PawMapScreen> {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(24.r),
+        borderRadius: BorderRadius.circular(26.r),
         child: Container(
-          padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 9.h),
+          padding: EdgeInsets.fromLTRB(5.w, 5.h, 14.w, 5.h),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [color, color.withValues(alpha: 0.85)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(26.r),
+            border: Border.all(
+              color: color.withValues(alpha: 0.30),
+              width: 1.2,
             ),
-            borderRadius: BorderRadius.circular(24.r),
             boxShadow: [
               BoxShadow(
-                color: color.withValues(alpha: 0.45),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
+                color: color.withValues(alpha: 0.25),
+                blurRadius: 14,
+                offset: const Offset(0, 5),
+              ),
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.06),
+                blurRadius: 4,
+                offset: const Offset(0, 1),
               ),
             ],
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, color: Colors.white, size: 18.sp),
-              SizedBox(width: 6.w),
+              Container(
+                width: 32.w,
+                height: 32.w,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [color, color.withValues(alpha: 0.80)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: color.withValues(alpha: 0.50),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Icon(icon, color: Colors.white, size: 17.sp),
+              ),
+              SizedBox(width: 8.w),
               InterText(
                 text: tooltip,
                 fontSize: 12.sp,
                 fontWeight: FontWeight.w800,
-                color: Colors.white,
+                color: color,
               ),
             ],
           ),

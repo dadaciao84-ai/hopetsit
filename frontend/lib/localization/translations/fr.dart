@@ -132,6 +132,12 @@ const Map<String, String> frFRTranslations = <String, String>{
       // v23.1.187 — "Autour de vous" floating card.
       'pawmap_around_you': 'Autour de vous',
       'pawmap_around_you_see_all': 'Voir tout',
+      // v23.1.189 — Search city dialog (AppBar icone).
+      'pawmap_search_city': 'Rechercher une ville',
+      'pawmap_search_city_hint': 'Ex : Paris, Lyon, Madrid…',
+      'pawmap_search_city_btn': 'Rechercher',
+      'pawmap_search_city_not_found_title': 'Ville introuvable',
+      'pawmap_search_city_not_found_msg': 'Verifie l\'orthographe et reessaie.',
       // v23.1.188 — Carte chat pawfollow_request style mockup Daniel.
       'pawfollow_card_title': 'Suivi en direct',
       'pawfollow_bullet_transparency': 'Le proprietaire pourra voir la position de l\'animal en temps reel.',

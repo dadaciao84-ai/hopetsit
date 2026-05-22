@@ -104,14 +104,17 @@ class ReportCategoryGridScreen extends StatelessWidget {
               ),
             ),
             SizedBox(height: 14.h),
+            // v23.1.189 — Daniel : "ds la page signaler ya c option carrer
+            // plus petit". 3 colonnes (au lieu de 2) avec aspect ratio
+            // legerement plus haut → carres compacts, plus aeres.
             Expanded(
               child: GridView.builder(
-                padding: EdgeInsets.fromLTRB(16.w, 6.h, 16.w, 24.h),
+                padding: EdgeInsets.fromLTRB(14.w, 6.h, 14.w, 24.h),
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 12.w,
-                  mainAxisSpacing: 12.h,
-                  childAspectRatio: 1.05,
+                  crossAxisCount: 3,
+                  crossAxisSpacing: 10.w,
+                  mainAxisSpacing: 10.h,
+                  childAspectRatio: 0.95,
                 ),
                 itemCount: _categories.length,
                 itemBuilder: (_, i) => _buildCategoryTile(
@@ -153,19 +156,19 @@ class ReportCategoryGridScreen extends StatelessWidget {
           }
         },
         child: Container(
-          padding: EdgeInsets.all(14.w),
+          padding: EdgeInsets.all(10.w),
           decoration: BoxDecoration(
             color: cat.color.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(20.r),
+            borderRadius: BorderRadius.circular(16.r),
             border: Border.all(
-              color: cat.color.withValues(alpha: 0.25),
-              width: 1.3,
+              color: cat.color.withValues(alpha: 0.22),
+              width: 1.2,
             ),
             boxShadow: [
               BoxShadow(
-                color: cat.color.withValues(alpha: 0.12),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
+                color: cat.color.withValues(alpha: 0.10),
+                blurRadius: 8,
+                offset: const Offset(0, 3),
               ),
             ],
           ),
@@ -173,25 +176,25 @@ class ReportCategoryGridScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                width: 58.w,
-                height: 58.w,
+                width: 42.w,
+                height: 42.w,
                 decoration: BoxDecoration(
                   color: cat.color,
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: cat.color.withValues(alpha: 0.5),
-                      blurRadius: 10,
-                      offset: const Offset(0, 3),
+                      color: cat.color.withValues(alpha: 0.45),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
                     ),
                   ],
                 ),
-                child: Icon(cat.icon, color: Colors.white, size: 28.sp),
+                child: Icon(cat.icon, color: Colors.white, size: 20.sp),
               ),
-              SizedBox(height: 12.h),
+              SizedBox(height: 8.h),
               InterText(
                 text: cat.labelKey.tr,
-                fontSize: 13.sp,
+                fontSize: 11.sp,
                 fontWeight: FontWeight.w800,
                 color: cat.color,
                 textAlign: TextAlign.center,

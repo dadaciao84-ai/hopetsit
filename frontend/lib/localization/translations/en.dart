@@ -132,6 +132,12 @@ const Map<String, String> enUSTranslations = <String, String>{
       // v23.1.187 — "Around you" floating card.
       'pawmap_around_you': 'Around you',
       'pawmap_around_you_see_all': 'See all',
+      // v23.1.189 — Search city dialog (AppBar icon).
+      'pawmap_search_city': 'Search a city',
+      'pawmap_search_city_hint': 'e.g. Paris, London, Madrid…',
+      'pawmap_search_city_btn': 'Search',
+      'pawmap_search_city_not_found_title': 'City not found',
+      'pawmap_search_city_not_found_msg': 'Check the spelling and try again.',
       // v23.1.188 — pawfollow_request card mockup style.
       'pawfollow_card_title': 'Live tracking',
       'pawfollow_bullet_transparency': 'The owner will be able to see the pet\'s position in real time.',
