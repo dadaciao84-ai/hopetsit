@@ -401,41 +401,41 @@ class TrackingRequestSheet extends StatelessWidget {
             onTrailingTap: () => Navigator.of(context).pop(),
           ),
 
-          // Row 2 : Telephone + numero + bouton phone (mockup).
-          if (phone.isNotEmpty) ...[
-            SizedBox(height: 14.h),
-            _infoRow(
-              context,
-              leading: Icon(Icons.phone_outlined,
-                  color: AppColors.greyText, size: 22.sp),
-              labelKey: 'tracking_sheet_phone',
-              value: phone,
-              trailingIcon: Icons.call_rounded,
-              trailingBg: _orange.withValues(alpha: 0.10),
-              trailingColor: _orange,
-              onTrailingTap: () {
-                // TODO v23.1.195 : url_launcher tel: scheme.
-              },
-            ),
-          ],
+          // v23.1.197 — Daniel : "le chat n'est pas modifie comme la
+          // photo". Les rows Telephone + Adresse etaient conditionnels
+          // (if phone.isNotEmpty) : si le sitter n'a pas renseigne ses
+          // coords, les rows disparaissaient et le sheet semblait
+          // incomplet vs mockup. Maintenant TOUJOURS visibles, avec
+          // placeholder "—" si vide.
+          SizedBox(height: 14.h),
+          _infoRow(
+            context,
+            leading: Icon(Icons.phone_outlined,
+                color: AppColors.greyText, size: 22.sp),
+            labelKey: 'tracking_sheet_phone',
+            value: phone.isEmpty ? '—' : phone,
+            trailingIcon: Icons.call_rounded,
+            trailingBg: _orange.withValues(alpha: 0.10),
+            trailingColor: _orange,
+            onTrailingTap: () {
+              // TODO : url_launcher tel: scheme quand phone dispo.
+            },
+          ),
 
-          // Row 3 : Adresse de depart + adresse + bouton map (mockup).
-          if (address.isNotEmpty) ...[
-            SizedBox(height: 14.h),
-            _infoRow(
-              context,
-              leading: Icon(Icons.location_on_outlined,
-                  color: AppColors.greyText, size: 22.sp),
-              labelKey: 'tracking_sheet_address',
-              value: address,
-              trailingIcon: Icons.map_rounded,
-              trailingBg: _orange.withValues(alpha: 0.10),
-              trailingColor: _orange,
-              onTrailingTap: () {
-                // TODO v23.1.195 : url_launcher geo: scheme.
-              },
-            ),
-          ],
+          SizedBox(height: 14.h),
+          _infoRow(
+            context,
+            leading: Icon(Icons.location_on_outlined,
+                color: AppColors.greyText, size: 22.sp),
+            labelKey: 'tracking_sheet_address',
+            value: address.isEmpty ? '—' : address,
+            trailingIcon: Icons.map_rounded,
+            trailingBg: _orange.withValues(alpha: 0.10),
+            trailingColor: _orange,
+            onTrailingTap: () {
+              // TODO : url_launcher geo: scheme quand adresse dispo.
+            },
+          ),
         ],
       ),
     );
