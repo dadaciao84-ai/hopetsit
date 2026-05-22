@@ -178,5 +178,35 @@
     "body": "Le prestataire vient d'annuler la réservation. Vous serez intégralement remboursé sous 5-10 jours.",
     "emailSubject": "Votre réservation a été annulée — HoPetSit",
     "emailBody": "<p>Bonjour,</p><p>Le prestataire vient d'annuler votre réservation à plus de 72h du service. <strong>Un remboursement intégral est en cours</strong> (5-10 jours selon votre banque). Vous pouvez rebooker un autre prestataire sur l'app.</p><p><a href=\"{{emailLink}}\" style=\"display:inline-block;padding:12px 24px;background:#EF4324;color:#FFFFFF;text-decoration:none;border-radius:8px;font-weight:700;font-family:sans-serif;\">Trouver un autre prestataire</a></p><p style=\"color:#666;font-size:12px;\">Si le bouton ne fonctionne pas, copiez-collez ce lien dans votre navigateur : {{emailLink}}</p>"
+  },
+  "friend_request_received": {
+    "title": "Demande d’ami reçue",
+    "body": "Quelqu’un veut t’ajouter comme ami sur HoPetSit. Ouvre l’app pour accepter ou refuser.",
+    "emailSubject": "Demande d’ami — HoPetSit",
+    "emailBody": "<p>Tu as reçu une nouvelle demande d’ami sur HoPetSit. Ouvre l’app pour répondre.</p><p><a href=\"{emailLink}\" style=\"display:inline-block;padding:12px 24px;background:#EF4324;color:#FFFFFF;text-decoration:none;border-radius:8px;font-weight:700;font-family:sans-serif;\">Voir la demande</a></p>"
+  },
+  "live_tracking_request_received": {
+    "title": "Demande de suivi en direct",
+    "body": "Une demande de suivi de position en temps réel vient d’arriver dans ton chat.",
+    "emailSubject": "Demande de suivi en direct — HoPetSit",
+    "emailBody": "<p>Une demande de suivi en direct a été envoyée dans ton chat. Ouvre l’app pour accepter ou refuser.</p><p><a href=\"{emailLink}\" style=\"display:inline-block;padding:12px 24px;background:#EF4324;color:#FFFFFF;text-decoration:none;border-radius:8px;font-weight:700;font-family:sans-serif;\">Voir la demande</a></p>"
+  },
+  "live_tracking_accepted": {
+    "title": "Suivi en direct accepté",
+    "body": "Ta demande de suivi en direct a été acceptée. Tu peux maintenant voir la position sur la PawMap.",
+    "emailSubject": "Suivi en direct accepté — HoPetSit",
+    "emailBody": "<p>Ta demande de suivi en direct a été acceptée. Ouvre la PawMap pour voir la position en temps réel.</p>"
+  },
+  "live_tracking_refused": {
+    "title": "Suivi en direct refusé",
+    "body": "Ta demande de suivi en direct a été refusée.",
+    "emailSubject": "Suivi en direct refusé — HoPetSit",
+    "emailBody": "<p>Ta demande de suivi en direct a été refusée.</p>"
+  },
+  "family_member_added": {
+    "title": "Ajouté à une famille PawFollow",
+    "body": "Tu fais maintenant partie d’une famille PawFollow. Vous pouvez vous suivre en direct sur la PawMap.",
+    "emailSubject": "Bienvenue dans la famille PawFollow — HoPetSit",
+    "emailBody": "<p>Tu as été ajouté à une famille PawFollow. Tous les membres peuvent maintenant se suivre en direct sur la PawMap.</p>"
   }
 }

@@ -136,5 +136,35 @@
     "body": "Der Anbieter hat die Buchung gerade storniert. Du erhältst eine vollständige Rückerstattung innerhalb von 5-10 Tagen.",
     "emailSubject": "Deine Buchung wurde storniert — HoPetSit",
     "emailBody": "<p>Hallo,</p><p>Der Anbieter hat deine Buchung mehr als 72 Std. vor dem Service storniert. <strong>Eine vollständige Rückerstattung wird bearbeitet</strong> (5-10 Tage je nach Bank). Du kannst einen anderen Anbieter in der App buchen.</p><p><a href=\"{{emailLink}}\" style=\"display:inline-block;padding:12px 24px;background:#EF4324;color:#FFFFFF;text-decoration:none;border-radius:8px;font-weight:700;font-family:sans-serif;\">Anderen Anbieter finden</a></p><p style=\"color:#666;font-size:12px;\">Wenn der Button nicht funktioniert, kopiere diesen Link in deinen Browser: {{emailLink}}</p>"
+  },
+  "friend_request_received": {
+    "title": "Freundschaftsanfrage erhalten",
+    "body": "Jemand möchte dich als Freund auf HoPetSit hinzufügen. Öffne die App, um anzunehmen oder abzulehnen.",
+    "emailSubject": "Freundschaftsanfrage — HoPetSit",
+    "emailBody": "<p>Du hast eine neue Freundschaftsanfrage auf HoPetSit erhalten. Öffne die App, um zu antworten.</p><p><a href=\"{emailLink}\" style=\"display:inline-block;padding:12px 24px;background:#EF4324;color:#FFFFFF;text-decoration:none;border-radius:8px;font-weight:700;font-family:sans-serif;\">Anfrage ansehen</a></p>"
+  },
+  "live_tracking_request_received": {
+    "title": "Live-Tracking-Anfrage",
+    "body": "Eine Live-Tracking-Anfrage ist gerade in deinem Chat eingegangen.",
+    "emailSubject": "Live-Tracking-Anfrage — HoPetSit",
+    "emailBody": "<p>Eine Live-Tracking-Anfrage wurde an deinen Chat gesendet. Öffne die App, um anzunehmen oder abzulehnen.</p>"
+  },
+  "live_tracking_accepted": {
+    "title": "Live-Tracking angenommen",
+    "body": "Deine Live-Tracking-Anfrage wurde angenommen. Du kannst die Position jetzt auf der PawMap sehen.",
+    "emailSubject": "Live-Tracking angenommen — HoPetSit",
+    "emailBody": "<p>Deine Live-Tracking-Anfrage wurde angenommen. Öffne die PawMap, um die Position live zu sehen.</p>"
+  },
+  "live_tracking_refused": {
+    "title": "Live-Tracking abgelehnt",
+    "body": "Deine Live-Tracking-Anfrage wurde abgelehnt.",
+    "emailSubject": "Live-Tracking abgelehnt — HoPetSit",
+    "emailBody": "<p>Deine Live-Tracking-Anfrage wurde abgelehnt.</p>"
+  },
+  "family_member_added": {
+    "title": "Zur PawFollow-Familie hinzugefügt",
+    "body": "Du bist jetzt Teil einer PawFollow-Familie. Mitglieder können sich live auf der PawMap verfolgen.",
+    "emailSubject": "Willkommen in der PawFollow-Familie — HoPetSit",
+    "emailBody": "<p>Du wurdest zu einer PawFollow-Familie hinzugefügt. Alle Mitglieder können sich jetzt live auf der PawMap verfolgen.</p>"
   }
 }

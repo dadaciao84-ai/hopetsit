@@ -136,5 +136,35 @@
     "body": "O prestador acabou de cancelar a reserva. Receberás um reembolso integral em 5-10 dias.",
     "emailSubject": "A tua reserva foi cancelada — HoPetSit",
     "emailBody": "<p>Olá,</p><p>O prestador acabou de cancelar a tua reserva com mais de 72h de antecedência. <strong>Está em curso um reembolso integral</strong> (5-10 dias dependendo do banco). Podes reservar outro prestador na app.</p><p><a href=\"{{emailLink}}\" style=\"display:inline-block;padding:12px 24px;background:#EF4324;color:#FFFFFF;text-decoration:none;border-radius:8px;font-weight:700;font-family:sans-serif;\">Encontrar outro prestador</a></p><p style=\"color:#666;font-size:12px;\">Se o botão não funcionar, copia este link no teu navegador: {{emailLink}}</p>"
+  },
+  "friend_request_received": {
+    "title": "Pedido de amizade recebido",
+    "body": "Alguém quer adicionar-te como amigo no HoPetSit. Abre a app para aceitar ou recusar.",
+    "emailSubject": "Pedido de amizade — HoPetSit",
+    "emailBody": "<p>Recebeste um novo pedido de amizade no HoPetSit. Abre a app para responder.</p><p><a href=\"{emailLink}\" style=\"display:inline-block;padding:12px 24px;background:#EF4324;color:#FFFFFF;text-decoration:none;border-radius:8px;font-weight:700;font-family:sans-serif;\">Ver pedido</a></p>"
+  },
+  "live_tracking_request_received": {
+    "title": "Pedido de rastreamento ao vivo",
+    "body": "Um pedido de rastreamento de posição em tempo real acabou de chegar ao teu chat.",
+    "emailSubject": "Pedido de rastreamento — HoPetSit",
+    "emailBody": "<p>Um pedido de rastreamento ao vivo foi enviado para o teu chat. Abre a app para aceitar ou recusar.</p>"
+  },
+  "live_tracking_accepted": {
+    "title": "Rastreamento ao vivo aceite",
+    "body": "O teu pedido de rastreamento ao vivo foi aceite. Podes ver a posição no PawMap.",
+    "emailSubject": "Rastreamento aceite — HoPetSit",
+    "emailBody": "<p>O teu pedido de rastreamento ao vivo foi aceite. Abre o PawMap para veres a posição ao vivo.</p>"
+  },
+  "live_tracking_refused": {
+    "title": "Rastreamento ao vivo recusado",
+    "body": "O teu pedido de rastreamento ao vivo foi recusado.",
+    "emailSubject": "Rastreamento recusado — HoPetSit",
+    "emailBody": "<p>O teu pedido de rastreamento ao vivo foi recusado.</p>"
+  },
+  "family_member_added": {
+    "title": "Adicionado a uma família PawFollow",
+    "body": "Agora fazes parte de uma família PawFollow. Os membros podem seguir-se ao vivo no PawMap.",
+    "emailSubject": "Bem-vindo à família PawFollow — HoPetSit",
+    "emailBody": "<p>Foste adicionado a uma família PawFollow. Todos os membros podem agora seguir-se ao vivo no PawMap.</p>"
   }
 }

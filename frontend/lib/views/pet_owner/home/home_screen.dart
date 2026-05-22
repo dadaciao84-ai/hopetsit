@@ -23,6 +23,7 @@ import 'package:hopetsit/views/pet_owner/home/widgets/walker_card.dart';
 import 'package:hopetsit/views/pet_owner/posts/edit_post_screen.dart';
 import 'package:hopetsit/views/pet_owner/reservation_request/publish_reservation_request_screen.dart';
 import 'package:hopetsit/utils/service_type_translator.dart';
+import 'package:hopetsit/widgets/active_benefits_row.dart';
 import 'package:hopetsit/views/service_provider/send_request_screen.dart';
 import 'package:hopetsit/views/service_provider/service_provider_detail_screen.dart';
 import 'package:hopetsit/widgets/app_text.dart';
@@ -485,7 +486,16 @@ class _HomeScreenState extends State<HomeScreen> {
                     // page (home owner tab "Mes publications") etait celle
                     // qu'il regardait, pas MyPostsScreen. Fix : forwarder
                     // les flags boost au PetPostCard ici aussi.
-                    isOwnerBoosted: post.isOwnerBoosted,
+                    //
+                    // v23.1.180 — Daniel : "le cadre urgent boost naparait
+                    // tjr pa". Fallback frontend : si MES propres posts ET
+                    // que MOI j'ai un boost/abo actif localement (lu via
+                    // ActiveBenefitsRow.boostActiveAccessor qui combine
+                    // boostExpiry + mapBoostExpiry + UserSubscription
+                    // active depuis v175), on force isOwnerBoosted=true
+                    // indépendamment du backend cache.
+                    isOwnerBoosted: post.isOwnerBoosted ||
+                        ActiveBenefitsRow.boostActiveAccessor.value,
                     ownerBoostTier: post.ownerBoostTier,
                     onDelete: () => _confirmAndDeletePost(context, post.id),
                     onEdit: () {

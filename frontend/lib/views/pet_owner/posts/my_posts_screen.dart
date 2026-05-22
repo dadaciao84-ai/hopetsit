@@ -18,6 +18,7 @@ import 'package:hopetsit/views/pet_owner/posts/edit_post_screen.dart';
 import 'package:hopetsit/controllers/applications_controller.dart';
 import 'package:hopetsit/views/pet_owner/posts/widgets/post_candidates_banner.dart';
 import 'package:hopetsit/widgets/app_text.dart';
+import 'package:hopetsit/widgets/active_benefits_row.dart';
 import 'package:hopetsit/widgets/custom_confirmation_dialog.dart';
 import 'package:hopetsit/widgets/custom_snackbar_widget.dart';
 import 'package:hopetsit/widgets/post_comment_sheet.dart';
@@ -257,7 +258,10 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
           // voir ses propres annonces avec le cadre rouge URGENT + ruban
           // quand son boost est actif, pour confirmer visuellement que
           // l'achat a fonctionne.
-          isOwnerBoosted: post.isOwnerBoosted,
+          // v23.1.180 — fallback frontend : si MES posts ET j'ai un boost/abo actif
+// localement → ruban URGENT visible, indépendamment du backend cache.
+isOwnerBoosted: post.isOwnerBoosted ||
+    ActiveBenefitsRow.boostActiveAccessor.value,
           ownerBoostTier: post.ownerBoostTier,
           onViewPetDetails: null,
           onShare: () {
@@ -324,7 +328,10 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
         ownerViewOfOwnPost: true,
         // v23.1.151 — voir commentaire au-dessus : owner doit voir son
         // propre post avec ruban URGENT quand boostExpiry > now.
-        isOwnerBoosted: post.isOwnerBoosted,
+        // v23.1.180 — fallback frontend : si MES posts ET j'ai un boost/abo actif
+// localement → ruban URGENT visible, indépendamment du backend cache.
+isOwnerBoosted: post.isOwnerBoosted ||
+    ActiveBenefitsRow.boostActiveAccessor.value,
         ownerBoostTier: post.ownerBoostTier,
         onShare: () {
           () async {

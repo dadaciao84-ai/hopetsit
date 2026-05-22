@@ -286,7 +286,7 @@ router.post('/request', requireAuth, async (req, res) => {
       const buildEmailLink = require('../utils/emailLinkBuilder').buildEmailLink;
       await sendNotification({
         userId: targetId,
-        userRole: (targetRole || '').toLowerCase(),
+        role: (targetRole || '').toLowerCase(),
         type: 'friend_request_received',
         title: 'friend_request_received_title',
         body: 'friend_request_received_body',
@@ -573,7 +573,7 @@ router.post('/family/invite-member', requireAuth, async (req, res) => {
       const { sendNotification } = require('../services/notificationSender');
       await sendNotification({
         userId,
-        userRole: String(userRole).toLowerCase(),
+        role: String(userRole).toLowerCase(),
         type: 'family_member_added',
         title: 'family_member_added_title',
         body: 'family_member_added_body',
@@ -657,7 +657,7 @@ router.post('/family/invite-by-email', requireAuth, async (req, res) => {
         const { sendNotification } = require('../services/notificationSender');
         await sendNotification({
           userId: targetId,
-          userRole: targetModel.toLowerCase(),
+          role: targetModel.toLowerCase(),
           type: 'family_member_added',
           title: 'family_member_added_title',
           body: 'family_member_added_body',

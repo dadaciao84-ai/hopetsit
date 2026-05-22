@@ -178,5 +178,35 @@
     "body": "The provider just cancelled the booking. You will be fully refunded within 5-10 days.",
     "emailSubject": "Your booking has been cancelled — HoPetSit",
     "emailBody": "<p>Hi,</p><p>The provider just cancelled your booking more than 72h before service. <strong>A full refund is in progress</strong> (5-10 days depending on your bank). You can book another provider on the app.</p><p><a href=\"{{emailLink}}\" style=\"display:inline-block;padding:12px 24px;background:#EF4324;color:#FFFFFF;text-decoration:none;border-radius:8px;font-weight:700;font-family:sans-serif;\">Find another provider</a></p><p style=\"color:#666;font-size:12px;\">If the button doesn't work, copy this link into your browser: {{emailLink}}</p>"
+  },
+  "friend_request_received": {
+    "title": "Friend request received",
+    "body": "Someone wants to add you as a friend on HoPetSit. Open the app to accept or decline.",
+    "emailSubject": "Friend request — HoPetSit",
+    "emailBody": "<p>You received a new friend request on HoPetSit. Open the app to respond.</p><p><a href=\"{emailLink}\" style=\"display:inline-block;padding:12px 24px;background:#EF4324;color:#FFFFFF;text-decoration:none;border-radius:8px;font-weight:700;font-family:sans-serif;\">View request</a></p>"
+  },
+  "live_tracking_request_received": {
+    "title": "Live tracking request",
+    "body": "A live position tracking request just landed in your chat.",
+    "emailSubject": "Live tracking request — HoPetSit",
+    "emailBody": "<p>A live tracking request was sent to your chat. Open the app to accept or decline.</p><p><a href=\"{emailLink}\" style=\"display:inline-block;padding:12px 24px;background:#EF4324;color:#FFFFFF;text-decoration:none;border-radius:8px;font-weight:700;font-family:sans-serif;\">View request</a></p>"
+  },
+  "live_tracking_accepted": {
+    "title": "Live tracking accepted",
+    "body": "Your live tracking request was accepted. You can now see the position on PawMap.",
+    "emailSubject": "Live tracking accepted — HoPetSit",
+    "emailBody": "<p>Your live tracking request was accepted. Open PawMap to see the live position.</p>"
+  },
+  "live_tracking_refused": {
+    "title": "Live tracking declined",
+    "body": "Your live tracking request was declined.",
+    "emailSubject": "Live tracking declined — HoPetSit",
+    "emailBody": "<p>Your live tracking request was declined.</p>"
+  },
+  "family_member_added": {
+    "title": "Added to a PawFollow family",
+    "body": "You are now part of a PawFollow family. Members can track each other live on PawMap.",
+    "emailSubject": "Welcome to the PawFollow family — HoPetSit",
+    "emailBody": "<p>You have been added to a PawFollow family. All members can now track each other live on PawMap.</p>"
   }
 }

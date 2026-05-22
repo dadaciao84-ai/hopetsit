@@ -1021,7 +1021,7 @@ const processProviderPayoutForBooking = async (booking) => {
           const { creditWallet } = require('../services/walletService');
           const credit = await creditWallet({
             userId: sitter._id.toString(),
-            userRole: provider.type,
+            role: provider.type,
             amount: netPayout,
             currency: (currency || 'EUR').toUpperCase(),
             type: 'credit_booking',
@@ -1126,7 +1126,7 @@ const processProviderPayoutForBooking = async (booking) => {
         const { creditWallet } = require('../services/walletService');
         await creditWallet({
           userId: sitter._id.toString(),
-          userRole: provider.type,
+          role: provider.type,
           amount: netPayout,
           currency: (currency || 'EUR').toUpperCase(),
           type: 'credit_booking',
@@ -3057,7 +3057,7 @@ const confirmBookingPayment = async (req, res) => {
             // log the transaction for the in-app earnings history.
             await creditWallet({
               userId: provider.id,
-              userRole: provider.type,
+              role: provider.type,
               amount: netPayout,
               currency: currency.toUpperCase(),
               type: 'credit_booking',
@@ -4443,7 +4443,7 @@ const requestLiveTracking = async (req, res) => {
       const buildEmailLink = require('../utils/emailLinkBuilder').buildEmailLink;
       await sendNotification({
         userId: ownerId,
-        userRole: 'owner',
+        role: 'owner',
         type: 'live_tracking_request_received',
         title: 'live_tracking_request_title',
         body: 'live_tracking_request_body',
