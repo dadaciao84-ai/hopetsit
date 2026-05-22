@@ -431,6 +431,37 @@ router.post('/:id/messages/attachments', requireAuth, requirePaidBooking, upload
 // Le handler doit vérifier que l'user est partie à la conversation.
 router.post('/:id/read', requireAuth, markConversationRead);
 
+// v23.1.195 — Daniel : "dans le message chat ajouter effacer pour
+// effacer la conversation en entier". DELETE /conversations/:id supprime
+// la conversation et tous ses messages associes (hard delete). Verifie
+// que le user est bien participant avant.
+router.delete('/:id', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+    const conversation = await Conversation.findById(id);
+    if (!conversation) {
+      return res.status(404).json({ error: 'Conversation not found.' });
+    }
+    const idStr = (v) => v ? (v._id ? v._id.toString() : v.toString()) : null;
+    const isParticipant =
+      idStr(conversation.ownerId) === userId ||
+      idStr(conversation.sitterId) === userId ||
+      idStr(conversation.walkerId) === userId;
+    if (!isParticipant) {
+      return res.status(403).json({ error: 'Not a conversation participant.' });
+    }
+    // Hard delete : messages + conversation. Le warning frontend
+    // previent que l'action est definitive pour les 2 parties.
+    await Message.deleteMany({ conversationId: conversation._id });
+    await Conversation.findByIdAndDelete(conversation._id);
+    return res.status(200).json({ deleted: true, conversationId: id });
+  } catch (e) {
+    logger.error('delete conversation error', e);
+    return res.status(500).json({ error: 'Unable to delete conversation.' });
+  }
+});
+
 // v23.1.182 — Daniel : "sa mouvre pas de balade en cour au lieu denvoyer
 // linviutation au walker ou sitter". Le bouton "Suivre en direct mon
 // animal" dans le chat doit pouvoir envoyer la demande même SANS booking

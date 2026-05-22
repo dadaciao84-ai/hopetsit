@@ -173,13 +173,25 @@ class FriendsScreen extends StatelessWidget {
             ],
           ),
         ),
-        body: TabBarView(
+        // v23.1.195 — Daniel : "les demande damis et famille senvoi mais
+        // personne ne recoi ni linvitation ni la notification". Les push
+        // notifs FCM peuvent etre perdues (tokens stales, etc.). On rend
+        // les demandes pending TOUJOURS visibles via un banner en haut
+        // de l'ecran, peu importe l'onglet selectionne.
+        body: Column(
           children: [
-            _FriendsTab(controller: controller),
-            _AddFriendTab(controller: controller),
-            _FamilyTab(controller: controller),
-            _PetsTab(controller: controller),
-            _MessagesTab(controller: controller),
+            _PendingRequestsBanner(controller: controller),
+            Expanded(
+              child: TabBarView(
+                children: [
+                  _FriendsTab(controller: controller),
+                  _AddFriendTab(controller: controller),
+                  _FamilyTab(controller: controller),
+                  _PetsTab(controller: controller),
+                  _MessagesTab(controller: controller),
+                ],
+              ),
+            ),
           ],
         ),
         // v23.1.185 — Le FAB "Ajouter un ami" disparait : l'onglet
@@ -1927,6 +1939,214 @@ class _MessagesTabState extends State<_MessagesTab> {
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// v23.1.195 — Daniel : "les demande damis et famille senvoi mais personne
+// ne recoi". Banner toujours visible en haut de l'ecran Famille & Amis
+// qui liste les demandes pending (amis + famille) et permet de les
+// accepter/refuser en 1 tap. Indispensable car les push notifs peuvent
+// se perdre (tokens FCM stales, etc.).
+// ─────────────────────────────────────────────────────────────────────────
+
+class _PendingRequestsBanner extends StatelessWidget {
+  const _PendingRequestsBanner({required this.controller});
+
+  final FriendController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      final friendReqs = controller.incomingRequests;
+      final familyInvites = controller.incomingFamilyInvitations;
+      if (friendReqs.isEmpty && familyInvites.isEmpty) {
+        return const SizedBox.shrink();
+      }
+      return Container(
+        margin: EdgeInsets.fromLTRB(12.w, 10.h, 12.w, 4.h),
+        padding: EdgeInsets.all(12.w),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFFFFF1ED), Color(0xFFFFE4D6)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(14.r),
+          border: Border.all(
+            color: const Color(0xFFEF4324).withValues(alpha: 0.30),
+            width: 1.2,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.mark_email_unread_rounded,
+                    color: const Color(0xFFEF4324), size: 18.sp),
+                SizedBox(width: 6.w),
+                InterText(
+                  text: 'friends_pending_banner_title'.tr,
+                  fontSize: 13.sp,
+                  fontWeight: FontWeight.w800,
+                  color: const Color(0xFFEF4324),
+                ),
+              ],
+            ),
+            SizedBox(height: 8.h),
+            // Demandes d'amis pending.
+            ...friendReqs.map((f) => _buildFriendRow(context, f)),
+            // Invitations Famille pending.
+            ...familyInvites.map((i) => _buildFamilyRow(context, i)),
+          ],
+        ),
+      );
+    });
+  }
+
+  Widget _buildFriendRow(BuildContext context, Friendship f) {
+    final other = f.other;
+    final name = other?.name ?? 'Utilisateur';
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 4.h),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 16.r,
+            backgroundColor: const Color(0xFF8B5CF6).withValues(alpha: 0.18),
+            child: Icon(Icons.person,
+                color: const Color(0xFF8B5CF6), size: 16.sp),
+          ),
+          SizedBox(width: 10.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                InterText(
+                  text: name,
+                  fontSize: 12.sp,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary(context),
+                  maxLines: 1,
+                ),
+                InterText(
+                  text: 'friends_pending_banner_friend_msg'.tr,
+                  fontSize: 10.sp,
+                  color: AppColors.greyText,
+                ),
+              ],
+            ),
+          ),
+          SizedBox(width: 6.w),
+          _smallBtn(
+            icon: Icons.check_rounded,
+            color: const Color(0xFFEF4324),
+            onTap: () async {
+              final ok = await controller.accept(f.id);
+              if (ok) {
+                CustomSnackbar.showSuccess(
+                  title: 'common_done'.tr,
+                  message: 'friend_request_accepted_msg'.tr,
+                );
+              }
+            },
+          ),
+          SizedBox(width: 4.w),
+          _smallBtn(
+            icon: Icons.close_rounded,
+            color: Colors.red,
+            outlined: true,
+            onTap: () => controller.decline(f.id),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFamilyRow(BuildContext context, Map<String, dynamic> inv) {
+    final id = (inv['id'] ?? inv['invitationId'] ?? '').toString();
+    final name = (inv['familyOwnerName'] ?? '').toString();
+    final displayName = name.isEmpty ? '—' : name;
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 4.h),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 16.r,
+            backgroundColor: const Color(0xFFEC4899).withValues(alpha: 0.18),
+            child: Icon(Icons.family_restroom_rounded,
+                color: const Color(0xFFEC4899), size: 16.sp),
+          ),
+          SizedBox(width: 10.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                InterText(
+                  text: displayName,
+                  fontSize: 12.sp,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary(context),
+                  maxLines: 1,
+                ),
+                InterText(
+                  text: 'friends_pending_banner_family_msg'.tr,
+                  fontSize: 10.sp,
+                  color: AppColors.greyText,
+                ),
+              ],
+            ),
+          ),
+          SizedBox(width: 6.w),
+          _smallBtn(
+            icon: Icons.check_rounded,
+            color: const Color(0xFFEF4324),
+            onTap: () async {
+              final ok = await controller.acceptFamilyInvitation(id);
+              if (ok) {
+                CustomSnackbar.showSuccess(
+                  title: 'common_done'.tr,
+                  message: 'family_invitation_accepted_msg'.tr,
+                );
+              }
+            },
+          ),
+          SizedBox(width: 4.w),
+          _smallBtn(
+            icon: Icons.close_rounded,
+            color: Colors.red,
+            outlined: true,
+            onTap: () => controller.refuseFamilyInvitation(id),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _smallBtn({
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+    bool outlined = false,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18.r),
+        child: Container(
+          width: 30.w,
+          height: 30.w,
+          decoration: BoxDecoration(
+            color: outlined ? Colors.transparent : color,
+            shape: BoxShape.circle,
+            border: outlined ? Border.all(color: color, width: 1.4) : null,
+          ),
+          child: Icon(icon, color: outlined ? color : Colors.white, size: 16.sp),
+        ),
       ),
     );
   }

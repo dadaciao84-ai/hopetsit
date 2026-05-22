@@ -163,6 +163,16 @@ class ChatRepository {
     );
   }
 
+  /// v23.1.195 — Daniel : "dans le message chat ajouter effacer pour
+  /// effacer la conversation en entier". DELETE /conversations/:id
+  /// (hard delete : conv + messages). Backend verifie le participant.
+  Future<bool> deleteConversation({required String conversationId}) async {
+    final endpoint = '${ApiEndpoints.sendMessage}/$conversationId';
+    final response = await _apiClient.delete(endpoint, requiresAuth: true);
+    if (response is Map && response['deleted'] == true) return true;
+    return false;
+  }
+
   /// v19.1.3 — Soft-delete a message. Only the sender can call this; backend
   /// enforces that and replies 200 with `{deleted: true, messageId}`.
   Future<bool> deleteMessage({

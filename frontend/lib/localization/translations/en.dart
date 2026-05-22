@@ -165,6 +165,14 @@ const Map<String, String> enUSTranslations = <String, String>{
       'tracking_sheet_panel_desc_v2': 'Follow your pet in real time during the booking.',
       'tracking_sheet_phone': 'Phone',
       'tracking_sheet_address': 'Departure address',
+      // v23.1.195 — Always-visible banner for incoming requests.
+      'friends_pending_banner_title': 'Pending requests',
+      'friends_pending_banner_friend_msg': 'wants to be your friend',
+      'friends_pending_banner_family_msg': 'wants to add you to their PawFollow Family',
+      // v23.1.195 — Delete entire conversation.
+      'chat_delete_conv_title': 'Delete conversation?',
+      'chat_delete_conv_msg': 'The conversation with @name and all its messages will be deleted for both parties. This action is final.',
+      'chat_delete_conv_confirm': 'Delete',
       // v23.1.187 — "Around you" floating card.
       'pawmap_around_you': 'Around you',
       'pawmap_around_you_see_all': 'See all',

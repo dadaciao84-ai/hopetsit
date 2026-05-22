@@ -168,6 +168,15 @@ const Map<String, String> frFRTranslations = <String, String>{
       'tracking_sheet_panel_desc_v2': 'Suivez votre animal en temps réel pendant la garde.',
       'tracking_sheet_phone': 'Téléphone',
       'tracking_sheet_address': 'Adresse de départ',
+      // v23.1.195 — Banner demandes pending TOUJOURS visible en haut de
+      // Famille & Amis (workaround : les push notifs FCM se perdent).
+      'friends_pending_banner_title': 'Demandes en attente',
+      'friends_pending_banner_friend_msg': 'veut être ton ami',
+      'friends_pending_banner_family_msg': 'veut t\'ajouter à sa Famille PawFollow',
+      // v23.1.195 — Delete conversation entière (long-press chat list).
+      'chat_delete_conv_title': 'Supprimer la conversation ?',
+      'chat_delete_conv_msg': 'La conversation avec @name et tous ses messages seront supprimés pour les deux parties. Cette action est définitive.',
+      'chat_delete_conv_confirm': 'Supprimer',
       // v23.1.187 — "Autour de vous" floating card.
       'pawmap_around_you': 'Autour de vous',
       'pawmap_around_you_see_all': 'Voir tout',

@@ -134,6 +134,35 @@ class ChatScreen extends StatelessWidget {
           ),
         );
       },
+      // v23.1.195 — Daniel : "dans le message chat ajouter effacer pour
+      // effacer la conversation en entier". Long-press → dialog
+      // confirm definitive → hard delete (conv + tous messages) cote
+      // backend, retrait optimistic de la liste.
+      onLongPress: () async {
+        final confirmed = await Get.dialog<bool>(
+          AlertDialog(
+            title: Text('chat_delete_conv_title'.tr),
+            content: Text('chat_delete_conv_msg'
+                .trParams({'name': conversation.contactName})),
+            actions: [
+              TextButton(
+                onPressed: () => Get.back(result: false),
+                child: Text('common_cancel'.tr),
+              ),
+              TextButton(
+                onPressed: () => Get.back(result: true),
+                child: Text(
+                  'chat_delete_conv_confirm'.tr,
+                  style: TextStyle(color: AppColors.errorColor),
+                ),
+              ),
+            ],
+          ),
+        );
+        if (confirmed == true) {
+          await controller.deleteConversation(conversation.id);
+        }
+      },
       child: Container(
         margin: EdgeInsets.only(bottom: 10.h),
         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),

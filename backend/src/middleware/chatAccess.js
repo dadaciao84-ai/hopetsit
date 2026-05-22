@@ -87,6 +87,29 @@ const requirePaidBooking = async (req, res, next) => {
           sub && sub.chatAddonActive === true &&
           sub.chatAddonExpiresAt && new Date(sub.chatAddonExpiresAt) > now;
         if (premiumActive || chatAddonActive) return next();
+
+        // v23.1.195 — Daniel : "si tu prend un abonnement follow le chat
+        // amis famille se debloque". Cas : witoulek est ajoute a la
+        // famille PawFollow de Daniel mais n'a PAS sa propre sub →
+        // sans ce check il restait bloque. Maintenant : si user A et
+        // user B sont dans la meme famille (titulaire ou membre actif),
+        // le chat entre eux est debloque.
+        try {
+          const { isInSameFamily } = require('../models/UserSubscription');
+          const idStr = (v) =>
+            v ? (v._id ? v._id.toString() : v.toString()) : null;
+          const otherId =
+            idStr(conversation.ownerId) === userId
+              ? idStr(conversation.sitterId) || idStr(conversation.walkerId)
+              : idStr(conversation.ownerId);
+          if (otherId) {
+            const sameFamily = await isInSameFamily(userId, otherId);
+            if (sameFamily) return next();
+          }
+        } catch (familyErr) {
+          logger.warn?.('[requirePaidBooking] family check failed',
+              familyErr?.message);
+        }
       }
     } catch (staffErr) {
       // Ne pas bloquer l'accès si le check Staff plante — on tombe sur le
