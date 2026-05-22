@@ -2,6 +2,13 @@
 // grosses categories colorees (Animal perdu / Danger / Chien mechant /
 // Accident / Poison / Autre). Tap → ouvre CreateReportSheet avec le type
 // pre-selectionne.
+//
+// v23.1.192 — Daniel : "ds les petit carre ya les option gratuite en
+// un clic et en desous les petit carrer avec option premium". On
+// restructure en DEUX sections :
+//   1. Section "Gratuit" — 4 cards FREE (1 tap, accessible a tous)
+//   2. Section "Premium" — toutes les autres categories (Animal perdu,
+//      Caca, Pipi, Piège repéré, etc.) dans une grille compacte.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -17,12 +24,13 @@ import 'package:hopetsit/widgets/app_text.dart';
 class ReportCategoryGridScreen extends StatelessWidget {
   const ReportCategoryGridScreen({super.key});
 
-  static const _categories = <_CategoryDef>[
+  // v23.1.192 — Categories GRATUITES (mockup top section).
+  static const _freeCategories = <_CategoryDef>[
     _CategoryDef(
-      type: ReportTypes.lostPet,
-      labelKey: 'report_cat_lost_pet',
-      icon: Icons.pets_rounded,
-      color: Color(0xFFEC407A),
+      type: ReportTypes.aggressiveDog,
+      labelKey: 'report_cat_aggressive_dog',
+      icon: Icons.report_problem_rounded,
+      color: Color(0xFFE53935),
     ),
     _CategoryDef(
       type: ReportTypes.hazard,
@@ -31,10 +39,10 @@ class ReportCategoryGridScreen extends StatelessWidget {
       color: Color(0xFFF59E0B),
     ),
     _CategoryDef(
-      type: ReportTypes.aggressiveDog,
-      labelKey: 'report_cat_aggressive_dog',
-      icon: Icons.report_problem_rounded,
-      color: Color(0xFFE53935),
+      type: ReportTypes.waterActive,
+      labelKey: 'report_cat_water_active',
+      icon: Icons.water_drop_rounded,
+      color: Color(0xFF0288D1),
     ),
     _CategoryDef(
       type: ReportTypes.deadAnimal,
@@ -42,11 +50,75 @@ class ReportCategoryGridScreen extends StatelessWidget {
       icon: Icons.medical_services_rounded,
       color: Color(0xFFDC2626),
     ),
+  ];
+
+  // v23.1.192 — Categories PREMIUM (mockup bottom section).
+  static const _premiumCategories = <_CategoryDef>[
     _CategoryDef(
-      type: ReportTypes.poop,
+      type: ReportTypes.lostPet,
+      labelKey: 'report_cat_lost_pet',
+      icon: Icons.pets_rounded,
+      color: Color(0xFFEC407A),
+    ),
+    _CategoryDef(
+      type: ReportTypes.foundPet,
+      labelKey: 'report_cat_found_pet',
+      icon: Icons.handshake_rounded,
+      color: Color(0xFFFB923C),
+    ),
+    _CategoryDef(
+      type: ReportTypes.poison,
       labelKey: 'report_cat_poison',
       icon: Icons.dangerous_rounded,
       color: Color(0xFF795548),
+    ),
+    _CategoryDef(
+      type: ReportTypes.trap,
+      labelKey: 'report_cat_trap',
+      icon: Icons.gps_off_rounded,
+      color: Color(0xFF6B7280),
+    ),
+    _CategoryDef(
+      type: ReportTypes.strayPet,
+      labelKey: 'report_cat_stray_pet',
+      icon: Icons.pets_outlined,
+      color: Color(0xFFA855F7),
+    ),
+    _CategoryDef(
+      type: ReportTypes.busyTraffic,
+      labelKey: 'report_cat_busy_traffic',
+      icon: Icons.directions_car_rounded,
+      color: Color(0xFFEF4444),
+    ),
+    _CategoryDef(
+      type: ReportTypes.fireSmoke,
+      labelKey: 'report_cat_fire_smoke',
+      icon: Icons.local_fire_department_rounded,
+      color: Color(0xFFEA580C),
+    ),
+    _CategoryDef(
+      type: ReportTypes.flood,
+      labelKey: 'report_cat_flood',
+      icon: Icons.water_rounded,
+      color: Color(0xFF3B82F6),
+    ),
+    _CategoryDef(
+      type: ReportTypes.fallenTree,
+      labelKey: 'report_cat_fallen_tree',
+      icon: Icons.park_rounded,
+      color: Color(0xFF16A34A),
+    ),
+    _CategoryDef(
+      type: ReportTypes.chemical,
+      labelKey: 'report_cat_chemical',
+      icon: Icons.science_rounded,
+      color: Color(0xFF9333EA),
+    ),
+    _CategoryDef(
+      type: ReportTypes.wildlife,
+      labelKey: 'report_cat_wildlife',
+      icon: Icons.cruelty_free_rounded,
+      color: Color(0xFF14B8A6),
     ),
     _CategoryDef(
       type: ReportTypes.other,
@@ -78,49 +150,80 @@ class ReportCategoryGridScreen extends StatelessWidget {
         ),
       ),
       body: SafeArea(
-        child: Column(
+        child: ListView(
+          padding: EdgeInsets.fromLTRB(16.w, 14.h, 16.w, 24.h),
           children: [
-            Padding(
-              padding: EdgeInsets.fromLTRB(20.w, 14.h, 20.w, 6.h),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: InterText(
-                  text: 'report_what_to_report'.tr,
-                  fontSize: 16.sp,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.textPrimary(context),
-                ),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: InterText(
+                text: 'report_what_to_report'.tr,
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w800,
+                color: AppColors.textPrimary(context),
               ),
             ),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20.w),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: InterText(
-                  text: 'report_pick_category_hint'.tr,
-                  fontSize: 12.sp,
-                  color: AppColors.greyText,
-                ),
+            SizedBox(height: 4.h),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: InterText(
+                text: 'report_pick_category_hint'.tr,
+                fontSize: 12.sp,
+                color: AppColors.greyText,
               ),
             ),
-            SizedBox(height: 14.h),
-            // v23.1.189 — Daniel : "ds la page signaler ya c option carrer
-            // plus petit". 3 colonnes (au lieu de 2) avec aspect ratio
-            // legerement plus haut → carres compacts, plus aeres.
-            Expanded(
-              child: GridView.builder(
-                padding: EdgeInsets.fromLTRB(14.w, 6.h, 14.w, 24.h),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 3,
-                  crossAxisSpacing: 10.w,
-                  mainAxisSpacing: 10.h,
-                  childAspectRatio: 0.95,
-                ),
-                itemCount: _categories.length,
-                itemBuilder: (_, i) => _buildCategoryTile(
-                  context,
-                  _categories[i],
-                ),
+            SizedBox(height: 16.h),
+
+            // ── Section Gratuit ──────────────────────────────────────
+            _sectionHeader(
+              context,
+              icon: Icons.check_circle_rounded,
+              color: const Color(0xFF16A34A),
+              label: 'report_section_free'.tr,
+              hint: 'report_section_free_hint'.tr,
+            ),
+            SizedBox(height: 10.h),
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 4,
+                crossAxisSpacing: 8.w,
+                mainAxisSpacing: 8.h,
+                childAspectRatio: 0.85,
+              ),
+              itemCount: _freeCategories.length,
+              itemBuilder: (_, i) => _buildCategoryTile(
+                context,
+                _freeCategories[i],
+                isFree: true,
+              ),
+            ),
+
+            SizedBox(height: 22.h),
+
+            // ── Section Premium ───────────────────────────────────────
+            _sectionHeader(
+              context,
+              icon: Icons.workspace_premium_rounded,
+              color: const Color(0xFFF59E0B),
+              label: 'report_section_premium'.tr,
+              hint: 'report_section_premium_hint'.tr,
+            ),
+            SizedBox(height: 10.h),
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 4,
+                crossAxisSpacing: 8.w,
+                mainAxisSpacing: 8.h,
+                childAspectRatio: 0.85,
+              ),
+              itemCount: _premiumCategories.length,
+              itemBuilder: (_, i) => _buildCategoryTile(
+                context,
+                _premiumCategories[i],
+                isFree: false,
               ),
             ),
           ],
@@ -129,11 +232,54 @@ class ReportCategoryGridScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildCategoryTile(BuildContext context, _CategoryDef cat) {
+  Widget _sectionHeader(BuildContext context, {
+    required IconData icon,
+    required Color color,
+    required String label,
+    required String hint,
+  }) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(color: color.withValues(alpha: 0.25), width: 1),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 18.sp),
+          SizedBox(width: 8.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                InterText(
+                  text: label,
+                  fontSize: 13.sp,
+                  fontWeight: FontWeight.w800,
+                  color: color,
+                ),
+                SizedBox(height: 2.h),
+                InterText(
+                  text: hint,
+                  fontSize: 10.sp,
+                  color: AppColors.textSecondary(context),
+                  maxLines: 2,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategoryTile(BuildContext context, _CategoryDef cat,
+      {required bool isFree}) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(20.r),
+        borderRadius: BorderRadius.circular(12.r),
         onTap: () async {
           LatLng point = const LatLng(0, 0);
           try {
@@ -156,50 +302,68 @@ class ReportCategoryGridScreen extends StatelessWidget {
           }
         },
         child: Container(
-          padding: EdgeInsets.all(10.w),
+          padding: EdgeInsets.all(6.w),
           decoration: BoxDecoration(
             color: cat.color.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(16.r),
+            borderRadius: BorderRadius.circular(12.r),
             border: Border.all(
               color: cat.color.withValues(alpha: 0.22),
-              width: 1.2,
+              width: 1.1,
             ),
             boxShadow: [
               BoxShadow(
-                color: cat.color.withValues(alpha: 0.10),
-                blurRadius: 8,
-                offset: const Offset(0, 3),
+                color: cat.color.withValues(alpha: 0.08),
+                blurRadius: 5,
+                offset: const Offset(0, 2),
               ),
             ],
           ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+          child: Stack(
             children: [
-              Container(
-                width: 42.w,
-                height: 42.w,
-                decoration: BoxDecoration(
-                  color: cat.color,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: cat.color.withValues(alpha: 0.45),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
+              Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 34.w,
+                    height: 34.w,
+                    decoration: BoxDecoration(
+                      color: cat.color,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: cat.color.withValues(alpha: 0.40),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
-                  ],
+                    child: Icon(cat.icon, color: Colors.white, size: 16.sp),
+                  ),
+                  SizedBox(height: 5.h),
+                  InterText(
+                    text: cat.labelKey.tr,
+                    fontSize: 9.sp,
+                    fontWeight: FontWeight.w700,
+                    color: cat.color,
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                  ),
+                ],
+              ),
+              if (!isFree)
+                Positioned(
+                  top: -2,
+                  right: -2,
+                  child: Container(
+                    padding: EdgeInsets.all(2),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFF59E0B),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.star_rounded,
+                        color: Colors.white, size: 10.sp),
+                  ),
                 ),
-                child: Icon(cat.icon, color: Colors.white, size: 20.sp),
-              ),
-              SizedBox(height: 8.h),
-              InterText(
-                text: cat.labelKey.tr,
-                fontSize: 11.sp,
-                fontWeight: FontWeight.w800,
-                color: cat.color,
-                textAlign: TextAlign.center,
-                maxLines: 2,
-              ),
             ],
           ),
         ),

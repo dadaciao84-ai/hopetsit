@@ -10,6 +10,7 @@ import 'package:hopetsit/utils/app_colors.dart';
 import 'package:hopetsit/utils/app_images.dart';
 import 'package:hopetsit/utils/storage_keys.dart';
 import 'package:hopetsit/views/boost/coin_shop_screen.dart';
+import 'package:hopetsit/views/pet_owner/chat/tracking_request_sheet.dart';
 import 'package:hopetsit/views/pet_owner/walk/live_walk_map_screen.dart';
 import 'package:hopetsit/widgets/app_text.dart';
 import 'package:hopetsit/widgets/custom_snackbar_widget.dart';
@@ -435,38 +436,43 @@ class _IndividualChatScreenState extends State<IndividualChatScreen> {
         return;
       }
 
-      // v23.1.176 — Daniel : "demande suivre votre animale ds le chat ya
-      // pas". Le tap "Suivre en direct mon animal" doit créer une carte
-      // pawfollow_request dans le chat (que le walker/sitter verra avec
-      // boutons Accepter/Refuser). On envoie la demande AVANT d'essayer
-      // d'ouvrir la map.
-      try {
-        await repo.requestLiveTracking(bookingId: bookingId);
-        if (mounted) {
-          CustomSnackbar.showSuccess(
-            title: 'pawfollow_request_sent_title'.tr,
-            message: 'pawfollow_request_sent_msg'.tr,
-          );
-          // Refresh la conversation pour afficher la nouvelle carte direct.
-          await chatController.loadChatMessages(
-            widget.conversationId,
-            contactName: widget.contactName,
-          );
-        }
-      } catch (e) {
-        // Non bloquant : si la création de la demande échoue, on continue
-        // quand même à essayer la map (cas où le provider a déjà accepté).
-        // (silently)
+      // v23.1.192 — Daniel mockup : "voici encore comment le chat doit
+      // etre avec les boiton suivre mon animal". On ouvre le full-screen
+      // TrackingRequestSheet (pet card + sitter info + gros bouton +
+      // bandeau confiance). Le sheet appelle requestLiveTracking dans
+      // son onConfirm — la pawfollow_request est creee, le owner refresh
+      // automatiquement la conv au close du sheet.
+      final booking = candidate.first;
+      if (mounted) {
+        await Get.to(() => TrackingRequestSheet(
+              booking: booking,
+              onConfirm: () async {
+                try {
+                  await repo.requestLiveTracking(bookingId: bookingId);
+                } catch (e) {
+                  // Sheet affichera l'erreur via snackbar parent.
+                  if (mounted) {
+                    CustomSnackbar.showError(
+                      title: 'follow_unavailable_title'.tr,
+                      message: e.toString()
+                          .replaceAll('ApiException:', '').trim(),
+                    );
+                  }
+                  return;
+                }
+                if (mounted) {
+                  CustomSnackbar.showSuccess(
+                    title: 'pawfollow_request_sent_title'.tr,
+                    message: 'pawfollow_request_sent_msg'.tr,
+                  );
+                  await chatController.loadChatMessages(
+                    widget.conversationId,
+                    contactName: widget.contactName,
+                  );
+                }
+              },
+            ));
       }
-
-      // v23.1.191 — Daniel : "ouvre pas de balade au lieu denvoyer la
-      // demande au sitter walker". Le tap Suivre se contente desormais
-      // d'envoyer la demande dans le chat (carte pawfollow_request).
-      // Plus jamais d'ouverture automatique de LiveWalkMapScreen ; le
-      // sitter/walker accepte → la carte chat passe a "Accepted" → le
-      // owner peut alors taper la carte pour voir la live map. Plus de
-      // "Aucune balade en cours" inattendu apres le tap Suivre.
-      // (PAWFOLLOW_REQUIRED gate reste géré côté backend si applicable.)
     } catch (e) {
       CustomSnackbar.showError(
         title: 'follow_unavailable_title'.tr,
