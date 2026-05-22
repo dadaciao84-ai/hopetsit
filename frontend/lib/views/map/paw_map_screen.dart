@@ -654,6 +654,42 @@ class _PawMapScreenState extends State<PawMapScreen> {
         ),
       );
     }
+
+    // v23.1.174 — Daniel : "halo argent sur les amis, halo rose sur les
+    // membres famille PawFollow". On lit la liste des family members du
+    // FriendController + les friend positions broadcastées via mapSocket.
+    // Argent (#C0C0C0) = ami accepté qui partage sa position.
+    // Rose (#EC4899) = membre famille PawFollow (override l'argent si les
+    //                   deux s'appliquent, la famille prime visuellement).
+    try {
+      final friendCtl = Get.isRegistered<FriendController>()
+          ? Get.find<FriendController>()
+          : null;
+      final familyMemberIds = friendCtl?.familyMembers
+              .map((m) => (m['id'] ?? '').toString())
+              .where((id) => id.isNotEmpty)
+              .toSet() ??
+          <String>{};
+
+      const silver = Color(0xFFC0C0C0);
+      const familyPink = Color(0xFFEC4899);
+
+      for (final pos in _liveMap.friendPositions.values) {
+        final isFamily = familyMemberIds.contains(pos.userId);
+        final color = isFamily ? familyPink : silver;
+        circles.add(
+          Circle(
+            circleId: CircleId('${isFamily ? "family" : "friend"}_halo_${pos.userId}'),
+            center: LatLng(pos.latitude, pos.longitude),
+            radius: 60,
+            fillColor: color.withValues(alpha: 0.18),
+            strokeColor: color.withValues(alpha: 0.7),
+            strokeWidth: 2,
+          ),
+        );
+      }
+    } catch (_) {/* defensive */}
+
     return circles;
   }
 

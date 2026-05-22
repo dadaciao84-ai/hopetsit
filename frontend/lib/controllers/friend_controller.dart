@@ -108,6 +108,76 @@ class FriendController extends GetxController {
     }
   }
 
+  // ── v23.1.174 — Block / Unblock / Blocked users list ─────────────────
+  //
+  // Daniel : "Manque boutons Bloquer et Supprimer dans la liste d'amis".
+  // Backend Block.js + blockRoutes.js + blockController.js existent déjà
+  // et supportent les 3 rôles (owner/sitter/walker). On wrap ici.
+
+  final RxList<Map<String, dynamic>> blockedUsers =
+      <Map<String, dynamic>>[].obs;
+
+  /// Bloque un user (POST /blocks). Retourne true en cas de succès.
+  Future<bool> blockUser({
+    required String targetUserId,
+    required String targetRole,
+  }) async {
+    try {
+      final api = Get.find<ApiClient>();
+      await api.post(
+        '/blocks',
+        body: {
+          'targetUserId': targetUserId,
+          'targetRole': targetRole,
+        },
+        requiresAuth: true,
+      );
+      // Après block on retire l'ami de la liste amis (le backend ne le
+      // fait pas auto — friendship reste mais devient inutilisable).
+      await refresh();
+      await loadBlocked();
+      return true;
+    } catch (e) {
+      debugPrint('[Friends] blockUser error: $e');
+      return false;
+    }
+  }
+
+  /// Débloque un user (DELETE /blocks/:id). Retourne true en cas de succès.
+  Future<bool> unblockUser(String targetUserId) async {
+    try {
+      final api = Get.find<ApiClient>();
+      await api.delete(
+        '/blocks/$targetUserId',
+        requiresAuth: true,
+      );
+      await loadBlocked();
+      return true;
+    } catch (e) {
+      debugPrint('[Friends] unblockUser error: $e');
+      return false;
+    }
+  }
+
+  /// Charge la liste des users que J'AI bloqués.
+  Future<void> loadBlocked() async {
+    try {
+      final api = Get.find<ApiClient>();
+      final r = await api.get('/blocks', requiresAuth: true);
+      if (r is Map && r['blocks'] is List) {
+        blockedUsers.assignAll(
+          (r['blocks'] as List)
+              .whereType<Map>()
+              .map((b) => Map<String, dynamic>.from(b))
+              .toList(),
+        );
+      }
+    } catch (e) {
+      debugPrint('[Friends] loadBlocked error: $e');
+      blockedUsers.clear();
+    }
+  }
+
   // ── v23.1.172 — PawFollow Famille (5 membres tracking) ────────────────
   //
   // Daniel : "le truc de famille je le vois pas non plus". On expose les
@@ -161,6 +231,35 @@ class FriendController extends GetxController {
       return '';
     } catch (e) {
       debugPrint('[Friends] addFamilyMember error: $e');
+      final raw = e.toString();
+      if (raw.contains('FAMILY_PLAN_REQUIRED')) return 'FAMILY_PLAN_REQUIRED';
+      if (raw.contains('FAMILY_FULL')) return 'FAMILY_FULL';
+      if (raw.contains('Already a family member')) return 'ALREADY_MEMBER';
+      return raw.replaceAll('ApiException:', '').trim();
+    }
+  }
+
+  /// v23.1.174 — Ajoute un membre famille par EMAIL (peut être un user
+  /// HoPetSit OU un non-utilisateur qui recevra une invitation email).
+  /// Retourne :
+  ///   - 'existing_user' : email correspondait à un user, ajouté à family
+  ///   - 'email_invite_sent' : email envoyé pour inscription parrainage
+  ///   - code erreur sinon (FAMILY_PLAN_REQUIRED, FAMILY_FULL, etc.)
+  Future<String> addFamilyMemberByEmail(String email) async {
+    try {
+      final api = Get.find<ApiClient>();
+      final r = await api.post(
+        '/friends/family/invite-by-email',
+        body: {'email': email.trim()},
+        requiresAuth: true,
+      );
+      await loadFamily();
+      if (r is Map && r['mode'] is String) {
+        return r['mode'] as String;
+      }
+      return 'existing_user';
+    } catch (e) {
+      debugPrint('[Friends] addFamilyMemberByEmail error: $e');
       final raw = e.toString();
       if (raw.contains('FAMILY_PLAN_REQUIRED')) return 'FAMILY_PLAN_REQUIRED';
       if (raw.contains('FAMILY_FULL')) return 'FAMILY_FULL';

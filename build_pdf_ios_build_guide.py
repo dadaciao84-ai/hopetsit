@@ -36,7 +36,7 @@ from reportlab.platypus import (
 OUTPUT = os.path.join(
     os.path.expanduser("~"),
     "Downloads",
-    "HopeTSIT_iOS_Build_Guide_v23.1.173.pdf",
+    "HopeTSIT_iOS_Build_Guide_v23.1.174.pdf",
 )
 
 # ─── Brand colors ──────────────────────────────────────────────────────────
@@ -137,7 +137,7 @@ def build():
         rightMargin=2 * cm,
         topMargin=2 * cm,
         bottomMargin=2 * cm,
-        title="HopeTSIT — iOS Build Guide v23.1.173",
+        title="HopeTSIT — iOS Build Guide v23.1.174",
         author="HopeTSIT",
     )
     story = []
@@ -185,14 +185,40 @@ def build():
     # ─── Changelog v146 → v170 ─────────────────────────────────────────────
     story.append(p("Nouveautés depuis v23.1.146", H1))
     story.append(p(
-        "Ce build iOS doit être généré sur la base du code source <b>v23.1.173</b>. "
+        "Ce build iOS doit être généré sur la base du code source <b>v23.1.174</b>. "
         "Voici les corrections et améliorations majeures introduites entre les "
         "deux versions. Toutes sont déjà appliquées dans le ZIP source que tu "
         "as reçu : tu n'as rien à modifier côté code, juste à rebuilder.",
         BODY,
     ))
 
-    story.append(p("v23.1.173 — Labels Suivre + UI Famille + erreurs invite", H3))
+    story.append(p("v23.1.174 — Bloquer/Supprimer amis + Famille email + halos rose/argent", H3))
+    story.append(bullet("<b>Bloquer / Supprimer amis</b> : popupmenu 3-points sur "
+                        "chaque ami contient maintenant 'Bloquer' (rouge) ET "
+                        "'Supprimer' (gris) avec dialogue de confirmation. "
+                        "Nouvelle page <i>BlockedUsersScreen</i> accessible via "
+                        "l'icône 🚫 dans la barre d'app de Mes amis (à côté du "
+                        "bouton share)."))
+    story.append(bullet("<b>Famille invite par email</b> : sheet d'ajout famille "
+                        "a maintenant 2 onglets <i>Par nom</i> / <i>Par email</i>. "
+                        "L'email cherche d'abord dans les 3 collections Owner/"
+                        "Sitter/Walker ; si trouvé → ajoute à la famille ; sinon "
+                        "→ email d'invitation parrainage SendGrid avec lien "
+                        "<i>https://hopetsit.com/invite/family/&lt;email&gt;</i>."))
+    story.append(bullet("<b>Halo argent sur amis + halo rose sur famille</b> sur "
+                        "la PawMap : pour chaque ami broadcastant sa position via "
+                        "mapSocket, on dessine un Circle de 60m. Argent #C0C0C0 "
+                        "pour amis classiques, rose #EC4899 pour membres famille "
+                        "PawFollow Famille (override visuel si ami + famille)."))
+    story.append(bullet("<b>26 nouvelles clés × 6 langues</b> : friend_block_*, "
+                        "friend_unblock_*, family_add_by_email_*, "
+                        "family_invite_*, chat_locked_*."))
+    story.append(bullet("<b>Backend</b> : nouvelle route "
+                        "<i>POST /friends/family/invite-by-email</i> + le "
+                        "blockController existant (déjà multi-rôle) est branché "
+                        "côté UI Flutter."))
+
+    story.append(p("v23.1.173 — Labels Suivre + UI Famille + erreurs invite (v172→v173)", H3))
     story.append(bullet("<b>Label bouton owner</b> : « Suivre » → « Suivre "
                         "en direct mon animal » (texte unique, plus simple "
                         "que le dynamique walker/sitter de v171)."))

@@ -8,6 +8,7 @@ import 'package:hopetsit/models/friendship_model.dart';
 import 'package:hopetsit/utils/app_colors.dart';
 import 'package:hopetsit/utils/storage_keys.dart';
 import 'package:hopetsit/views/boost/coin_shop_screen.dart';
+import 'package:hopetsit/views/friends/blocked_users_screen.dart';
 import 'package:hopetsit/views/map/paw_map_screen.dart';
 import 'package:hopetsit/widgets/app_text.dart';
 import 'package:hopetsit/widgets/custom_snackbar_widget.dart';
@@ -57,6 +58,13 @@ class FriendsScreen extends StatelessWidget {
           // + lien deep-link via SharePlus (le destinataire peut le coller
           // dans WhatsApp/email/sms etc.).
           actions: [
+            // v23.1.174 — Accès à la liste des bloqués depuis la barre d'app.
+            IconButton(
+              icon: Icon(Icons.block_rounded,
+                  color: AppColors.primaryColor, size: 22.sp),
+              tooltip: 'friend_blocked_list'.tr,
+              onPressed: () => Get.to(() => const BlockedUsersScreen()),
+            ),
             IconButton(
               icon: Icon(Icons.ios_share_rounded,
                   color: AppColors.primaryColor, size: 22.sp),
@@ -519,21 +527,102 @@ class _FriendTile extends StatelessWidget {
             ],
           ),
           SizedBox(width: 4.w),
+          // v23.1.174 — Daniel : "Manque boutons Bloquer et Supprimer dans
+          // la liste d'amis". On a maintenant 3 actions au lieu d'une.
           PopupMenuButton<String>(
             icon: Icon(Icons.more_vert, size: 18.sp, color: AppColors.greyText),
             onSelected: (v) async {
-              if (v == 'unfriend') {
-                final ok = await controller.unfriend(friendship.id);
-                if (ok) {
-                  CustomSnackbar.showSuccess(
-                    title: 'Suppression',
-                    message: 'Ami retiré de ta liste.',
+              if (v == 'block') {
+                final confirmed = await Get.dialog<bool>(
+                  AlertDialog(
+                    title: Text('friend_block_confirm'.tr),
+                    content: Text('friend_block_confirm_desc'
+                        .trParams({'name': other.name})),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Get.back(result: false),
+                        child: Text('common_cancel'.tr),
+                      ),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.errorColor,
+                          foregroundColor: Colors.white,
+                        ),
+                        onPressed: () => Get.back(result: true),
+                        child: Text('friend_block'.tr),
+                      ),
+                    ],
+                  ),
+                );
+                if (confirmed == true) {
+                  final ok = await controller.blockUser(
+                    targetUserId: other.id,
+                    targetRole: other.model.toLowerCase(),
                   );
+                  if (ok) {
+                    CustomSnackbar.showSuccess(
+                      title: 'friend_blocked_title'.tr,
+                      message: 'friend_blocked_msg'
+                          .trParams({'name': other.name}),
+                    );
+                  }
+                }
+              } else if (v == 'unfriend') {
+                final confirmed = await Get.dialog<bool>(
+                  AlertDialog(
+                    title: Text('friend_remove_confirm'.tr),
+                    content: Text('friend_remove_confirm_desc'
+                        .trParams({'name': other.name})),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Get.back(result: false),
+                        child: Text('common_cancel'.tr),
+                      ),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.errorColor,
+                          foregroundColor: Colors.white,
+                        ),
+                        onPressed: () => Get.back(result: true),
+                        child: Text('friend_remove'.tr),
+                      ),
+                    ],
+                  ),
+                );
+                if (confirmed == true) {
+                  final ok = await controller.unfriend(friendship.id);
+                  if (ok) {
+                    CustomSnackbar.showSuccess(
+                      title: 'friend_removed_title'.tr,
+                      message: 'friend_removed_msg'.tr,
+                    );
+                  }
                 }
               }
             },
-            itemBuilder: (_) => const [
-              PopupMenuItem(value: 'unfriend', child: Text('Retirer')),
+            itemBuilder: (_) => [
+              PopupMenuItem(
+                value: 'block',
+                child: Row(
+                  children: [
+                    Icon(Icons.block_rounded,
+                        color: AppColors.errorColor, size: 18.sp),
+                    SizedBox(width: 8.w),
+                    Text('friend_block'.tr),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: 'unfriend',
+                child: Row(
+                  children: [
+                    Icon(Icons.person_remove_rounded,
+                        color: AppColors.textSecondary(context), size: 18.sp),
+                    SizedBox(width: 8.w),
+                    Text('friend_remove'.tr),
+                  ],
+                ),
+              ),
             ],
           ),
         ],
@@ -885,109 +974,263 @@ class _FamilyTab extends StatelessWidget {
     BuildContext context,
     FriendController controller,
   ) {
-    final eligibleFriends = controller.friends
-        .where((f) =>
-            f.other != null &&
-            !controller.familyMembers
-                .any((m) => m['id'] == f.other!.id))
-        .toList();
+    // v23.1.174 — Daniel : "Modal d'ajout avec 2 onglets : Par nom / Par email".
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (ctx) => Container(
-        padding: EdgeInsets.all(16.w),
-        constraints: BoxConstraints(maxHeight: 400.h),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.family_restroom_rounded,
-                    color: AppColors.primaryColor, size: 24.sp),
-                SizedBox(width: 8.w),
-                Expanded(
-                  child: InterText(
-                    text: 'family_add_member_title'.tr,
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.w800,
+      builder: (ctx) => DefaultTabController(
+        length: 2,
+        child: Container(
+          padding: EdgeInsets.all(16.w),
+          constraints: BoxConstraints(maxHeight: 480.h),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.family_restroom_rounded,
+                      color: AppColors.primaryColor, size: 24.sp),
+                  SizedBox(width: 8.w),
+                  Expanded(
+                    child: InterText(
+                      text: 'family_add_member_title'.tr,
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded),
+                    onPressed: () => Navigator.of(ctx).pop(),
+                  ),
+                ],
+              ),
+              SizedBox(height: 8.h),
+              TabBar(
+                labelColor: AppColors.primaryColor,
+                unselectedLabelColor: AppColors.greyText,
+                indicatorColor: AppColors.primaryColor,
+                tabs: [
+                  Tab(text: 'family_add_by_name'.tr),
+                  Tab(text: 'family_add_by_email'.tr),
+                ],
+              ),
+              SizedBox(height: 8.h),
+              Expanded(
+                child: TabBarView(
+                  children: [
+                    _FamilyAddByName(ctx: ctx, controller: controller),
+                    _FamilyAddByEmail(ctx: ctx, controller: controller),
+                  ],
                 ),
-                IconButton(
-                  icon: const Icon(Icons.close_rounded),
-                  onPressed: () => Navigator.of(ctx).pop(),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── v23.1.174 — Onglet "Par nom" ──────────────────────────────────────────
+class _FamilyAddByName extends StatelessWidget {
+  const _FamilyAddByName({required this.ctx, required this.controller});
+  final BuildContext ctx;
+  final FriendController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final eligibleFriends = controller.friends
+        .where((f) =>
+            f.other != null &&
+            !controller.familyMembers.any((m) => m['id'] == f.other!.id))
+        .toList();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        InterText(
+          text: eligibleFriends.isEmpty
+              ? 'family_add_member_no_friends'.tr
+              : 'family_add_member_pick'.tr,
+          fontSize: 12.sp,
+          color: AppColors.greyText,
+        ),
+        SizedBox(height: 8.h),
+        Expanded(
+          child: ListView.separated(
+            itemCount: eligibleFriends.length,
+            separatorBuilder: (_, __) => const Divider(height: 1),
+            itemBuilder: (_, i) {
+              final f = eligibleFriends[i];
+              final other = f.other!;
+              return ListTile(
+                leading: CircleAvatar(
+                  radius: 18.r,
+                  backgroundColor:
+                      AppColors.primaryColor.withValues(alpha: 0.15),
+                  backgroundImage: other.avatar.isNotEmpty
+                      ? NetworkImage(other.avatar)
+                      : null,
+                  child: other.avatar.isEmpty
+                      ? Icon(Icons.person, size: 18.sp)
+                      : null,
                 ),
-              ],
-            ),
-            SizedBox(height: 8.h),
-            InterText(
-              text: eligibleFriends.isEmpty
-                  ? 'family_add_member_no_friends'.tr
-                  : 'family_add_member_pick'.tr,
-              fontSize: 12.sp,
-              color: AppColors.greyText,
-            ),
-            SizedBox(height: 12.h),
-            Expanded(
-              child: ListView.separated(
-                itemCount: eligibleFriends.length,
-                separatorBuilder: (_, __) => const Divider(height: 1),
-                itemBuilder: (_, i) {
-                  final f = eligibleFriends[i];
-                  final other = f.other!;
-                  return ListTile(
-                    leading: CircleAvatar(
-                      radius: 18.r,
-                      backgroundColor:
-                          AppColors.primaryColor.withValues(alpha: 0.15),
-                      backgroundImage: other.avatar.isNotEmpty
-                          ? NetworkImage(other.avatar)
-                          : null,
-                      child: other.avatar.isEmpty
-                          ? Icon(Icons.person, size: 18.sp)
-                          : null,
-                    ),
-                    title: Text(other.name.isEmpty ? 'Utilisateur' : other.name),
-                    subtitle: Text(other.model),
-                    trailing: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryColor,
-                        foregroundColor: Colors.white,
-                      ),
-                      onPressed: () async {
-                        final err = await controller.addFamilyMember(
-                          userId: other.id,
-                          userRole: other.model.toLowerCase(),
-                        );
-                        if (!context.mounted) return;
-                        if (err.isEmpty) {
-                          Navigator.of(ctx).pop();
-                          CustomSnackbar.showSuccess(
-                            title: 'family_member_added_title'.tr,
-                            message: 'family_member_added_msg'
-                                .trParams({'name': other.name}),
-                          );
-                        } else {
-                          final msg = err == 'FAMILY_FULL'
-                              ? 'family_err_full'.tr
-                              : err == 'ALREADY_MEMBER'
-                                  ? 'family_err_already_member'.tr
-                                  : err == 'FAMILY_PLAN_REQUIRED'
-                                      ? 'family_err_plan_required'.tr
-                                      : err;
-                          CustomSnackbar.showError(
-                            title: 'common_error'.tr,
-                            message: msg,
-                          );
-                        }
-                      },
-                      child: Text('family_add_btn'.tr),
-                    ),
-                  );
-                },
+                title: Text(other.name.isEmpty ? 'Utilisateur' : other.name),
+                subtitle: Text(other.model),
+                trailing: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryColor,
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: () async {
+                    final err = await controller.addFamilyMember(
+                      userId: other.id,
+                      userRole: other.model.toLowerCase(),
+                    );
+                    if (!context.mounted) return;
+                    if (err.isEmpty) {
+                      Navigator.of(ctx).pop();
+                      CustomSnackbar.showSuccess(
+                        title: 'family_member_added_title'.tr,
+                        message: 'family_member_added_msg'
+                            .trParams({'name': other.name}),
+                      );
+                    } else {
+                      final msg = err == 'FAMILY_FULL'
+                          ? 'family_err_full'.tr
+                          : err == 'ALREADY_MEMBER'
+                              ? 'family_err_already_member'.tr
+                              : err == 'FAMILY_PLAN_REQUIRED'
+                                  ? 'family_err_plan_required'.tr
+                                  : err;
+                      CustomSnackbar.showError(
+                        title: 'common_error'.tr,
+                        message: msg,
+                      );
+                    }
+                  },
+                  child: Text('family_add_btn'.tr),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ── v23.1.174 — Onglet "Par email" (nouveau, support non-utilisateurs) ───
+class _FamilyAddByEmail extends StatefulWidget {
+  const _FamilyAddByEmail({required this.ctx, required this.controller});
+  final BuildContext ctx;
+  final FriendController controller;
+
+  @override
+  State<_FamilyAddByEmail> createState() => _FamilyAddByEmailState();
+}
+
+class _FamilyAddByEmailState extends State<_FamilyAddByEmail> {
+  final _emailCtrl = TextEditingController();
+  bool _sending = false;
+
+  @override
+  void dispose() {
+    _emailCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 8.h),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          InterText(
+            text: 'family_add_by_email_desc'.tr,
+            fontSize: 12.sp,
+            color: AppColors.greyText,
+          ),
+          SizedBox(height: 12.h),
+          TextField(
+            controller: _emailCtrl,
+            autofocus: true,
+            keyboardType: TextInputType.emailAddress,
+            decoration: InputDecoration(
+              hintText: 'ami@example.com',
+              prefixIcon: const Icon(Icons.mail_outline_rounded),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12.r),
               ),
             ),
-          ],
-        ),
+          ),
+          SizedBox(height: 16.h),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryColor,
+                foregroundColor: Colors.white,
+                padding: EdgeInsets.symmetric(vertical: 12.h),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
+              ),
+              icon: _sending
+                  ? SizedBox(
+                      width: 16.w,
+                      height: 16.h,
+                      child: const CircularProgressIndicator(
+                          color: Colors.white, strokeWidth: 2),
+                    )
+                  : const Icon(Icons.send_rounded),
+              label: Text('family_invite_send_btn'.tr),
+              onPressed: _sending
+                  ? null
+                  : () async {
+                      final email = _emailCtrl.text.trim();
+                      if (email.isEmpty || !email.contains('@')) {
+                        CustomSnackbar.showError(
+                          title: 'common_error'.tr,
+                          message: 'family_invite_invalid_email'.tr,
+                        );
+                        return;
+                      }
+                      setState(() => _sending = true);
+                      final mode = await widget.controller
+                          .addFamilyMemberByEmail(email);
+                      if (!mounted) return;
+                      setState(() => _sending = false);
+                      if (mode == 'existing_user') {
+                        Navigator.of(widget.ctx).pop();
+                        CustomSnackbar.showSuccess(
+                          title: 'family_member_added_title'.tr,
+                          message: 'family_invite_existing_user_msg'.tr,
+                        );
+                      } else if (mode == 'email_invite_sent') {
+                        Navigator.of(widget.ctx).pop();
+                        CustomSnackbar.showSuccess(
+                          title: 'family_invite_sent'.tr,
+                          message: 'family_invite_email_sent_msg'
+                              .trParams({'email': email}),
+                        );
+                      } else {
+                        final msg = mode == 'FAMILY_FULL'
+                            ? 'family_err_full'.tr
+                            : mode == 'ALREADY_MEMBER'
+                                ? 'family_err_already_member'.tr
+                                : mode == 'FAMILY_PLAN_REQUIRED'
+                                    ? 'family_err_plan_required'.tr
+                                    : mode;
+                        CustomSnackbar.showError(
+                          title: 'common_error'.tr,
+                          message: msg,
+                        );
+                      }
+                    },
+            ),
+          ),
+        ],
       ),
     );
   }

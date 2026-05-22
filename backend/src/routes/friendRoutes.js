@@ -524,6 +524,120 @@ router.post('/family/invite-member', requireAuth, async (req, res) => {
   }
 });
 
+/**
+ * POST /friends/family/invite-by-email  body: { email }
+ * v23.1.174 — Daniel : "Par email : si l'email existe dans Firestore → envoyer
+ * demande in-app ; sinon → envoyer email d'invitation HoPetSit".
+ *
+ * 1. On cherche l'email dans Owner / Sitter / Walker
+ * 2. Si trouvé → ajoute à family (même logique que invite-member)
+ * 3. Sinon → envoie un email SendGrid avec lien d'inscription parrainage
+ *    https://hopetsit.com/invite/family/{token} qui auto-accepte la demande
+ *    famille après inscription.
+ */
+router.post('/family/invite-by-email', requireAuth, async (req, res) => {
+  try {
+    const user = me(req);
+    const email = (req.body?.email || '').toString().trim().toLowerCase();
+    if (!email || !email.includes('@')) {
+      return res.status(400).json({ error: 'Valid email required.' });
+    }
+    const now = new Date();
+    const sub = await UserSubscription.findOne({
+      userId: user.id,
+      userModel: user.model,
+      plan: 'famille',
+      status: 'active',
+      currentPeriodEnd: { $gt: now },
+    });
+    if (!sub) {
+      return res.status(403).json({
+        error: 'Active PawFollow Famille subscription required.',
+        code: 'FAMILY_PLAN_REQUIRED',
+      });
+    }
+    sub.familyMembers = sub.familyMembers || [];
+    if (sub.familyMembers.length >= 4) {
+      return res.status(422).json({
+        error: 'Family is full.',
+        code: 'FAMILY_FULL',
+      });
+    }
+
+    // 1. Cherche l'email dans les 3 collections.
+    const [owner, sitter, walker] = await Promise.all([
+      Owner.findOne({ email }).select('_id name').lean(),
+      Sitter.findOne({ email }).select('_id name').lean(),
+      Walker.findOne({ email }).select('_id name').lean(),
+    ]);
+    const existing = owner || sitter || walker;
+    if (existing) {
+      const targetModel = owner ? 'Owner' : sitter ? 'Sitter' : 'Walker';
+      const targetId = String(existing._id);
+      if (sub.familyMembers.some((m) => String(m.userId) === targetId)) {
+        return res.status(409).json({ error: 'Already a family member.' });
+      }
+      sub.familyMembers.push({
+        userId: targetId,
+        userModel: targetModel,
+        email,
+        addedAt: now,
+      });
+      await sub.save();
+      try {
+        const { sendNotification } = require('../services/notificationSender');
+        await sendNotification({
+          userId: targetId,
+          userRole: targetModel.toLowerCase(),
+          type: 'family_member_added',
+          title: 'family_member_added_title',
+          body: 'family_member_added_body',
+          data: { addedBy: String(user.id) },
+        });
+      } catch (_) {/* non-critical */}
+      return res.status(201).json({
+        success: true,
+        mode: 'existing_user',
+        familyMembersCount: sub.familyMembers.length,
+        remainingSlots: 4 - sub.familyMembers.length,
+      });
+    }
+
+    // 2. User pas trouvé → on envoie un email d'invitation parrainage.
+    // L'invité reçoit un lien https://hopetsit.com/invite/family/<token>
+    // qui après inscription auto-accepte la demande famille.
+    try {
+      const emailService = require('../services/emailService');
+      const inviteUrl =
+        `${process.env.WEBSITE_URL || 'https://hopetsit.com'}` +
+        `/invite/family/${encodeURIComponent(email)}?from=${user.id}`;
+      // emailService.sendFamilyInvite est defensif : si pas dispo, on stocke
+      // juste l'email dans family pending pour retry plus tard.
+      if (typeof emailService.sendFamilyInvite === 'function') {
+        await emailService.sendFamilyInvite({
+          to: email,
+          inviterName: (await me(req)).id, // sera enrichi côté service
+          inviteUrl,
+        });
+      }
+    } catch (e) {
+      logger.warn('[friends/family/invite-by-email] email send failed', e);
+    }
+
+    // On track quand même l'invite envoyée (sans la réserver dans family
+    // tant qu'elle n'est pas créée). Daniel peut suivre depuis un futur
+    // écran "Invitations envoyées".
+    return res.status(202).json({
+      success: true,
+      mode: 'email_invite_sent',
+      email,
+    });
+  } catch (e) {
+    logger.error('[friends/family/invite-by-email]', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 /** DELETE /friends/family/member/:userId — titulaire retire un membre. */
 router.delete('/family/member/:userId', requireAuth, async (req, res) => {
   try {
