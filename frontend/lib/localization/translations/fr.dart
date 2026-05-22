@@ -79,6 +79,16 @@ const Map<String, String> frFRTranslations = <String, String>{
       'pending_requests_banner_friends': '@n demande(s) d\'ami en attente',
       'pending_requests_banner_family': '@n invitation(s) Famille en attente',
       'pending_requests_banner_action': 'Voir',
+      // v23.1.184 — refonte PawMap avec 4 quick-action cards (mockup Daniel).
+      'pawmap_quick_follow': 'Suivre',
+      'pawmap_quick_follow_sub': 'Voir mes proches',
+      'pawmap_quick_follow_on': 'Live actif',
+      'pawmap_quick_family': 'Famille & Amis',
+      'pawmap_quick_family_sub': 'Ajouter, suivre',
+      'pawmap_quick_alerts': 'Alertes',
+      'pawmap_quick_alerts_sub': 'Signalements',
+      'pawmap_quick_report': 'Signaler',
+      'pawmap_quick_report_sub': 'Rapide et simple',
       // v23.1 — likes count pill
       'post_likes_singular': 'j\'aime',
       'post_likes_plural': 'j\'aime',

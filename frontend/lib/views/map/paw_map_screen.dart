@@ -1177,15 +1177,12 @@ class _PawMapScreenState extends State<PawMapScreen> {
           // sa position. Met en valeur PawFollow + permet stop rapide.
           _buildLiveBroadcastBanner(),
 
-          // Quick-signal row — the 3 freemium report types are reachable
-          // without even opening the Signaler FAB. Pushes conversion by
-          // showing free users what they can do right away.
-          _buildQuickSignalRow(),
-
-          // Session v3.3 — "Urgence" quick-access row. Gros boutons qui
-          // filtrent la PawMap sur une catégorie POI utile en situation
-          // d'urgence (trouver un véto rapidement, une animalerie proche).
-          _buildEmergencyRow(),
+          // v23.1.184 — Daniel : "je veux que tu reorganise la paw map
+          // dans ce style" (mockup avec 4 grosses cartes colorees Suivre
+          // / Famille & Amis / Alertes / Signaler). Remplace les anciens
+          // _buildQuickSignalRow + _buildEmergencyRow qui faisaient
+          // doublon avec le FAB et chargeaient l'ecran.
+          _buildQuickActionsRow(),
 
           // Layer toggle row (POIs / Reports)
           _buildLayerRow(),
@@ -1486,6 +1483,163 @@ class _PawMapScreenState extends State<PawMapScreen> {
   /// the PawMap so free users can contribute immediately and paying users see
   /// the fastest path to create a common signal. Tap pushes a pre-selected
   /// CreateReportSheet.
+  /// v23.1.184 — Daniel : "je veux que tu reorganise la paw map dans ce
+  /// style" (mockup avec 4 grosses cartes colorees Suivre / Famille &
+  /// Amis / Alertes / Signaler en haut).
+  ///
+  /// Header strip avec 4 quick-actions colorees, posees au-dessus de la
+  /// map. Remplace les anciens _buildQuickSignalRow + _buildEmergencyRow
+  /// qui faisaient doublon avec le FAB et chargeaient l'ecran.
+  Widget _buildQuickActionsRow() {
+    return Container(
+      padding: EdgeInsets.fromLTRB(12.w, 10.h, 12.w, 6.h),
+      child: Row(
+        children: [
+          // 1. Suivre — toggle broadcast (= je partage ma position aux
+          // amis qui peuvent me suivre). Etat actif → vert + icon plein.
+          Expanded(
+            child: Obx(() {
+              final on = _liveMap.broadcasting.value;
+              return _quickActionCard(
+                icon: on
+                    ? Icons.gps_fixed_rounded
+                    : Icons.location_searching_rounded,
+                label: 'pawmap_quick_follow'.tr,
+                sublabel: on
+                    ? 'pawmap_quick_follow_on'.tr
+                    : 'pawmap_quick_follow_sub'.tr,
+                color: on
+                    ? const Color(0xFF16A34A)
+                    : const Color(0xFFEF4324),
+                onTap: _toggleBroadcast,
+              );
+            }),
+          ),
+          SizedBox(width: 8.w),
+          // 2. Famille & Amis — ouvre FriendsScreen.
+          Expanded(
+            child: _quickActionCard(
+              icon: Icons.people_alt_rounded,
+              label: 'pawmap_quick_family'.tr,
+              sublabel: 'pawmap_quick_family_sub'.tr,
+              color: const Color(0xFF8B5CF6),
+              onTap: () => Get.to(() => const FriendsScreen()),
+            ),
+          ),
+          SizedBox(width: 8.w),
+          // 3. Alertes — bascule sur la couche reports + scroll a la liste.
+          Expanded(
+            child: _quickActionCard(
+              icon: Icons.notifications_active_rounded,
+              label: 'pawmap_quick_alerts'.tr,
+              sublabel: 'pawmap_quick_alerts_sub'.tr,
+              color: const Color(0xFFF59E0B),
+              onTap: () {
+                // Bascule la couche reports en visible (alertes
+                // signalees sur la carte). Si elle l'est deja, force
+                // un reload pour rafraichir.
+                _showReports.value = true;
+                _showPois.value = false;
+                _reloadAtCenter();
+              },
+            ),
+          ),
+          SizedBox(width: 8.w),
+          // 4. Signaler — ouvre le CreateReportSheet (= mini-FAB toujours
+          // visible en haut, plus besoin de chercher le FAB en bas).
+          Expanded(
+            child: _quickActionCard(
+              icon: Icons.add_circle_rounded,
+              label: 'pawmap_quick_report'.tr,
+              sublabel: 'pawmap_quick_report_sub'.tr,
+              color: const Color(0xFFDC2626),
+              onTap: () async {
+                final created = await CreateReportSheet.show(
+                  context,
+                  initialPoint: _currentCenter,
+                );
+                if (created) await _reloadAtCenter();
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Carte unique du header — gros bloc carré arrondi avec icône blanche
+  /// sur cercle coloré + label en gras + petit sublabel grisé en dessous.
+  Widget _quickActionCard({
+    required IconData icon,
+    required String label,
+    required String sublabel,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16.r),
+        onTap: onTap,
+        child: Container(
+          padding: EdgeInsets.symmetric(vertical: 12.h, horizontal: 6.w),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.10),
+            borderRadius: BorderRadius.circular(16.r),
+            border: Border.all(
+              color: color.withValues(alpha: 0.25),
+              width: 1.2,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: color.withValues(alpha: 0.10),
+                blurRadius: 8,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 38.w,
+                height: 38.w,
+                decoration: BoxDecoration(
+                  color: color,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: color.withValues(alpha: 0.45),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Icon(icon, color: Colors.white, size: 20.sp),
+              ),
+              SizedBox(height: 6.h),
+              InterText(
+                text: label,
+                fontSize: 11.sp,
+                fontWeight: FontWeight.w800,
+                color: color,
+                maxLines: 1,
+              ),
+              SizedBox(height: 2.h),
+              InterText(
+                text: sublabel,
+                fontSize: 9.sp,
+                fontWeight: FontWeight.w500,
+                color: AppColors.greyText,
+                maxLines: 1,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildQuickSignalRow() {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
