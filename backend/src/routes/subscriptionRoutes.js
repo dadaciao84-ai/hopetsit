@@ -165,6 +165,12 @@ router.post('/subscribe', requireAuth, async (req, res) => {
     if (staffUser && staffUser.isStaff) {
       try {
         const userModelName = userModelFromRole(role);
+        // v23.1.178 — Daniel : "je prend labonement famille et y se passe
+        // rien". Normalisation défensive 'family' → 'famille' AVANT le
+        // sub.save() pour éviter toute ValidationError silencieuse,
+        // indépendamment du pre-save hook. Tous les routes lectures filtrent
+        // par 'famille' (FR canonique).
+        const planCanonical = plan === 'family' ? 'famille' : plan;
         let sub = await UserSubscription.findOne({ userId, userModel: userModelName });
         const now = new Date();
         const startFrom = sub?.currentPeriodEnd && new Date(sub.currentPeriodEnd) > now
@@ -172,7 +178,7 @@ router.post('/subscribe', requireAuth, async (req, res) => {
           : now;
         const newPeriodEnd = new Date(startFrom.getTime() + pricing.intervalDays * 86_400_000);
         if (!sub) sub = new UserSubscription({ userId, userModel: userModelName });
-        sub.plan = plan;
+        sub.plan = planCanonical;
         sub.status = 'active';
         sub.currentPeriodStart = sub.currentPeriodStart || now;
         sub.currentPeriodEnd = newPeriodEnd;
@@ -180,7 +186,7 @@ router.post('/subscribe', requireAuth, async (req, res) => {
         sub.features = { ...PREMIUM_FEATURES_DEFAULT };
         sub.payments = sub.payments || [];
         sub.payments.push({
-          plan,
+          plan: planCanonical,
           amount: 0,
           currency: pricing.currency,
           paidAt: now,
@@ -190,8 +196,13 @@ router.post('/subscribe', requireAuth, async (req, res) => {
           periodEnd: newPeriodEnd,
         });
         await sub.save();
+        logger.info(
+          `[subscription/staff] OK ${role} ${userId} sub=${sub._id} plan=${planCanonical}`,
+        );
       } catch (persistErr) {
-        logger.warn(`[subscription/staff] persist failed: ${persistErr.message}`);
+        logger.error(
+          `[subscription/staff] persist FAILED for ${role} ${userId} plan=${plan}: ${persistErr.message}`,
+        );
       }
       logger.info(`[subscription/staff] ${role} ${userId} — Premium free (staff) — persisted`);
       return res.json({

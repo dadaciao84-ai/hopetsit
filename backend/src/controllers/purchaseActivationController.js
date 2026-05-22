@@ -170,7 +170,13 @@ async function activateSubscriptionFromWebhook({ piId, metadata }) {
       : now;
   const newExpiry = new Date(currentExpiry.getTime() + intervalDays * 86_400_000);
 
-  sub.plan = plan;
+  // v23.1.178 — Daniel : "je prend labonement famille et y se passe rien".
+  // Normalisation défensive 'family' → 'famille' AVANT le sub.save() pour
+  // garantir que toutes les routes lectures (qui filtrent par
+  // plan: 'famille') trouvent ce doc, indépendamment du pre-save hook.
+  const planCanonical = plan === 'family' ? 'famille' : plan;
+
+  sub.plan = planCanonical;
   sub.status = 'active';
   sub.currentPeriodStart = sub.currentPeriodStart || now;
   sub.currentPeriodEnd = newExpiry;
@@ -182,12 +188,12 @@ async function activateSubscriptionFromWebhook({ piId, metadata }) {
   //   yearly  → 12 credits (one per month for the year)
   //   monthly → 1 credit
   //   family  → 1 credit (family is also monthly-billed)
-  const creditsToAdd = plan === 'yearly' ? 12 : 1;
+  const creditsToAdd = planCanonical === 'yearly' ? 12 : 1;
   sub.mapBoostCreditsRemaining = (sub.mapBoostCreditsRemaining || 0) + creditsToAdd;
 
   sub.history = history;
   sub.history.push({
-    plan,
+    plan: planCanonical,
     paymentProvider: 'airwallex',
     paymentId: piId,
     activatedAt: now,

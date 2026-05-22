@@ -233,11 +233,27 @@ router.post('/request', requireAuth, async (req, res) => {
         ? (Date.now() - new Date(existing.createdAt).getTime()) /
           (1000 * 60 * 60 * 24)
         : 0;
-      if (existing.status === 'pending' && ageDays > 7) {
-        // Pending vieille → on supprime et on continue pour créer une fresh.
+      const iAmRequester =
+        String(existing.requesterId) === String(user.id) &&
+        existing.requesterModel === user.model;
+      // v23.1.178 — Daniel : "demande amis erreur une demande est deja en
+      // attente alors que sa marche pas". Cas pratique : Daniel a envoyé
+      // une demande à witoulek hier, witoulek n'a jamais reçu de notif
+      // (v176 bug), Daniel veut renvoyer aujourd'hui → 409 bloque.
+      //
+      // Nouvelle logique :
+      //   1. Pending >7 jours → cleanup (v177)
+      //   2. Pending et JE suis le requester → cleanup (re-send seamless),
+      //      ça permet à Daniel de relancer sa demande à witoulek sans
+      //      blocage. Le 1er notif a été perdu, on en renvoie un nouveau.
+      //   3. Tout autre cas (accepted, blocked, pending de l'autre side) → 409.
+      if (
+        existing.status === 'pending' &&
+        (ageDays > 7 || iAmRequester)
+      ) {
         await Friendship.findByIdAndDelete(existing._id);
         logger.info(
-          `[friends/request] cleaned expired pending ${existing._id} (${ageDays.toFixed(1)} days)`,
+          `[friends/request] cleaned pending ${existing._id} (age=${ageDays.toFixed(1)}d, iAmRequester=${iAmRequester}) — will recreate`,
         );
       } else {
         return res
