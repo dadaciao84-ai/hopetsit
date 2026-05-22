@@ -270,6 +270,25 @@ class SitterRepository {
     );
   }
 
+  /// v23.1.182 — POST /conversations/:id/follow-request
+  /// Conversation-based : pas besoin de booking. Crée la carte
+  /// pawfollow_request dans le chat et notifie l'owner.
+  Future<Map<String, dynamic>> requestLiveTrackingByConversation({
+    required String conversationId,
+  }) async {
+    final response = await _apiClient.post(
+      '/conversations/$conversationId/follow-request',
+      body: const <String, dynamic>{},
+      requiresAuth: true,
+    );
+    if (response is Map<String, dynamic>) return response;
+    if (response is Map) return Map<String, dynamic>.from(response);
+    throw ApiException(
+      'Unexpected follow-request response.',
+      details: response,
+    );
+  }
+
   /// v23.1.176 — POST /bookings/pawfollow-request/:messageId/respond
   /// body: { action: 'accept' | 'refuse' }
   Future<Map<String, dynamic>> respondPawfollowRequest({

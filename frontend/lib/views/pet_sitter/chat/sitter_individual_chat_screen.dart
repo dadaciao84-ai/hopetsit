@@ -164,11 +164,26 @@ class _SitterIndividualChatScreenState
       });
       final bookingId = candidate?.id;
       if (bookingId == null || bookingId.isEmpty) {
-        CustomSnackbar.showWarning(
-          title: 'follow_no_booking_title'.tr,
-          message: 'follow_no_booking_msg'
-              .trParams({'name': widget.contactName}),
-        );
+        // v23.1.182 — Daniel : "verifie les 3 prfofile et encore une
+        // fois en profondeur". Côté sitter aussi : si pas de booking
+        // payé, on bascule sur l'endpoint conversation-based qui
+        // notifie l'owner sans dépendance booking.
+        try {
+          await repo.requestLiveTrackingByConversation(
+            conversationId: widget.conversationId,
+          );
+          if (!mounted) return;
+          CustomSnackbar.showSuccess(
+            title: 'follow_request_sent_title'.tr,
+            message: 'follow_request_sent_msg'.tr,
+          );
+        } catch (e) {
+          if (!mounted) return;
+          CustomSnackbar.showError(
+            title: 'follow_unavailable_title'.tr,
+            message: e.toString().replaceAll('ApiException:', '').trim(),
+          );
+        }
         return;
       }
       // v23.1.170-fix — Daniel : "que owner suive ma balade". Pour que ça

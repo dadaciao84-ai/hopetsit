@@ -431,6 +431,19 @@ router.post('/:id/messages/attachments', requireAuth, requirePaidBooking, upload
 // Le handler doit vérifier que l'user est partie à la conversation.
 router.post('/:id/read', requireAuth, markConversationRead);
 
+// v23.1.182 — Daniel : "sa mouvre pas de balade en cour au lieu denvoyer
+// linviutation au walker ou sitter". Le bouton "Suivre en direct mon
+// animal" dans le chat doit pouvoir envoyer la demande même SANS booking
+// payé (= chat libre découvert via PawMap ou friend). Le controller
+// crée un message pawfollow_request dans la conversation + notifie le
+// destinataire (push + email + in-app + socket).
+router.post(
+  '/:id/follow-request',
+  requireAuth,
+  requireRole('owner', 'sitter', 'walker'),
+  require('../controllers/bookingController').requestLiveTrackingByConversation,
+);
+
 // Sprint 3 step 6 — sitter shares their phone number as a special message.
 // Post-payment only (gated by requirePaidBooking).
 const Sitter = require('../models/Sitter');

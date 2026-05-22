@@ -4553,6 +4553,158 @@ const respondToPawfollowRequest = async (req, res) => {
   }
 };
 
+/**
+ * v23.1.182 — POST /api/v1/conversations/:id/follow-request
+ *
+ * Daniel : "le chat souvre jenvoi la demande suivre mon animale sa
+ * mouvre pas de balade en cour au lieu denvoyer linviutation au walker
+ * ou sitter". L'existing `requestLiveTracking` exige un booking PAID,
+ * mais Daniel veut envoyer la demande même SANS booking actif (= chat
+ * libre entre owner et walker/sitter découvert via PawMap, par exemple).
+ *
+ * Différences avec requestLiveTracking :
+ *   - input : conversationId au lieu de bookingId
+ *   - pas de check paymentStatus
+ *   - pas de check location coords
+ *   - création direct du message pawfollow_request dans la conv
+ *   - notif au responder
+ *
+ * Sécurité : seul l'owner de la conv peut envoyer (sens owner → provider).
+ */
+const requestLiveTrackingByConversation = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const userRole = req.user.role;
+    const { id: conversationId } = req.params;
+
+    const Conversation = require('../models/Conversation');
+    const Message = require('../models/Message');
+
+    const conversation = await Conversation.findById(conversationId).lean();
+    if (!conversation) {
+      return res.status(404).json({ error: 'Conversation not found.' });
+    }
+
+    // Owner of conv → demande au walker/sitter. Sinon le sens
+    // walker/sitter → owner via le bouton miroir côté provider.
+    let direction;
+    let responderRole;
+    let responderId;
+    if (userRole === 'owner') {
+      if (String(conversation.ownerId) !== String(userId)) {
+        return res.status(403).json({ error: 'Not your conversation.' });
+      }
+      if (conversation.walkerId) {
+        direction = 'owner_to_walker';
+        responderRole = 'walker';
+        responderId = conversation.walkerId;
+      } else if (conversation.sitterId) {
+        direction = 'owner_to_sitter';
+        responderRole = 'sitter';
+        responderId = conversation.sitterId;
+      } else {
+        return res.status(400).json({ error: 'Conversation has no provider.' });
+      }
+    } else if (userRole === 'walker') {
+      if (String(conversation.walkerId) !== String(userId)) {
+        return res.status(403).json({ error: 'Not your conversation.' });
+      }
+      direction = 'walker_to_owner';
+      responderRole = 'owner';
+      responderId = conversation.ownerId;
+    } else if (userRole === 'sitter') {
+      if (String(conversation.sitterId) !== String(userId)) {
+        return res.status(403).json({ error: 'Not your conversation.' });
+      }
+      direction = 'sitter_to_owner';
+      responderRole = 'owner';
+      responderId = conversation.ownerId;
+    } else {
+      return res.status(403).json({ error: 'Role not allowed.' });
+    }
+
+    // Anti-spam : pas de doublon < 5 min.
+    const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000);
+    const existing = await Message.findOne({
+      conversationId: conversation._id,
+      type: 'pawfollow_request',
+      'metadata.status': 'pending',
+      createdAt: { $gt: fiveMinAgo },
+    });
+    if (existing) {
+      return res.json({
+        success: true,
+        chatMessageId: String(existing._id),
+        duplicate: true,
+      });
+    }
+
+    const msg = await Message.create({
+      conversationId: conversation._id,
+      senderId: userId,
+      senderRole: userRole,
+      type: 'pawfollow_request',
+      body: '',
+      metadata: {
+        status: 'pending',
+        direction,
+        // pas de bookingId — chat libre.
+        bookingId: null,
+        requesterId: String(userId),
+        requesterRole: userRole,
+        responderRole,
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      },
+    });
+
+    await Conversation.findByIdAndUpdate(conversation._id, {
+      lastMessageAt: new Date(),
+    });
+
+    // Broadcast via le user-room standard (chatSocket utilise les rooms
+    // par conversationId).
+    try {
+      const { emitToConversation } = require('../sockets/emitter');
+      emitToConversation(String(conversation._id), 'message:new', {
+        conversationId: String(conversation._id),
+        message: msg.toObject(),
+      });
+    } catch (_) {/* defensive */}
+
+    // Notif au responder (push + email + in-app + socket).
+    try {
+      const { sendNotification } = require('../services/notificationSender');
+      const buildEmailLink = require('../utils/emailLinkBuilder').buildEmailLink;
+      await sendNotification({
+        userId: String(responderId),
+        role: responderRole,
+        type: 'live_tracking_request_received',
+        data: {
+          conversationId: String(conversation._id),
+          messageId: String(msg._id),
+          requesterRole: userRole,
+          emailLink: buildEmailLink('chat', {
+            conversationId: String(conversation._id),
+          }),
+        },
+      });
+    } catch (e) {
+      logger.warn('[booking.requestLiveTrackingByConversation] notif failed', e);
+    }
+
+    return res.json({
+      success: true,
+      conversationId: String(conversation._id),
+      chatMessageId: String(msg._id),
+    });
+  } catch (e) {
+    logger.error('[booking.requestLiveTrackingByConversation]', e);
+    return res
+      .status(500)
+      .json({ error: 'Unable to send follow request.' });
+  }
+};
+
 module.exports = {
   createBooking,
   listBookings,
@@ -4588,4 +4740,6 @@ module.exports = {
   getProviderLocation,
   requestLiveTracking,
   respondToPawfollowRequest,
+  // v23.1.182 — Suivre sans booking via conversation.
+  requestLiveTrackingByConversation,
 };

@@ -400,11 +400,38 @@ class _IndividualChatScreenState extends State<IndividualChatScreen> {
       final bookingId = candidate.isNotEmpty ? candidate.first.id : null;
 
       if (bookingId == null || bookingId.isEmpty) {
-        CustomSnackbar.showWarning(
-          title: 'follow_no_booking_title'.tr,
-          message: 'follow_no_booking_msg'
-              .trParams({'name': widget.contactName}),
-        );
+        // v23.1.182 — Daniel : "sa mouvre pas de balade en cour au lieu
+        // denvoyer linviutation au walker ou sitter". Pas de booking
+        // payé → on bascule sur l'endpoint conversation-based qui crée
+        // la carte pawfollow_request dans le chat et notifie le provider
+        // SANS avoir besoin d'un booking.
+        try {
+          await repo.requestLiveTrackingByConversation(
+            conversationId: widget.conversationId,
+          );
+          if (mounted) {
+            CustomSnackbar.showSuccess(
+              title: 'pawfollow_request_sent_title'.tr,
+              message: 'pawfollow_request_sent_msg'.tr,
+            );
+            await chatController.loadChatMessages(
+              widget.conversationId,
+              contactName: widget.contactName,
+            );
+          }
+        } catch (e) {
+          if (mounted) {
+            CustomSnackbar.showError(
+              title: 'follow_unavailable_title'.tr,
+              message: e.toString().replaceAll('ApiException:', '').trim(),
+            );
+          }
+        }
+        // v23.1.182 — IMPORTANT : on return ici, on n'ouvre PAS
+        // LiveWalkMapScreen (cause du crash + écran noir signalé par
+        // Daniel "ecran noir et crash de lapp"). Le map screen
+        // expectait un bookingId valide ET des positions live ; sans
+        // booking + walk actif, il crashait sur walk['_id'] / positions.
         return;
       }
 

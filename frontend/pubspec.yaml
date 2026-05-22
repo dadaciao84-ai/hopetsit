@@ -1,7 +1,7 @@
 name: hopetsit
 description: "A new Flutter project."
 publish_to: 'none'
-version: 23.1.181+181
+version: 23.1.182+182
 
 environment:
   sdk: ^3.9.2

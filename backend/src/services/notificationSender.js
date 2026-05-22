@@ -225,22 +225,54 @@ const sendNotification = async ({ userId, role, type, data = {}, actor = null })
     `title="${(title || '').slice(0, 60)}"`,
   );
 
-  // Real-time socket push for in-app badges — best-effort, no await.
-  try {
-    emitToUser(role, userId, 'notification.new', { type, title, body, data });
-  } catch (_) { /* noop */ }
+  // v23.1.182 — Daniel : "il faut jme deco et reco pour voir la nouvelle
+  // notif au lieu que se soit instentanee". Cause racine : avant on emit
+  // 'notification.new' AVANT createNotificationSafe → le payload socket
+  // n'avait PAS d'_id. Le frontend listener avait le bug : il ne pouvait
+  // pas insérer la notif dans la liste live, juste bump le badge. Daniel
+  // voyait donc le badge +1 mais aucune nouvelle ligne dans la bell list
+  // tant qu'il n'avait pas reloadInitial (= deco/reco ou refresh écran).
+  // Fix : on crée la notif EN PREMIER, on récupère l'id + createdAt, puis
+  // on emit le payload COMPLET au socket. Frontend peut alors préfixer
+  // direct dans la liste sans refetch.
+  const inAppCreated = await createNotificationSafe({
+    recipientRole: role,
+    recipientId: userId,
+    actorRole: actor?.role || null,
+    actorId: actor?.id || null,
+    type,
+    title,
+    body,
+    data,
+  });
 
-  const results = await Promise.allSettled([
-    createNotificationSafe({
-      recipientRole: role,
-      recipientId: userId,
-      actorRole: actor?.role || null,
-      actorId: actor?.id || null,
+  // Real-time socket push avec payload complet (id + recipientRole +
+  // createdAt) pour insertion live dans la bell list — best-effort.
+  try {
+    const socketPayload = {
       type,
       title,
       body,
       data,
-    }),
+      recipientRole: role,
+      recipientId: String(userId),
+      actorRole: actor?.role || null,
+      actorId: actor?.id ? String(actor.id) : null,
+    };
+    if (inAppCreated) {
+      socketPayload.id = String(inAppCreated._id);
+      socketPayload._id = String(inAppCreated._id);
+      socketPayload.notificationId = String(inAppCreated._id);
+      socketPayload.createdAt = inAppCreated.createdAt
+        ? new Date(inAppCreated.createdAt).toISOString()
+        : new Date().toISOString();
+      socketPayload.readAt = null;
+    }
+    emitToUser(role, userId, 'notification.new', socketPayload);
+  } catch (_) { /* noop */ }
+
+  const results = await Promise.allSettled([
+    Promise.resolve(inAppCreated),
     sendPush(user.fcmTokens, title, body, { type, ...data }, { userId, role }),
     email ? sendEmail(email, emailSubject, body, emailBody) : Promise.resolve({ skipped: true }),
   ]);

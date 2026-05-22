@@ -160,6 +160,40 @@ class NotificationsController extends GetxController with WidgetsBindingObserver
           final lower = type.toLowerCase();
           unreadCount.value = unreadCount.value + 1;
 
+          // v23.1.182 — Daniel : "il faut jme deco et reco pour voir la
+          // nouvelle notif au lieu que se soit instentanee". Le backend
+          // envoie maintenant la notif complète (id, createdAt,
+          // recipientRole) dans le payload socket. On insère direct la
+          // notif EN TÊTE de la liste pour que l'écran Notifications se
+          // mette à jour en temps réel sans refetch.
+          try {
+            final hasId = (map['id'] ?? map['_id'] ?? map['notificationId']) != null;
+            if (hasId) {
+              final notifJson = <String, dynamic>{
+                'id': (map['id'] ?? map['_id'] ?? map['notificationId']).toString(),
+                'recipientRole': (map['recipientRole'] ?? '').toString(),
+                'recipientId': (map['recipientId'] ?? '').toString(),
+                'actorRole': (map['actorRole'] ?? '').toString(),
+                'actorId': (map['actorId'] ?? '').toString(),
+                'type': type,
+                'title': (map['title'] ?? '').toString(),
+                'body': (map['body'] ?? '').toString(),
+                'data': map['data'] is Map
+                    ? Map<String, dynamic>.from(map['data'] as Map)
+                    : <String, dynamic>{},
+                'readAt': null,
+                'createdAt': map['createdAt'] ?? DateTime.now().toUtc().toIso8601String(),
+              };
+              final newNotif = AppNotificationModel.fromJson(notifJson);
+              // Dedupe : si la notif est déjà dans la liste (cas où
+              // loadInitial a tourné en parallèle), on ne l'ajoute pas.
+              final exists = notifications.any((n) => n.id == newNotif.id);
+              if (!exists && newNotif.id.isNotEmpty) {
+                notifications.insert(0, newNotif);
+              }
+            }
+          } catch (_) {/* defensive */}
+
           // v18.9.7 — badges par onglet selon la sémantique de l'event.
           // Chaque type de notification n'arrive que sur UN seul rôle
           // (ex: application_accepted va toujours à walker/sitter,

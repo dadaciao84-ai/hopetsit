@@ -1325,6 +1325,27 @@ class OwnerRepository {
   /// v23.1.176 — POST /bookings/:id/follow-request avec lat/lng optionnel.
   /// Côté OWNER : envoie une demande au walker/sitter via message chat
   /// type 'pawfollow_request'. Retourne { success, chatMessageId, ... }.
+  /// v23.1.182 — Daniel : "sa mouvre pas de balade en cour au lieu
+  /// denvoyer linviutation". Endpoint conversation-based qui ne demande
+  /// PAS de booking payé — pour Suivre dans un chat libre (PawMap,
+  /// friend, etc.). Le backend crée un message pawfollow_request dans
+  /// la conversation et notifie le destinataire (owner/walker/sitter).
+  Future<Map<String, dynamic>> requestLiveTrackingByConversation({
+    required String conversationId,
+  }) async {
+    final response = await _apiClient.post(
+      '/conversations/$conversationId/follow-request',
+      body: const <String, dynamic>{},
+      requiresAuth: true,
+    );
+    if (response is Map<String, dynamic>) return response;
+    if (response is Map) return Map<String, dynamic>.from(response);
+    throw ApiException(
+      'Unexpected follow-request response.',
+      details: response,
+    );
+  }
+
   Future<Map<String, dynamic>> requestLiveTracking({
     required String bookingId,
     double? lat,

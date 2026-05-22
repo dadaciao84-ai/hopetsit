@@ -42,24 +42,45 @@ class _LiveWalkMapScreenState extends State<LiveWalkMapScreen> {
       );
       final walk = r is Map ? r['walk'] : null;
       if (walk is Map) {
-        _walkId = (walk['_id'] ?? walk['id']).toString();
-        final positions = (walk['positions'] as List?) ?? [];
+        // v23.1.182 — Daniel : "ecran noir et crash de lapp". Cause
+        // racine du crash : cast non-safe `(walk['_id'] ?? walk['id']).toString()`
+        // qui throw NoSuchMethodError sur null si la réponse n'a ni l'un
+        // ni l'autre. Idem pour `(last['lat'] as num).toDouble()` qui
+        // crash si lat manquant ou pas un num. Maintenant on est
+        // défensif : si rien n'est utilisable → on bascule sur l'état
+        // "no active" au lieu de crasher.
+        final rawId = walk['_id'] ?? walk['id'];
+        if (rawId == null) {
+          if (!mounted) return;
+          setState(() => _status = 'live_walk_no_active'.tr);
+          return;
+        }
+        _walkId = rawId.toString();
+        final positions = (walk['positions'] is List)
+            ? (walk['positions'] as List)
+            : const [];
         if (positions.isNotEmpty) {
-          final last = positions.last as Map;
-          _current = LatLng(
-            (last['lat'] as num).toDouble(),
-            (last['lng'] as num).toDouble(),
-          );
+          final last = positions.last;
+          if (last is Map) {
+            final lat = last['lat'];
+            final lng = last['lng'];
+            if (lat is num && lng is num) {
+              _current = LatLng(lat.toDouble(), lng.toDouble());
+            }
+          }
         }
         _subscribeSocket();
+        if (!mounted) return;
         setState(() => _status = 'live');
       } else {
         // v23.1.162 — Daniel : 'no-active-walk' apparaissait brut. Cle i18n
         // 'live_walk_no_active' resolue via .tr (FR: 'Aucune balade en cours',
         // ES: 'Sin paseo activo', etc.).
+        if (!mounted) return;
         setState(() => _status = 'live_walk_no_active'.tr);
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() => _status = '${'live_walk_error'.tr}: $e');
     }
   }

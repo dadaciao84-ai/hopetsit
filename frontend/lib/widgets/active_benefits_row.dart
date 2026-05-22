@@ -83,8 +83,16 @@ class ActiveBenefitsRow extends StatefulWidget {
             boostExpiry != null && boostExpiry.isAfter(now);
         final mapBoostActive =
             mapBoostExpiry != null && mapBoostExpiry.isAfter(now);
-        // ANY boost actif (annonce OR pawspot/mapboost) → cadre doré.
-        _boostActive.value = boostActive || mapBoostActive;
+        // v23.1.182 — Daniel : "le cadre urgent boost naparait tjr pa"
+        // (10e fois). VRAIE cause racine : Daniel a une sub Famille
+        // (isPremium=true) mais ni Boost annonce ni PawSpot/MapBoost.
+        // L'accessor _boostActive ignorait isPremium → frontend fallback
+        // stayed false → ruban URGENT never appeared on his own posts.
+        // Fix : tout abo Premium actif déclenche aussi le cadre URGENT
+        // (= "compte premium, post mis en avant"). Aligné sur la logique
+        // backend postController.js isSubscriptionActive.
+        final isPremium = benefits['isPremium'] == true;
+        _boostActive.value = boostActive || mapBoostActive || isPremium;
       }
     } catch (_) {/* defensive */}
   }
@@ -128,7 +136,9 @@ class _ActiveBenefitsRowState extends State<ActiveBenefitsRow> {
         final now = DateTime.now();
         final boostActive = expiry != null && expiry.isAfter(now);
         final mapActive = mapExpiry != null && mapExpiry.isAfter(now);
-        ActiveBenefitsRow._boostActive.value = boostActive || mapActive;
+        // v23.1.182 — inclut isPremium dans l'accessor (10e fix demandé).
+        final isPremium = _benefits['isPremium'] == true;
+        ActiveBenefitsRow._boostActive.value = boostActive || mapActive || isPremium;
       }
     } catch (_) {
       // best-effort, on cache simplement la row.
