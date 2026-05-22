@@ -166,5 +166,23 @@
     "body": "Du bist jetzt Teil einer PawFollow-Familie. Mitglieder können sich live auf der PawMap verfolgen.",
     "emailSubject": "Willkommen in der PawFollow-Familie — HoPetSit",
     "emailBody": "<p>Du wurdest zu einer PawFollow-Familie hinzugefügt. Alle Mitglieder können sich jetzt live auf der PawMap verfolgen.</p>"
+  },
+  "family_invitation_received": {
+    "title": "PawFollow Familieneinladung",
+    "body": "Du hast eine Einladung erhalten, einer PawFollow-Familie beizutreten. Oeffne die App, um anzunehmen oder abzulehnen.",
+    "emailSubject": "Familieneinladung - HoPetSit",
+    "emailBody": "<p>Du hast eine Einladung erhalten, einer PawFollow-Familie beizutreten. Oeffne die HoPetSit-App, um zu antworten.</p>"
+  },
+  "family_invitation_accepted": {
+    "title": "Einladung angenommen",
+    "body": "Ein Mitglied hat gerade deine PawFollow-Familieneinladung angenommen.",
+    "emailSubject": "Einladung angenommen - HoPetSit",
+    "emailBody": "<p>Ein Mitglied hat gerade deine PawFollow-Familieneinladung angenommen. Du kannst es jetzt live auf der PawMap verfolgen.</p>"
+  },
+  "family_invitation_refused": {
+    "title": "Einladung abgelehnt",
+    "body": "Ein Mitglied hat deine PawFollow-Familieneinladung abgelehnt. Ein Platz ist wieder verfuegbar.",
+    "emailSubject": "Einladung abgelehnt - HoPetSit",
+    "emailBody": "<p>Ein Mitglied hat deine PawFollow-Familieneinladung abgelehnt. Ein Platz ist wieder in deinem Familienplan verfuegbar.</p>"
   }
 }

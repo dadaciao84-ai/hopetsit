@@ -491,6 +491,8 @@ router.get('/family/members', requireAuth, async (req, res) => {
       });
     }
     const raw = Array.isArray(sub.familyMembers) ? sub.familyMembers : [];
+    // v23.1.183 — on retourne TOUS les membres (incluant pending) avec
+    // leur status, pour que le titulaire voie qui n'a pas encore accepté.
     const enriched = await Promise.all(
       raw.map(async (m) => {
         const mini = await fetchUserMini(m.userId, m.userModel);
@@ -501,13 +503,19 @@ router.get('/family/members', requireAuth, async (req, res) => {
           avatar: mini?.avatar || '',
           addedAt: m.addedAt,
           email: m.email || null,
+          status: m.status || 'active',
         };
       }),
     );
+    // remainingSlots ne compte QUE les actifs (un pending peut être
+    // refusé → la place sera libre).
+    const activeCount = raw.filter(
+      (m) => !m.status || m.status === 'active',
+    ).length;
     res.json({
       hasActiveFamilyPlan: true,
       members: enriched,
-      remainingSlots: Math.max(0, 5 - enriched.length),
+      remainingSlots: Math.max(0, 5 - activeCount),
     });
   } catch (e) {
     logger.error('[friends/family/members]', e);
@@ -560,29 +568,43 @@ router.post('/family/invite-member', requireAuth, async (req, res) => {
     if (sub.familyMembers.some((m) => String(m.userId) === String(userId))) {
       return res.status(409).json({ error: 'Already a family member.' });
     }
+    // v23.1.183 — Daniel : "developpe le sous menu amis famislle pour
+    // accepter refuse rbloquer les demande damis et famille". Status
+    // 'pending' au lieu d'auto-add : le destinataire reçoit une notif
+    // family_invitation_received et doit accepter ou refuser depuis la
+    // cloche pour rejoindre la famille.
     sub.familyMembers.push({
       userId,
       userModel: targetModel,
       email: email || undefined,
       addedAt: now,
+      status: 'pending',
     });
     await sub.save();
 
-    // Push notif au nouveau membre.
+    // ID du sous-document qu'on vient d'ajouter (pour l'accept/refuse).
+    const invitation = sub.familyMembers[sub.familyMembers.length - 1];
+    const invitationId = String(invitation._id);
+
+    // v23.1.183 — Notif au destinataire avec INVITATION (pas family_member_added).
     try {
       const { sendNotification } = require('../services/notificationSender');
       await sendNotification({
         userId,
         role: String(userRole).toLowerCase(),
-        type: 'family_member_added',
-        title: 'family_member_added_title',
-        body: 'family_member_added_body',
-        data: { addedBy: String(user.id) },
+        type: 'family_invitation_received',
+        data: {
+          invitationId,
+          familyOwnerId: String(user.id),
+          familyOwnerRole: String(user.model).toLowerCase(),
+        },
       });
     } catch (_) {/* non-critical */}
 
     res.status(201).json({
       success: true,
+      invitationId,
+      status: 'pending',
       familyMembersCount: sub.familyMembers.length,
       remainingSlots: 5 - sub.familyMembers.length,
     });
@@ -737,6 +759,168 @@ router.delete('/family/member/:userId', requireAuth, async (req, res) => {
     });
   } catch (e) {
     logger.error('[friends/family/member DELETE]', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+/**
+ * v23.1.183 — Daniel : "developpe le sous menu amis famislle pour
+ * accepter refuse rbloquer les demande damis et famille".
+ *
+ * GET /friends/family/invitations
+ * Liste les invitations famille EN ATTENTE adressées au user courant.
+ * Cherche dans toutes les UserSubscription famille actives où
+ * familyMembers contient { userId: moi, status: 'pending' }.
+ */
+router.get('/family/invitations', requireAuth, async (req, res) => {
+  try {
+    const user = me(req);
+    const now = new Date();
+    const subs = await UserSubscription.find({
+      plan: 'famille',
+      status: 'active',
+      currentPeriodEnd: { $gt: now },
+      'familyMembers.userId': user.id,
+      'familyMembers.status': 'pending',
+    }).lean();
+
+    const invitations = [];
+    for (const sub of subs) {
+      const member = (sub.familyMembers || []).find(
+        (m) => String(m.userId) === String(user.id) && m.status === 'pending',
+      );
+      if (!member) continue;
+      // Récupère le nom du titulaire pour l'afficher dans la cloche.
+      const ownerModel = require('../models/' + sub.userModel);
+      const ownerDoc = await ownerModel
+        .findById(sub.userId)
+        .select('name avatar')
+        .lean()
+        .catch(() => null);
+      invitations.push({
+        id: String(member._id),
+        invitationId: String(member._id),
+        familyOwnerId: String(sub.userId),
+        familyOwnerRole: String(sub.userModel).toLowerCase(),
+        familyOwnerName: ownerDoc?.name || '',
+        familyOwnerAvatar: ownerDoc?.avatar?.url || '',
+        addedAt: member.addedAt,
+      });
+    }
+    res.json({ invitations });
+  } catch (e) {
+    logger.error('[friends/family/invitations GET]', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+/**
+ * v23.1.183 — POST /friends/family/invitation/:id/accept
+ * Le destinataire d'une invitation pending la transforme en active.
+ */
+router.post('/family/invitation/:id/accept', requireAuth, async (req, res) => {
+  try {
+    const user = me(req);
+    const invitationId = req.params.id;
+    const sub = await UserSubscription.findOne({
+      'familyMembers._id': invitationId,
+      'familyMembers.userId': user.id,
+      plan: 'famille',
+      status: 'active',
+    });
+    if (!sub) {
+      return res.status(404).json({ error: 'Invitation not found.' });
+    }
+    const member = (sub.familyMembers || []).id(invitationId);
+    if (!member) {
+      return res.status(404).json({ error: 'Invitation not found.' });
+    }
+    if (String(member.userId) !== String(user.id)) {
+      return res.status(403).json({ error: 'Not your invitation.' });
+    }
+    if (member.status !== 'pending') {
+      return res.status(409).json({
+        error: 'Invitation already responded to.',
+        currentStatus: member.status,
+      });
+    }
+    member.status = 'active';
+    member.respondedAt = new Date();
+    await sub.save();
+
+    // Notif au titulaire pour l'informer.
+    try {
+      const { sendNotification } = require('../services/notificationSender');
+      await sendNotification({
+        userId: String(sub.userId),
+        role: String(sub.userModel).toLowerCase(),
+        type: 'family_invitation_accepted',
+        data: {
+          memberUserId: String(user.id),
+          memberRole: String(user.model).toLowerCase(),
+        },
+      });
+    } catch (_) {/* non-critical */}
+
+    res.json({ success: true, status: 'active' });
+  } catch (e) {
+    logger.error('[friends/family/invitation accept]', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+/**
+ * v23.1.183 — POST /friends/family/invitation/:id/refuse
+ * Le destinataire refuse l'invitation, on retire le sous-doc.
+ */
+router.post('/family/invitation/:id/refuse', requireAuth, async (req, res) => {
+  try {
+    const user = me(req);
+    const invitationId = req.params.id;
+    const sub = await UserSubscription.findOne({
+      'familyMembers._id': invitationId,
+      'familyMembers.userId': user.id,
+      plan: 'famille',
+    });
+    if (!sub) {
+      return res.status(404).json({ error: 'Invitation not found.' });
+    }
+    const member = (sub.familyMembers || []).id(invitationId);
+    if (!member) {
+      return res.status(404).json({ error: 'Invitation not found.' });
+    }
+    if (String(member.userId) !== String(user.id)) {
+      return res.status(403).json({ error: 'Not your invitation.' });
+    }
+    if (member.status !== 'pending') {
+      return res.status(409).json({
+        error: 'Invitation already responded to.',
+        currentStatus: member.status,
+      });
+    }
+    // Retire complètement le sous-document.
+    sub.familyMembers = (sub.familyMembers || []).filter(
+      (m) => String(m._id) !== String(invitationId),
+    );
+    await sub.save();
+
+    // Notif au titulaire pour l'informer.
+    try {
+      const { sendNotification } = require('../services/notificationSender');
+      await sendNotification({
+        userId: String(sub.userId),
+        role: String(sub.userModel).toLowerCase(),
+        type: 'family_invitation_refused',
+        data: {
+          memberUserId: String(user.id),
+          memberRole: String(user.model).toLowerCase(),
+        },
+      });
+    } catch (_) {/* non-critical */}
+
+    res.json({ success: true, status: 'refused' });
+  } catch (e) {
+    logger.error('[friends/family/invitation refuse]', e);
     res.status(500).json({ error: e.message });
   }
 });

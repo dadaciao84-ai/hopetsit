@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:hopetsit/controllers/friend_controller.dart';
 import 'package:hopetsit/models/app_notification_model.dart';
 import 'package:hopetsit/utils/app_colors.dart';
 import 'package:hopetsit/widgets/app_text.dart';
+import 'package:hopetsit/widgets/custom_snackbar_widget.dart';
 import 'package:intl/intl.dart';
 
-class NotificationCard extends StatelessWidget {
+class NotificationCard extends StatefulWidget {
   const NotificationCard({
     super.key,
     required this.notification,
@@ -15,6 +17,22 @@ class NotificationCard extends StatelessWidget {
 
   final AppNotificationModel notification;
   final VoidCallback onTap;
+
+  @override
+  State<NotificationCard> createState() => _NotificationCardState();
+}
+
+class _NotificationCardState extends State<NotificationCard> {
+  // v23.1.183 — Daniel : "les demande damis naparaisse nul par il ny as
+  // pas dendroi aou accepter ou refuser". Pour friend_request_received,
+  // family_invitation_received, live_tracking_request_received → on
+  // affiche les boutons Accepter / Refuser DIRECTEMENT dans la cloche
+  // sans devoir naviguer.
+  bool _actionPending = false;
+  String? _actionDone; // 'accepted' | 'refused' une fois l'action faite
+
+  AppNotificationModel get notification => widget.notification;
+  VoidCallback get onTap => widget.onTap;
 
   IconData _iconForType(String type) {
     final t = type.toLowerCase();
@@ -134,6 +152,172 @@ class NotificationCard extends StatelessWidget {
     }
     final translated = key.tr;
     return translated == key ? raw : translated;
+  }
+
+  /// v23.1.183 — true si on doit afficher les boutons Accepter/Refuser
+  /// inline dans la cloche pour ce type de notif.
+  bool get _hasInlineActions {
+    if (_actionDone != null) return true; // affiche le statut final
+    final t = notification.type.toLowerCase();
+    if (t == 'friend_request_received') {
+      final fid = (notification.data['friendshipId'] ?? '').toString();
+      return fid.isNotEmpty;
+    }
+    if (t == 'family_invitation_received') {
+      final iid = (notification.data['invitationId'] ?? '').toString();
+      return iid.isNotEmpty;
+    }
+    return false;
+  }
+
+  Future<void> _onAccept() async {
+    if (_actionPending) return;
+    final t = notification.type.toLowerCase();
+    final ctrl = Get.isRegistered<FriendController>()
+        ? Get.find<FriendController>()
+        : Get.put(FriendController());
+    setState(() => _actionPending = true);
+    try {
+      bool ok = false;
+      if (t == 'friend_request_received') {
+        final fid = (notification.data['friendshipId'] ?? '').toString();
+        if (fid.isNotEmpty) ok = await ctrl.accept(fid);
+      } else if (t == 'family_invitation_received') {
+        final iid = (notification.data['invitationId'] ?? '').toString();
+        if (iid.isNotEmpty) ok = await ctrl.acceptFamilyInvitation(iid);
+      }
+      if (!mounted) return;
+      if (ok) {
+        setState(() => _actionDone = 'accepted');
+        CustomSnackbar.showSuccess(
+          title: 'common_done'.tr,
+          message: t == 'friend_request_received'
+              ? 'friend_request_accepted_msg'.tr
+              : 'family_invitation_accepted_msg'.tr,
+        );
+      } else {
+        CustomSnackbar.showError(
+          title: 'common_error'.tr,
+          message: 'common_try_again'.tr,
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _actionPending = false);
+    }
+  }
+
+  Future<void> _onRefuse() async {
+    if (_actionPending) return;
+    final t = notification.type.toLowerCase();
+    final ctrl = Get.isRegistered<FriendController>()
+        ? Get.find<FriendController>()
+        : Get.put(FriendController());
+    setState(() => _actionPending = true);
+    try {
+      bool ok = false;
+      if (t == 'friend_request_received') {
+        final fid = (notification.data['friendshipId'] ?? '').toString();
+        if (fid.isNotEmpty) ok = await ctrl.decline(fid);
+      } else if (t == 'family_invitation_received') {
+        final iid = (notification.data['invitationId'] ?? '').toString();
+        if (iid.isNotEmpty) ok = await ctrl.refuseFamilyInvitation(iid);
+      }
+      if (!mounted) return;
+      if (ok) {
+        setState(() => _actionDone = 'refused');
+      } else {
+        CustomSnackbar.showError(
+          title: 'common_error'.tr,
+          message: 'common_try_again'.tr,
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _actionPending = false);
+    }
+  }
+
+  Widget _buildInlineActions(Color accent) {
+    if (_actionDone == 'accepted') {
+      return Padding(
+        padding: EdgeInsets.only(top: 10.h),
+        child: Row(
+          children: [
+            Icon(Icons.check_circle, color: Colors.green, size: 18.sp),
+            SizedBox(width: 6.w),
+            InterText(
+              text: 'common_accepted'.tr,
+              fontSize: 12.sp,
+              fontWeight: FontWeight.w700,
+              color: Colors.green,
+            ),
+          ],
+        ),
+      );
+    }
+    if (_actionDone == 'refused') {
+      return Padding(
+        padding: EdgeInsets.only(top: 10.h),
+        child: Row(
+          children: [
+            Icon(Icons.cancel, color: Colors.red, size: 18.sp),
+            SizedBox(width: 6.w),
+            InterText(
+              text: 'common_refused'.tr,
+              fontSize: 12.sp,
+              fontWeight: FontWeight.w700,
+              color: Colors.red,
+            ),
+          ],
+        ),
+      );
+    }
+    return Padding(
+      padding: EdgeInsets.only(top: 10.h),
+      child: Row(
+        children: [
+          Expanded(
+            child: ElevatedButton.icon(
+              onPressed: _actionPending ? null : _onAccept,
+              icon: Icon(Icons.check_rounded, size: 18.sp, color: Colors.white),
+              label: InterText(
+                text: 'pawfollow_accept'.tr,
+                fontSize: 12.sp,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFEF4324),
+                padding: EdgeInsets.symmetric(vertical: 8.h),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10.r),
+                ),
+                elevation: 0,
+              ),
+            ),
+          ),
+          SizedBox(width: 8.w),
+          Expanded(
+            child: OutlinedButton.icon(
+              onPressed: _actionPending ? null : _onRefuse,
+              icon: Icon(Icons.close_rounded, size: 18.sp, color: Colors.red),
+              label: InterText(
+                text: 'pawfollow_refuse'.tr,
+                fontSize: 12.sp,
+                fontWeight: FontWeight.w700,
+                color: Colors.red,
+              ),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: Colors.red, width: 1.4),
+                padding: EdgeInsets.symmetric(vertical: 8.h),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10.r),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -264,6 +448,10 @@ class NotificationCard extends StatelessWidget {
                                 fontWeight: FontWeight.w500,
                                 color: AppColors.greyText,
                               ),
+                              // v23.1.183 — Boutons Accepter/Refuser
+                              // inline pour friend_request_received et
+                              // family_invitation_received.
+                              if (_hasInlineActions) _buildInlineActions(accent),
                             ],
                           ),
                         ),

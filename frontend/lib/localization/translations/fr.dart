@@ -65,6 +65,20 @@ const Map<String, String> frFRTranslations = <String, String>{
       'walker_card_request_button': 'Demander',
       'sitter_card_estimate_days': 'Estimation @days jours : ~@amount @currency',
       'friends_no_pending_request': 'Pas de demande en attente.',
+      // v23.1.183 — Daniel : "developpe le sous menu amis famislle pour
+      // accepter refuse rbloquer". Strings pour la cloche + écran amis.
+      'common_done': 'Fait',
+      'common_try_again': 'Reessaie plus tard.',
+      'common_accepted': 'Acceptee',
+      'common_refused': 'Refusee',
+      'friend_request_accepted_msg': 'Vous etes maintenant amis.',
+      'family_invitation_accepted_msg': 'Tu fais maintenant partie de la famille.',
+      'family_invitation_received_title': 'Invitation Famille',
+      'family_invitation_status_pending': 'En attente',
+      'family_invitation_status_active': 'Membre actif',
+      'pending_requests_banner_friends': '@n demande(s) d\'ami en attente',
+      'pending_requests_banner_family': '@n invitation(s) Famille en attente',
+      'pending_requests_banner_action': 'Voir',
       // v23.1 — likes count pill
       'post_likes_singular': 'j\'aime',
       'post_likes_plural': 'j\'aime',

@@ -268,6 +268,20 @@ const userSubscriptionSchema = new mongoose.Schema(
         // Optionnel : l'email saisi par le titulaire (utile si l'invité
         // n'a pas encore créé son compte — feature future).
         email: String,
+        // v23.1.183 — Daniel : "developpe le sous menu amis famislle
+        // pour accepter refuse rbloquer". Avant on auto-ajoutait, le
+        // destinataire n'avait aucun moyen de refuser. Maintenant le
+        // status par défaut est 'pending' ; le destinataire doit
+        // accepter (status='active') ou refuser (membre retiré).
+        // Les anciens membres sans status sont considérés 'active'
+        // (rétro-compat ; isInSameFamily les inclut).
+        status: {
+          type: String,
+          enum: ['pending', 'active'],
+          default: 'pending',
+          index: true,
+        },
+        respondedAt: Date,
       },
     ],
   },
@@ -344,8 +358,15 @@ async function isInSameFamily(userAId, userBId) {
     status: 'active',
     currentPeriodEnd: { $gt: now },
   }).lean();
+  // v23.1.183 — n'inclut que les membres status='active' (les 'pending'
+  // sont des invitations en attente, l'invité n'a pas encore accepté).
+  // Les anciens membres sans status sont considérés actifs (rétro-compat).
+  const isActiveMember = (m) =>
+    !m.status || m.status === 'active';
   if (subA && Array.isArray(subA.familyMembers)) {
-    if (subA.familyMembers.some((m) => String(m.userId) === b)) return true;
+    if (subA.familyMembers.some(
+      (m) => isActiveMember(m) && String(m.userId) === b,
+    )) return true;
   }
   // Sub où B est titulaire ET active ET famille → vérifier si A est dedans
   const subB = await Model.findOne({
@@ -355,7 +376,9 @@ async function isInSameFamily(userAId, userBId) {
     currentPeriodEnd: { $gt: now },
   }).lean();
   if (subB && Array.isArray(subB.familyMembers)) {
-    if (subB.familyMembers.some((m) => String(m.userId) === a)) return true;
+    if (subB.familyMembers.some(
+      (m) => isActiveMember(m) && String(m.userId) === a,
+    )) return true;
   }
   // Subs où A figure en family member → vérifier si B figure dans la même
   const subsContainingA = await Model.find({
@@ -365,7 +388,10 @@ async function isInSameFamily(userAId, userBId) {
     currentPeriodEnd: { $gt: now },
   }).lean();
   for (const sub of subsContainingA) {
-    const memberIds = (sub.familyMembers || []).map((m) => String(m.userId));
+    // v23.1.183 — ignore les membres pending.
+    const memberIds = (sub.familyMembers || [])
+      .filter((m) => !m.status || m.status === 'active')
+      .map((m) => String(m.userId));
     if (memberIds.includes(b) || String(sub.userId) === b) return true;
   }
   return false;

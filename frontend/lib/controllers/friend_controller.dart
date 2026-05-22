@@ -20,7 +20,13 @@ class FriendController extends GetxController {
   Future<void> refresh() async {
     isLoading.value = true;
     try {
-      await Future.wait([loadFriends(), loadRequests()]);
+      // v23.1.183 — charge aussi les invitations Famille pour que le
+      // banner home + la cloche reflètent les pending invitations.
+      await Future.wait([
+        loadFriends(),
+        loadRequests(),
+        loadFamilyInvitations(),
+      ]);
     } finally {
       isLoading.value = false;
     }
@@ -298,6 +304,69 @@ class FriendController extends GetxController {
     } catch (e) {
       debugPrint('[Friends] checkTrackAccess error: $e');
       return {'canTrack': false, 'reason': 'error'};
+    }
+  }
+
+  // ── v23.1.183 — Family invitation accept/refuse flow ───────────────────
+  // Daniel : "developpe le sous menu amis famislle pour accepter refuse
+  // rbloquer les demande damis et famille". Avant on auto-ajoutait
+  // direct en famille ; maintenant le destinataire reçoit une invitation
+  // pending qu'il peut accepter ou refuser depuis la cloche.
+
+  /// Charge mes invitations famille en attente (incoming).
+  final RxList<Map<String, dynamic>> incomingFamilyInvitations =
+      <Map<String, dynamic>>[].obs;
+
+  Future<void> loadFamilyInvitations() async {
+    try {
+      final api = Get.find<ApiClient>();
+      final r = await api.get(
+        '/friends/family/invitations',
+        requiresAuth: true,
+      );
+      if (r is Map && r['invitations'] is List) {
+        incomingFamilyInvitations.assignAll(
+          (r['invitations'] as List)
+              .whereType<Map>()
+              .map((i) => Map<String, dynamic>.from(i))
+              .toList(),
+        );
+      }
+    } catch (e) {
+      debugPrint('[Friends] loadFamilyInvitations error: $e');
+      incomingFamilyInvitations.clear();
+    }
+  }
+
+  Future<bool> acceptFamilyInvitation(String invitationId) async {
+    try {
+      final api = Get.find<ApiClient>();
+      await api.post(
+        '/friends/family/invitation/$invitationId/accept',
+        requiresAuth: true,
+      );
+      await loadFamily();
+      await loadFamilyInvitations();
+      return true;
+    } catch (e) {
+      debugPrint('[Friends] acceptFamilyInvitation error: $e');
+      return false;
+    }
+  }
+
+  Future<bool> refuseFamilyInvitation(String invitationId) async {
+    try {
+      final api = Get.find<ApiClient>();
+      await api.post(
+        '/friends/family/invitation/$invitationId/refuse',
+        requiresAuth: true,
+      );
+      incomingFamilyInvitations
+          .removeWhere((i) => (i['id'] ?? i['_id']) == invitationId);
+      return true;
+    } catch (e) {
+      debugPrint('[Friends] refuseFamilyInvitation error: $e');
+      return false;
     }
   }
 
