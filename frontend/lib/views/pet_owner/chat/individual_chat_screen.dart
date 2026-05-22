@@ -459,38 +459,14 @@ class _IndividualChatScreenState extends State<IndividualChatScreen> {
         // (silently)
       }
 
-      // 2. Call the provider-location endpoint pour le cas où le provider
-      //    a déjà partagé sa position (accepté la demande dans une session
-      //    antérieure). Si oui, on ouvre direct la live map.
-      final result = await repo.getProviderLocationForBooking(bookingId: bookingId);
-      final code = (result['code'] ?? '').toString();
-      final coords = result['coordinates'];
-
-      if (code == 'PAWFOLLOW_REQUIRED') {
-        CustomSnackbar.showWarning(
-          title: 'follow_pawfollow_required_title'.tr,
-          message: 'follow_pawfollow_required_msg'.tr,
-        );
-        await Future.delayed(const Duration(milliseconds: 700));
-        Get.to(() => const CoinShopScreen(initialTab: 1));
-        return;
-      }
-      if (code == 'NO_LOCATION_YET' || coords == null) {
-        CustomSnackbar.showInfo(
-          title: 'follow_no_position_title'.tr,
-          message: 'follow_no_position_msg'.tr,
-        );
-        return;
-      }
-      // v23.1.159 — Daniel : "quand jappuis suivre sa me renvoi sur ma map
-      // au lieu de voir sa geoloclation a lui". Avant : on ouvrait PawMap
-      // (la carte generale de l'utilisateur) qui ne montre PAS la position
-      // live du walker — juste les POIs / providers a proximite. Maintenant :
-      // on ouvre LiveWalkMapScreen qui :
-      //   - fetch /walks/active?bookingId=X
-      //   - subscribe au socket event 'walk.position' du walker
-      //   - anime la camera pour suivre la position live
-      Get.to(() => LiveWalkMapScreen(bookingId: bookingId));
+      // v23.1.191 — Daniel : "ouvre pas de balade au lieu denvoyer la
+      // demande au sitter walker". Le tap Suivre se contente desormais
+      // d'envoyer la demande dans le chat (carte pawfollow_request).
+      // Plus jamais d'ouverture automatique de LiveWalkMapScreen ; le
+      // sitter/walker accepte → la carte chat passe a "Accepted" → le
+      // owner peut alors taper la carte pour voir la live map. Plus de
+      // "Aucune balade en cours" inattendu apres le tap Suivre.
+      // (PAWFOLLOW_REQUIRED gate reste géré côté backend si applicable.)
     } catch (e) {
       CustomSnackbar.showError(
         title: 'follow_unavailable_title'.tr,

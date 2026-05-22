@@ -80,15 +80,16 @@ const Map<String, String> enUSTranslations = <String, String>{
       'pending_requests_banner_family': '@n pending Family invitation(s)',
       'pending_requests_banner_action': 'View',
       // v23.1.184 — PawMap redesign with 4 quick-action cards.
+      // v23.1.191 — shorter sublabels to fit on one line.
       'pawmap_quick_follow': 'Follow',
-      'pawmap_quick_follow_sub': 'See loved ones',
+      'pawmap_quick_follow_sub': 'Loved ones',
       'pawmap_quick_follow_on': 'Live on',
       'pawmap_quick_family': 'Family & Friends',
-      'pawmap_quick_family_sub': 'Add, track',
+      'pawmap_quick_family_sub': 'Add',
       'pawmap_quick_alerts': 'Alerts',
       'pawmap_quick_alerts_sub': 'Reports',
       'pawmap_quick_report': 'Report',
-      'pawmap_quick_report_sub': 'Quick & easy',
+      'pawmap_quick_report_sub': 'Fast',
       // v23.1.185 — Family & Friends 5 tabs (Daniel mockup).
       'friends_tab_add': 'Add',
       'friends_tab_live': 'Live',

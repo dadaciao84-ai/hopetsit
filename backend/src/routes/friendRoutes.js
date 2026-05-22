@@ -255,6 +255,39 @@ router.post('/request', requireAuth, async (req, res) => {
         logger.info(
           `[friends/request] cleaned pending ${existing._id} (age=${ageDays.toFixed(1)}d, iAmRequester=${iAmRequester}) — will recreate`,
         );
+      } else if (existing.status === 'pending' && !iAmRequester) {
+        // v23.1.191 — Daniel : "je ne peux pas ajouter demande amis sa
+        // me dis jai deja une demande en attente ds amis je nai
+        // personne". Cas reel : l'autre partie m'a envoye une demande
+        // que je n'ai jamais vue (notif perdue, etc.) → je tente de
+        // l'ajouter et je suis bloque par 409.
+        //
+        // Nouvelle logique : si l'autre partie m'a envoye une demande
+        // pending, mon tap "Inviter" la valide automatiquement (mutual
+        // confirmation = on est tous les deux d'accord pour etre amis).
+        existing.status = 'accepted';
+        existing.acceptedAt = new Date();
+        await existing.save();
+        logger.info(
+          `[friends/request] auto-accepted incoming pending ${existing._id} (other side wanted us as friends too)`,
+        );
+        // Notif a l'expediteur original pour le prevenir.
+        try {
+          const { sendNotification } = require('../services/notificationSender');
+          await sendNotification({
+            userId: String(existing.requesterId),
+            role: String(existing.requesterModel || 'owner').toLowerCase(),
+            type: 'friend_request_accepted',
+            data: {
+              friendshipId: String(existing._id),
+              byUserId: String(user.id),
+            },
+          });
+        } catch (_) {/* non-critical */}
+        return res.status(200).json({
+          friendship: await enrichFriendship(existing, user.id),
+          autoAccepted: true,
+        });
       } else {
         return res
           .status(409)

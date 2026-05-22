@@ -204,29 +204,32 @@ class _PawMapScreenState extends State<PawMapScreen> {
   /// 120x120 pixels gives a crisp icon on retina screens. Returns a
   /// BitmapDescriptor ready to assign to Marker(icon: ...).
   Future<BitmapDescriptor> _buildEmojiBitmap(String emoji) async {
-    const double size = 120.0;
+    // v23.1.191 — Daniel : "le signalement emoji est trop grand". On
+    // reduit le bitmap de 120 a 80 (taille comparable aux pins Google
+    // Maps natifs) + on ajuste l'emoji a 40sp.
+    const double size = 80.0;
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(recorder);
 
     // Ombre douce derriere le cercle.
     final shadowPaint = Paint()
       ..color = Colors.black.withValues(alpha: 0.18)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
-    canvas.drawCircle(const Offset(size / 2, size / 2 + 3), size / 2 - 4, shadowPaint);
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
+    canvas.drawCircle(const Offset(size / 2, size / 2 + 2), size / 2 - 3, shadowPaint);
 
     // Cercle blanc.
     final bgPaint = Paint()..color = Colors.white;
-    canvas.drawCircle(const Offset(size / 2, size / 2), size / 2 - 4, bgPaint);
-    // Anneau orange brand.
+    canvas.drawCircle(const Offset(size / 2, size / 2), size / 2 - 3, bgPaint);
+    // Anneau orange brand (fin pour ne pas charger).
     final ringPaint = Paint()
       ..color = const Color(0xFFEF4324)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 4;
-    canvas.drawCircle(const Offset(size / 2, size / 2), size / 2 - 6, ringPaint);
+      ..strokeWidth = 2.5;
+    canvas.drawCircle(const Offset(size / 2, size / 2), size / 2 - 4, ringPaint);
 
-    // Emoji.
+    // Emoji compact.
     final tp = TextPainter(
-      text: TextSpan(text: emoji, style: const TextStyle(fontSize: 60)),
+      text: TextSpan(text: emoji, style: const TextStyle(fontSize: 40)),
       textDirection: TextDirection.ltr,
     )..layout();
     tp.paint(
@@ -1779,8 +1782,14 @@ class _PawMapScreenState extends State<PawMapScreen> {
   Widget _buildQuickActionsRow() {
     return Container(
       padding: EdgeInsets.fromLTRB(12.w, 10.h, 12.w, 6.h),
-      child: Row(
-        children: [
+      // v23.1.191 — Daniel : "les gros icone doive etre toute lissible
+      // et de la meme taille". IntrinsicHeight force les 4 Expanded a
+      // adopter la hauteur de la plus grande card (Famille & Amis qui
+      // wrap sur 2 lignes) → toutes les cards identiques.
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
           // 1. Suivre — toggle broadcast (= je partage ma position aux
           // amis qui peuvent me suivre). Etat actif → vert + icon plein.
           Expanded(
@@ -1844,6 +1853,7 @@ class _PawMapScreenState extends State<PawMapScreen> {
           ),
         ],
       ),
+      ),
     );
   }
 
@@ -1879,7 +1889,11 @@ class _PawMapScreenState extends State<PawMapScreen> {
             ],
           ),
           child: Column(
-            mainAxisSize: MainAxisSize.min,
+            // v23.1.191 — IntrinsicHeight parent uniformise les hauteurs ;
+            // on centre verticalement le contenu pour que toutes les
+            // cards aient leur icone + label aligne meme si elles
+            // n'ont pas le meme nombre de lignes de label.
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
                 width: 38.w,

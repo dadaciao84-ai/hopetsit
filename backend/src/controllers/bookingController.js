@@ -4416,8 +4416,10 @@ const requestLiveTracking = async (req, res) => {
             },
           });
           pawfollowMessageId = msg._id;
-          // Met à jour lastMessageAt de la conversation.
+          // v23.1.191 — Met aussi a jour lastMessage avec un preview
+          // clair, sinon la chat list affiche du garbage hérité.
           await Conversation.findByIdAndUpdate(conversation._id, {
+            lastMessage: '📍 Demande de suivi en direct',
             lastMessageAt: new Date(),
           });
           // Broadcast via socket si dispo.
@@ -4657,7 +4659,11 @@ const requestLiveTrackingByConversation = async (req, res) => {
       },
     });
 
+    // v23.1.191 — Daniel : "[SUIVI_REQUEST] souhaite voi..." dans la
+    // chat list. Cause : on n'ecrivait pas lastMessage → l'ancien
+    // texte garbage restait. On set un preview clair multi-lang.
     await Conversation.findByIdAndUpdate(conversation._id, {
+      lastMessage: '📍 Demande de suivi en direct',
       lastMessageAt: new Date(),
     });
 
