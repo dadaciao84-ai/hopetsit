@@ -46,6 +46,48 @@ class ActiveBenefitsRow extends StatefulWidget {
   // à chaque /users/me/benefits.
   static final RxBool _boostActive = false.obs;
   static RxBool get boostActiveAccessor => _boostActive;
+
+  /// v23.1.175 — Daniel : "le cadre boost napparait toujour pas sur le
+  /// profile owner". Cause #1 (v175 initial) : _boostActive ne devenait true
+  /// qu'après que le _ActiveBenefitsRowState s'exécute (montée du widget
+  /// enfant). Cette méthode statique permet à n'importe quel écran (ex.
+  /// ProfileScreen.build) de forcer un refetch immédiat de /benefits
+  /// → met à jour _boostActive sans attendre le mount du widget.
+  ///
+  /// v23.1.175 fix #2 — Daniel : "reverifie egalement le cadre boost sur
+  /// owner qui naparait pas car jai demande r5fois". Cause RACINE :
+  /// l'API /users/me/benefits renvoie 2 champs distincts : `boostExpiry`
+  /// (Boost annonce) ET `mapBoostExpiry` (PawSpot Gold etc.). On lisait
+  /// SEULEMENT boostExpiry → si Daniel avait juste un PawSpot Gold actif,
+  /// le cadre doré ne s'affichait jamais. Maintenant on prend l'OR :
+  /// _boostActive = (boostExpiry > now) OU (mapBoostExpiry > now).
+  static Future<void> refreshBoostState() async {
+    try {
+      if (!Get.isRegistered<ApiClient>()) return;
+      final api = Get.find<ApiClient>();
+      final r = await api.get('/users/me/benefits', requiresAuth: true);
+      if (r is Map) {
+        final benefits = Map<String, dynamic>.from(r);
+        DateTime? parseExpiry(dynamic raw) {
+          if (raw is String && raw.isNotEmpty) return DateTime.tryParse(raw);
+          if (raw is num) {
+            return DateTime.fromMillisecondsSinceEpoch(raw.toInt());
+          }
+          return null;
+        }
+
+        final boostExpiry = parseExpiry(benefits['boostExpiry']);
+        final mapBoostExpiry = parseExpiry(benefits['mapBoostExpiry']);
+        final now = DateTime.now();
+        final boostActive =
+            boostExpiry != null && boostExpiry.isAfter(now);
+        final mapBoostActive =
+            mapBoostExpiry != null && mapBoostExpiry.isAfter(now);
+        // ANY boost actif (annonce OR pawspot/mapboost) → cadre doré.
+        _boostActive.value = boostActive || mapBoostActive;
+      }
+    } catch (_) {/* defensive */}
+  }
 }
 
 class _ActiveBenefitsRowState extends State<ActiveBenefitsRow> {
@@ -77,12 +119,16 @@ class _ActiveBenefitsRowState extends State<ActiveBenefitsRow> {
           _benefits = Map<String, dynamic>.from(r);
           _loaded = true;
         });
-        // v23.1.149 — synchronise le Rx<bool> boostActive partagé pour
-        // que les autres widgets (cadre doré sur le hero owner, etc.)
-        // se rebuilent automatiquement.
+        // v23.1.149 — synchronise le Rx<bool> boostActive partagé.
+        // v23.1.175 fix #2 — Daniel "cadre boost napparait toujours pas
+        // sur profile owner". On regarde maintenant boostExpiry OU
+        // mapBoostExpiry (PawSpot/MapBoost) pour activer le cadre doré.
         final expiry = _toDate(_benefits['boostExpiry']);
-        final active = expiry != null && expiry.isAfter(DateTime.now());
-        ActiveBenefitsRow._boostActive.value = active;
+        final mapExpiry = _toDate(_benefits['mapBoostExpiry']);
+        final now = DateTime.now();
+        final boostActive = expiry != null && expiry.isAfter(now);
+        final mapActive = mapExpiry != null && mapExpiry.isAfter(now);
+        ActiveBenefitsRow._boostActive.value = boostActive || mapActive;
       }
     } catch (_) {
       // best-effort, on cache simplement la row.

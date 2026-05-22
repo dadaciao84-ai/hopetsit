@@ -380,12 +380,17 @@ router.get('/:id/track-access', requireAuth, async (req, res) => {
       return res.json({ canTrack: true, reason: 'family' });
     }
 
-    // Per-friendship share flag (the OTHER must share with me)
+    // Per-friendship share flag (the OTHER must share with me).
+    // v23.1.175 — Daniel : "reverifie que tte marche les suivis amis".
+    // Bug audit : les noms de champs étaient WRONG (requesterShareWithAddressee
+    // n'existe PAS dans le schéma Friendship). Les vrais champs sont
+    // requesterSharesPosition / addresseeSharesPosition (cf. mapSocket.js:53-66
+    // et Friendship.js:53-54).
     const otherSharesWithMe =
       (String(friendship.requesterId) === String(otherId) &&
-        friendship.requesterShareWithAddressee === true) ||
+        friendship.requesterSharesPosition === true) ||
       (String(friendship.addresseeId) === String(otherId) &&
-        friendship.addresseeShareWithRequester === true);
+        friendship.addresseeSharesPosition === true);
     if (otherSharesWithMe) {
       return res.json({ canTrack: true, reason: 'shared' });
     }

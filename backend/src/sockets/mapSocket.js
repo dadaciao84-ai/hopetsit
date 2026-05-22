@@ -45,29 +45,49 @@ async function listPositionListeners(userId, role) {
     ],
   }).lean();
 
+  // v23.1.175 — Daniel : "fais le suivi famille". Le bypass famille
+  // (PawFollow Famille €9.99) n'était pas câblé ici → un membre famille
+  // qui n'avait pas activé son share-flag ne recevait jamais les positions
+  // des autres membres. On charge isInSameFamily UNE fois par appel et
+  // on l'utilise dans la boucle.
+  const { isInSameFamily } = require('../models/UserSubscription');
+
   const listeners = [];
   for (const f of friendships) {
     const isRequester =
       String(f.requesterId) === String(userId) && f.requesterModel === model;
 
-    // My own share flag must be on for me to broadcast.
-    const myShare = isRequester
-      ? f.requesterSharesPosition
-      : f.addresseeSharesPosition;
-    if (!myShare) continue;
+    const otherId = isRequester ? f.addresseeId : f.requesterId;
+    const otherRole = (isRequester ? f.addresseeModel : f.requesterModel)
+      .toLowerCase();
 
-    // The other side's receive flag — they can mute me — we reuse the same
-    // flag on their side (it means "I accept receiving positions"). We read
-    // it as "if the friend muted their own share, they probably don't want
-    // to see ours either" to keep the UX symmetric.
-    const theirShare = isRequester
-      ? f.addresseeSharesPosition
-      : f.requesterSharesPosition;
-    if (!theirShare) continue;
+    // v23.1.175 — Bypass famille : si on est dans la même famille active,
+    // on broadcast sans tenir compte des share-flags.
+    let familyBypass = false;
+    try {
+      familyBypass = await isInSameFamily(userId, otherId);
+    } catch (_) {/* defensive */}
+
+    if (!familyBypass) {
+      // My own share flag must be on for me to broadcast.
+      const myShare = isRequester
+        ? f.requesterSharesPosition
+        : f.addresseeSharesPosition;
+      if (!myShare) continue;
+
+      // The other side's receive flag — they can mute me — we reuse the same
+      // flag on their side (it means "I accept receiving positions"). We read
+      // it as "if the friend muted their own share, they probably don't want
+      // to see ours either" to keep the UX symmetric.
+      const theirShare = isRequester
+        ? f.addresseeSharesPosition
+        : f.requesterSharesPosition;
+      if (!theirShare) continue;
+    }
 
     listeners.push({
-      userId: isRequester ? f.addresseeId : f.requesterId,
-      role: (isRequester ? f.addresseeModel : f.requesterModel).toLowerCase(),
+      userId: otherId,
+      role: otherRole,
     });
   }
   return listeners;

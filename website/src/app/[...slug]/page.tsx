@@ -46,7 +46,8 @@ function webFallbackFor(path: string): { href: string; label: string } | null {
     case "chat":
       return { href: "/chat", label: "Voir mes messages" };
     case "book":
-      // /book/:postId — fallback vers la home
+    case "post":
+      // /book/:postId ou /post/:postId — fallback vers la home
       return { href: "/", label: "Retour à l'accueil" };
     case "wallet":
       return { href: "/dashboard", label: "Voir mon tableau de bord" };
@@ -59,6 +60,17 @@ function webFallbackFor(path: string): { href: string; label: string } | null {
       return { href: "/dashboard", label: "Voir mon tableau de bord" };
     case "walk":
       return { href: "/bookings", label: "Voir mes réservations" };
+    // v23.1.175 — cases manquantes ajoutées (audit web Next.js).
+    case "profile":
+      return { href: "/profile", label: "Voir mon profil" };
+    case "pay":
+      return { href: "/pay", label: "Aller au paiement" };
+    case "invite":
+      // /invite/family/<email> ou /invite/<code> — flow d'invitation
+      return { href: "/signup", label: "Créer un compte HoPetSit" };
+    case "auth":
+      // /auth/* — flow de bridge session web → app
+      return { href: "/login", label: "Se connecter" };
     default:
       return null;
   }

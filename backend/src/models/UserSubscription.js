@@ -188,7 +188,11 @@ const userSubscriptionSchema = new mongoose.Schema(
     // Plan type: pawpass (formerly premium), pawfollow, or none
     plan: {
       type: String,
-      enum: ['none', 'monthly', 'yearly', 'solo', 'famille'],
+      // v23.1.175 — Daniel : "qd je prend abonnement famille il ne se passe
+      // rien". Cause racine : le frontend envoie 'family' (EN) mais l'enum
+      // n'acceptait que 'famille' (FR) → ValidationError silencieuse →
+      // sub jamais persistée. On accepte les 2 pour la compat.
+      enum: ['none', 'monthly', 'yearly', 'solo', 'famille', 'family'],
       default: 'none',
       index: true,
     },
@@ -217,7 +221,11 @@ const userSubscriptionSchema = new mongoose.Schema(
     // Payment history (similar to boostPurchases on User models)
     payments: [
       {
-        plan: { type: String, enum: ['monthly', 'yearly', 'solo', 'famille'] },
+        // v23.1.175 — Daniel : ajout de 'family' pour compat FR/EN.
+        plan: {
+          type: String,
+          enum: ['monthly', 'yearly', 'solo', 'famille', 'family'],
+        },
         amount: Number,
         currency: { type: String, default: 'EUR' },
         paidAt: { type: Date, default: Date.now },

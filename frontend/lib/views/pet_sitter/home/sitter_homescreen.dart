@@ -1217,7 +1217,15 @@ class _SitterHomescreenState extends State<SitterHomescreen> {
                                       ) {
                                         final imageUrl = imageUrls[i];
                                         if (imageUrl.startsWith('http')) {
-                                          final uri = Uri.parse(imageUrl);
+                                          // v23.1.175 — Daniel : 14 crashes
+                                          // _Uri.resolve FormatException sur
+                                          // v169/v170. Cause : Uri.parse(url)
+                                          // throw si url contient espace ou
+                                          // caractères interdits. Fix : tryParse.
+                                          final uri = Uri.tryParse(imageUrl);
+                                          if (uri == null || !uri.hasScheme) {
+                                            continue;
+                                          }
                                           final resp = await http.get(uri);
                                           if (resp.statusCode == 200) {
                                             final bytes = resp.bodyBytes;

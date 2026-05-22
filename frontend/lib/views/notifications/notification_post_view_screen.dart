@@ -133,13 +133,25 @@ class _NotificationPostViewScreenState
               // On fait pareil que sitter_homescreen / my_posts : on partage
               // le titre + lien deep-link vers le post.
               onShare: () {
-                final text = post.body.trim().isNotEmpty
-                    ? post.body.trim()
-                    : 'post_card_default_share_message'.tr;
-                final url = 'https://hopetsit.com/post/${post.id}';
-                SharePlus.instance.share(
-                  ShareParams(text: '$text\n\n$url'),
-                );
+                // v23.1.175 — Daniel : 14 crashes _Uri.resolve.
+                // Manquait try/catch ici. On wrap pour ne plus crasher.
+                try {
+                  final text = post.body.trim().isNotEmpty
+                      ? post.body.trim()
+                      : 'post_card_default_share_message'.tr;
+                  final postId = post.id.trim();
+                  if (postId.isEmpty) {
+                    // Pas de post.id → on partage juste le texte.
+                    SharePlus.instance.share(ShareParams(text: text));
+                    return;
+                  }
+                  final url = 'https://hopetsit.com/post/$postId';
+                  SharePlus.instance.share(
+                    ShareParams(text: '$text\n\n$url'),
+                  );
+                } catch (e) {
+                  // Silently ignore — share failures shouldn't crash the app.
+                }
               },
             );
           }),

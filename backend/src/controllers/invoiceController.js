@@ -242,6 +242,11 @@ const renderInvoiceHtml = async (req, res) => {
     // v23.1.164 — Daniel : "dans la fcture ya tjr ecris invoice fais que tt
     // soit bien traduit". Ajout du label `invoiceLabel` qui sert pour le
     // <title> de la page ET pour le numero affiche en haut a droite.
+    // v23.1.175 — Daniel : "sur le descriptif de la facture mal traduit
+    // a verifier tte les langue". On ajoute serviceWalk / serviceDaycare /
+    // serviceBoarding / serviceSitting / serviceGeneric à chaque langue,
+    // et on traduit la cellule "Description" du tableau en fonction de
+    // inv.serviceType (au lieu de juste replace _ par espace).
     const T = {
       en: {
         invoiceTitle: 'HoPetSit Invoice', invoiceLabel: 'Invoice', downloadBtn: '⬇ Download PDF',
@@ -253,6 +258,9 @@ const renderInvoiceHtml = async (req, res) => {
         footer: 'Payment processed by Airwallex (PCI-DSS Level 1 certified). HoPetSit does not access, transmit or store cardholder data.',
         cancelTerms: 'Self-cancellation with full refund available up to 72h before the service starts. See',
         escrowText: "Funds are held in escrow until 24h after the service ends, then released to the provider's registered IBAN.",
+        serviceWalk: 'Dog walk', serviceDaycare: 'Day care',
+        serviceBoarding: 'Overnight boarding', serviceSitting: 'Pet-sitting',
+        serviceGeneric: 'Service',
       },
       fr: {
         invoiceTitle: 'Facture HoPetSit', invoiceLabel: 'Facture', downloadBtn: '⬇ Télécharger PDF',
@@ -264,6 +272,9 @@ const renderInvoiceHtml = async (req, res) => {
         footer: 'Paiement traité par Airwallex (certifié PCI-DSS Niveau 1). HoPetSit n\'accède pas, ne transmet pas et ne stocke pas les données de carte bancaire.',
         cancelTerms: 'Annulation gratuite avec remboursement intégral disponible jusqu\'à 72h avant le début du service. Voir',
         escrowText: "Les fonds sont conservés en séquestre jusqu'à 24h après la fin du service, puis libérés vers l'IBAN enregistré du prestataire.",
+        serviceWalk: 'Promenade chien', serviceDaycare: 'Garderie',
+        serviceBoarding: 'Garde nuit', serviceSitting: 'Pet-sitting',
+        serviceGeneric: 'Service',
       },
       es: {
         invoiceTitle: 'Factura HoPetSit', invoiceLabel: 'Factura', downloadBtn: '⬇ Descargar PDF',
@@ -275,6 +286,9 @@ const renderInvoiceHtml = async (req, res) => {
         footer: 'Pago procesado por Airwallex (certificado PCI-DSS Nivel 1). HoPetSit no accede, transmite ni almacena datos de tarjetas.',
         cancelTerms: 'Cancelación gratuita con reembolso íntegro disponible hasta 72h antes del inicio del servicio. Ver',
         escrowText: 'Los fondos se mantienen en depósito hasta 24h después del final del servicio, luego se liberan al IBAN registrado del prestador.',
+        serviceWalk: 'Paseo de perros', serviceDaycare: 'Guardería',
+        serviceBoarding: 'Hospedaje nocturno', serviceSitting: 'Pet-sitting',
+        serviceGeneric: 'Servicio',
       },
       de: {
         invoiceTitle: 'HoPetSit Rechnung', invoiceLabel: 'Rechnung', downloadBtn: '⬇ PDF herunterladen',
@@ -286,6 +300,9 @@ const renderInvoiceHtml = async (req, res) => {
         footer: 'Zahlung verarbeitet durch Airwallex (PCI-DSS Stufe 1 zertifiziert). HoPetSit greift nicht auf Kartendaten zu, überträgt oder speichert sie nicht.',
         cancelTerms: 'Kostenlose Stornierung mit voller Rückerstattung bis 72 Std. vor Servicebeginn möglich. Siehe',
         escrowText: 'Die Gelder werden bis 24 Std. nach Serviceende treuhänderisch verwahrt und dann auf das hinterlegte IBAN des Anbieters freigegeben.',
+        serviceWalk: 'Gassi gehen', serviceDaycare: 'Tagesbetreuung',
+        serviceBoarding: 'Übernachtungspflege', serviceSitting: 'Pet-Sitting',
+        serviceGeneric: 'Service',
       },
       it: {
         invoiceTitle: 'Fattura HoPetSit', invoiceLabel: 'Fattura', downloadBtn: '⬇ Scarica PDF',
@@ -297,6 +314,9 @@ const renderInvoiceHtml = async (req, res) => {
         footer: 'Pagamento elaborato da Airwallex (certificato PCI-DSS Livello 1). HoPetSit non accede, trasmette o memorizza i dati delle carte.',
         cancelTerms: 'Annullamento gratuito con rimborso integrale disponibile fino a 72h prima dell\'inizio del servizio. Vedi',
         escrowText: 'I fondi sono conservati in deposito fino a 24h dopo la fine del servizio, poi rilasciati sull\'IBAN registrato del prestatore.',
+        serviceWalk: 'Passeggiata cane', serviceDaycare: 'Asilo',
+        serviceBoarding: 'Pensione notturna', serviceSitting: 'Pet-sitting',
+        serviceGeneric: 'Servizio',
       },
       pt: {
         invoiceTitle: 'Fatura HoPetSit', invoiceLabel: 'Fatura', downloadBtn: '⬇ Descarregar PDF',
@@ -308,8 +328,23 @@ const renderInvoiceHtml = async (req, res) => {
         footer: 'Pagamento processado pela Airwallex (certificado PCI-DSS Nível 1). A HoPetSit não acede, transmite nem armazena dados de cartões.',
         cancelTerms: 'Cancelamento gratuito com reembolso integral disponível até 72h antes do início do serviço. Ver',
         escrowText: 'Os fundos são mantidos em garantia até 24h após o fim do serviço, depois libertados para o IBAN registado do prestador.',
+        serviceWalk: 'Passeio de cão', serviceDaycare: 'Creche',
+        serviceBoarding: 'Hospedagem noturna', serviceSitting: 'Pet-sitting',
+        serviceGeneric: 'Serviço',
       },
     }[lang];
+
+    // v23.1.175 — helper qui traduit le serviceType brut (ex: 'dog_walk',
+    // 'overnight_boarding') en label de la langue courante. Mirror exact
+    // du _serviceLabel(raw) côté Flutter PDF (invoice_pdf_generator.dart).
+    const serviceLabelHtml = (raw) => {
+      const s = String(raw || '').toLowerCase();
+      if (s.includes('walk')) return T.serviceWalk;
+      if (s.includes('day_care') || s.includes('garderie')) return T.serviceDaycare;
+      if (s.includes('boarding') || s.includes('overnight')) return T.serviceBoarding;
+      if (s.includes('sitting')) return T.serviceSitting;
+      return raw ? raw.replace(/_/g, ' ') : T.serviceGeneric;
+    };
 
     res.set('Content-Type', 'text/html; charset=utf-8');
     return res.send(`<!DOCTYPE html>
@@ -465,7 +500,7 @@ const renderInvoiceHtml = async (req, res) => {
     </thead>
     <tbody>
       <tr>
-        <td>${(inv.serviceType || 'Pet sitting / walking').replace(/_/g, ' ')}</td>
+        <td>${serviceLabelHtml(inv.serviceType)}</td>
         <td>${fmt(inv.serviceDate || inv.startDate)}${inv.endDate ? ' → ' + fmt(inv.endDate) : ''}</td>
         <td>${(inv.petNames && inv.petNames.length ? inv.petNames.join(', ') : '—')}</td>
         <td style="text-align:right;">${money(inv.grossAmount)}</td>

@@ -45,6 +45,18 @@ class ProfileScreen extends StatelessWidget {
             // que `ActiveBenefitsRow.boostActiveAccessor` passe à true. Ça
             // se rebuild auto quand l'ActiveBenefitsRow interne fetch ses
             // /users/me/benefits.
+            // v23.1.175 — Daniel : "le cadre boost napparait toujour pas
+            // sur le profile owner". Cause : timing async — _boostActive
+            // mis à true seulement après le mount du widget enfant
+            // ActiveBenefitsRow. On force maintenant un refetch immédiat
+            // dès le build du profil owner pour avoir l'état correct au
+            // tout premier frame (au lieu d'attendre 60s+ pour le tick).
+            Builder(builder: (ctx) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                ActiveBenefitsRow.refreshBoostState();
+              });
+              return const SizedBox.shrink();
+            }),
             Obx(() {
               final isBoosted = ActiveBenefitsRow.boostActiveAccessor.value;
               const boostGold = Color(0xFFD4AF37);

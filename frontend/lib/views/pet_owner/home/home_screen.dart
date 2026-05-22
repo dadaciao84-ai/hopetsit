@@ -518,7 +518,13 @@ class _HomeScreenState extends State<HomeScreen> {
                           final List<XFile> xFiles = [];
                           for (int i = 0; i < imageUrls.length; i++) {
                             final url = imageUrls[i];
-                            final response = await http.get(Uri.parse(url));
+                            // v23.1.175 — Daniel : fix crash _Uri.resolve
+                            // FormatException. tryParse + skip si invalid.
+                            final uri = Uri.tryParse(url);
+                            if (uri == null || !uri.hasScheme) {
+                              continue;
+                            }
+                            final response = await http.get(uri);
                             final file = File(
                                 '${tempDir.path}/share_image_$i.jpg');
                             await file.writeAsBytes(response.bodyBytes);

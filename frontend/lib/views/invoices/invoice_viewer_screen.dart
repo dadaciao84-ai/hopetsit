@@ -68,7 +68,7 @@ class _InvoiceViewerScreenState extends State<InvoiceViewerScreen> {
           }
         },
       )
-      ..loadRequest(Uri.parse(widget.url));
+      ..loadRequest(Uri.tryParse(widget.url) ?? Uri.parse('about:blank'));
   }
 
   // v23.1 part 73 — Bug : "facture se telecharge en htlm elle peux pas
@@ -102,7 +102,12 @@ class _InvoiceViewerScreenState extends State<InvoiceViewerScreen> {
       }
       // Fallback : legacy HTML download for callers that haven't yet
       // started passing widget.invoice.
-      final res = await http.get(Uri.parse(widget.url));
+      // v23.1.175 — fix crash _Uri.resolve FormatException.
+      final uri = Uri.tryParse(widget.url);
+      if (uri == null || !uri.hasScheme) {
+        throw Exception('Invalid invoice URL');
+      }
+      final res = await http.get(uri);
       if (res.statusCode != 200) {
         throw Exception('HTTP ${res.statusCode}');
       }

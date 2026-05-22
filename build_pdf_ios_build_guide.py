@@ -36,7 +36,7 @@ from reportlab.platypus import (
 OUTPUT = os.path.join(
     os.path.expanduser("~"),
     "Downloads",
-    "HopeTSIT_iOS_Build_Guide_v23.1.174.pdf",
+    "HopeTSIT_iOS_Build_Guide_v23.1.175.pdf",
 )
 
 # ─── Brand colors ──────────────────────────────────────────────────────────
@@ -137,7 +137,7 @@ def build():
         rightMargin=2 * cm,
         topMargin=2 * cm,
         bottomMargin=2 * cm,
-        title="HopeTSIT — iOS Build Guide v23.1.174",
+        title="HopeTSIT — iOS Build Guide v23.1.175",
         author="HopeTSIT",
     )
     story = []
@@ -185,12 +185,55 @@ def build():
     # ─── Changelog v146 → v170 ─────────────────────────────────────────────
     story.append(p("Nouveautés depuis v23.1.146", H1))
     story.append(p(
-        "Ce build iOS doit être généré sur la base du code source <b>v23.1.174</b>. "
+        "Ce build iOS doit être généré sur la base du code source <b>v23.1.175</b>. "
         "Voici les corrections et améliorations majeures introduites entre les "
         "deux versions. Toutes sont déjà appliquées dans le ZIP source que tu "
         "as reçu : tu n'as rien à modifier côté code, juste à rebuilder.",
         BODY,
     ))
+
+    story.append(p("v23.1.175 — Fix achat Famille + crashs Uri + cadre Boost + invoice i18n + web", H3))
+    story.append(bullet("<b>Achat Famille bloqué (root cause)</b> : enum "
+                        "Mongoose UserSubscription.plan acceptait <i>'famille'</i> "
+                        "(FR) mais frontend envoyait <i>'family'</i> (EN) → "
+                        "ValidationError silencieuse → sub jamais persistée. "
+                        "Daniel staff-bypass voyait juste 'rien ne se passe'. "
+                        "Fix : enum accepte les 2 valeurs (famille + family)."))
+    story.append(bullet("<b>Crash _Uri.resolve FormatException (14 plantages)</b> : "
+                        "Uri.parse(url) throw quand url contient espace ou "
+                        "caractère interdit. Fix : Uri.tryParse + skip dans "
+                        "5 fichiers (sitter_homescreen, my_posts_screen, "
+                        "home_screen, notification_post_view_screen, "
+                        "invoice_viewer_screen)."))
+    story.append(bullet("<b>Cadre Boost profil owner</b> : timing async — la "
+                        "Rx _boostActive ne devenait true qu'après le mount du "
+                        "widget enfant ActiveBenefitsRow. Fix : nouvelle méthode "
+                        "statique refreshBoostState() + appel via "
+                        "WidgetsBinding.addPostFrameCallback dans ProfileScreen.build."))
+    story.append(bullet("<b>Traduction description facture HTML</b> : la cellule "
+                        "Description du tableau affichait le raw <i>inv.serviceType</i> "
+                        "ou fallback FR/EN. Fix : ajout de serviceWalk/Daycare/"
+                        "Boarding/Sitting/Generic dans la table T des 6 langues "
+                        "+ helper <i>serviceLabelHtml(raw)</i> qui mirror le "
+                        "_serviceLabel Flutter PDF."))
+    story.append(bullet("<b>Suivi famille pas câblé dans mapSocket</b> : "
+                        "listPositionListeners ne bypassait pas les share-flags "
+                        "pour les membres famille. Fix : ajout du check "
+                        "isInSameFamily() avant les checks de flags → un membre "
+                        "famille reçoit toujours les positions des autres "
+                        "membres sans avoir à activer son share."))
+    story.append(bullet("<b>Route /track-access cassée</b> : friendRoutes.js:386 "
+                        "lisait <i>requesterShareWithAddressee</i> / "
+                        "<i>addresseeShareWithRequester</i> qui n'existent PAS "
+                        "dans le schéma Friendship (vrais noms : "
+                        "<i>requesterSharesPosition</i> / <i>addresseeSharesPosition</i>). "
+                        "Fix : utiliser les vrais noms → canTrack renvoie maintenant "
+                        "<i>reason='shared'</i> correctement."))
+    story.append(bullet("<b>Web Next.js</b> : ajout de 4 cases manquants dans "
+                        "webFallbackFor (profile, pay, invite, auth) + case "
+                        "<i>post</i> en plus de <i>book</i>. Catch-all "
+                        "<i>[...slug]/page.tsx</i> couvre maintenant 100% des "
+                        "chemins générés par buildEmailLink."))
 
     story.append(p("v23.1.174 — Bloquer/Supprimer amis + Famille email + halos rose/argent", H3))
     story.append(bullet("<b>Bloquer / Supprimer amis</b> : popupmenu 3-points sur "
