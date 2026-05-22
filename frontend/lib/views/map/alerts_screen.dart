@@ -6,7 +6,9 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import 'package:hopetsit/data/network/api_client.dart';
 import 'package:hopetsit/models/map_report_model.dart';
@@ -85,8 +87,22 @@ class AlertsScreen extends StatelessWidget {
             color: Colors.white,
           ),
           onPressed: () async {
+            // Recupere la position GPS actuelle pour pre-remplir le
+            // sheet ; fallback LatLng(0,0) si refus / pas de permission.
+            LatLng point = const LatLng(0, 0);
+            try {
+              final pos = await Geolocator.getCurrentPosition(
+                locationSettings: const LocationSettings(
+                  accuracy: LocationAccuracy.high,
+                  timeLimit: Duration(seconds: 6),
+                ),
+              );
+              point = LatLng(pos.latitude, pos.longitude);
+            } catch (_) {/* fallback */}
+            if (!context.mounted) return;
             await CreateReportSheet.show(
               context,
+              initialPoint: point,
               preselectedType: ReportTypes.lostPet,
             );
           },

@@ -100,8 +100,8 @@ const Map<String, String> frFRTranslations = <String, String>{
       'friends_add_search_empty': 'Cherche un ami par email ou nom.',
       'friends_add_no_results': 'Aucun resultat. Invite-le via le lien ci-dessus.',
       'friends_add_btn': 'Inviter',
-      'friends_invite_err_self': 'Tu ne peux pas t\'ajouter toi-meme.',
       'friends_invite_err_title': 'Demande impossible',
+      // friends_invite_err_self already defined below (line 444+).
       'friends_pets_empty_title': 'Aucun animal a afficher',
       'friends_pets_empty_msg': 'Ajoute des amis pour voir leurs animaux ici.',
       'friends_pets_owned_by': 'Animal de @name',

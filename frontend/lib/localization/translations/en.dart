@@ -100,8 +100,8 @@ const Map<String, String> enUSTranslations = <String, String>{
       'friends_add_search_empty': 'Search for a friend by email or name.',
       'friends_add_no_results': 'No results. Invite them with the link above.',
       'friends_add_btn': 'Invite',
-      'friends_invite_err_self': 'You can\'t add yourself.',
       'friends_invite_err_title': 'Request failed',
+      // friends_invite_err_self already defined below (line 429+).
       'friends_pets_empty_title': 'No pets to show',
       'friends_pets_empty_msg': 'Add friends to see their pets here.',
       'friends_pets_owned_by': '@name\'s pet',
