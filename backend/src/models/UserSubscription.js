@@ -278,6 +278,32 @@ const userSubscriptionSchema = new mongoose.Schema(
 userSubscriptionSchema.index({ userId: 1, userModel: 1 }, { unique: true });
 userSubscriptionSchema.index({ status: 1, currentPeriodEnd: 1 });
 
+// v23.1.177 — Daniel : "je prend labonement famille et y se passe rien".
+// Cause racine : le frontend / pricingService envoient 'family' (EN) mais
+// toutes les routes qui cherchent les membres famille filtrent par
+// `plan: 'famille'` (FR). Le pre-save hook normalise les valeurs en
+// 'famille' (canonique FR) à l'écriture. Le côté lecture continue
+// d'accepter 'family' via les enums.
+userSubscriptionSchema.pre('save', function normalizeFamilyPlan(next) {
+  if (this.plan === 'family') this.plan = 'famille';
+  if (Array.isArray(this.payments)) {
+    this.payments = this.payments.map((p) => {
+      if (p.plan === 'family') p.plan = 'famille';
+      return p;
+    });
+  }
+  next();
+});
+// Pareil pour findOneAndUpdate (upsert / staff bypass).
+userSubscriptionSchema.pre('findOneAndUpdate', function normalizeUpdate(next) {
+  const update = this.getUpdate();
+  if (update && update.plan === 'family') update.plan = 'famille';
+  if (update && update.$set && update.$set.plan === 'family') {
+    update.$set.plan = 'famille';
+  }
+  next();
+});
+
 /**
  * Convenience: returns true when the subscription is active AND within its
  * paid window. Handles edge-cases where the cron hasn't flipped status yet.

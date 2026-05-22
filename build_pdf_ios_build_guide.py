@@ -36,7 +36,7 @@ from reportlab.platypus import (
 OUTPUT = os.path.join(
     os.path.expanduser("~"),
     "Downloads",
-    "HopeTSIT_iOS_Build_Guide_v23.1.175.pdf",
+    "HopeTSIT_iOS_Build_Guide_v23.1.177.pdf",
 )
 
 # ─── Brand colors ──────────────────────────────────────────────────────────
@@ -137,7 +137,7 @@ def build():
         rightMargin=2 * cm,
         topMargin=2 * cm,
         bottomMargin=2 * cm,
-        title="HopeTSIT — iOS Build Guide v23.1.175",
+        title="HopeTSIT — iOS Build Guide v23.1.177",
         author="HopeTSIT",
     )
     story = []
@@ -185,12 +185,83 @@ def build():
     # ─── Changelog v146 → v170 ─────────────────────────────────────────────
     story.append(p("Nouveautés depuis v23.1.146", H1))
     story.append(p(
-        "Ce build iOS doit être généré sur la base du code source <b>v23.1.175</b>. "
+        "Ce build iOS doit être généré sur la base du code source <b>v23.1.177</b>. "
         "Voici les corrections et améliorations majeures introduites entre les "
         "deux versions. Toutes sont déjà appliquées dans le ZIP source que tu "
         "as reçu : tu n'as rien à modifier côté code, juste à rebuilder.",
         BODY,
     ))
+
+    story.append(p("v23.1.177 — Fix abo Famille (enum FR/EN) + notif friend request + cleanup pending", H3))
+    story.append(bullet("<b>Abonnement Famille ne fait rien</b> (Daniel : "
+                        "« je prend labonement famille et y se passe rien ») : "
+                        "le frontend / pricingService envoie <i>'family'</i> "
+                        "(EN) mais toutes les routes backend qui cherchent les "
+                        "membres famille filtrent par <i>plan: 'famille'</i> "
+                        "(FR). Donc même après paiement, le doc UserSubscription "
+                        "existait avec plan='family' mais aucune route ne le "
+                        "trouvait. Fix : pre-save hook + pre-findOneAndUpdate "
+                        "hook qui normalisent 'family' → 'famille' à l'écriture. "
+                        "Les enums acceptent toujours les 2 valeurs en lecture."))
+    story.append(bullet("<b>Demande amis « déjà en attente alors que ça marche "
+                        "pas »</b> : la route POST /friends/request créait "
+                        "bien le doc Friendship en DB MAIS n'envoyait AUCUN "
+                        "push notif au destinataire → il ne savait jamais "
+                        "qu'une demande arrivait → bloqué jusqu'à la fin des "
+                        "temps. Fix : ajout sendNotification 'friend_request_"
+                        "received' + auto-cleanup des Friendship pending de "
+                        "plus de 7 jours (anti-blocage permanent)."))
+    story.append(bullet("<b>Carte chat « Demande suivre »</b> (v176 cassée par "
+                        "erreur de signature loadChatMessages → re-fix dans "
+                        "v177). Toute la logique pawfollow_request est "
+                        "fonctionnelle : type message + metadata + routes "
+                        "accept/refuse + render UI custom des deux côtés."))
+    story.append(bullet("<b>Ruban URGENT 🚀 sur post</b> : le banner URGENT "
+                        "s'affichait uniquement avec <i>boostExpiry</i>. Si "
+                        "Daniel a un PawSpot Gold (<i>mapBoostExpiry</i>) → "
+                        "ruban invisible. Fix : <i>isOwnerBoosted</i> TRUE si "
+                        "N'IMPORTE QUEL boost actif. Appliqué dans listPosts "
+                        "ET getRequestPosts."))
+    story.append(bullet("<b>15 nouvelles clés i18n × 6 langues</b> pour la "
+                        "carte chat pawfollow (pawfollow_request_*, "
+                        "pawfollow_status_*, accept/refuse, accepted/refused)."))
+
+    story.append(p("v23.1.175 — Fix achat Famille + crashs Uri + cadre Boost + invoice i18n + web", H3))
+    story.append(bullet("<b>Carte « Demande suivre » dans le chat</b> (Correction 1 "
+                        "du big prompt Daniel) : quand l'owner tape « Suivre en "
+                        "direct mon animal » OU quand walker/sitter tape "
+                        "« Partager ma position en direct », un message chat "
+                        "type <i>pawfollow_request</i> apparaît directement "
+                        "dans la conversation côté l'autre partie, avec carte "
+                        "Accepter / Refuser. Couleur halo coordonnée (vert "
+                        "walker, bleu sitter, orange owner)."))
+    story.append(bullet("<b>Modèle Message backend</b> : ajout du type "
+                        "<i>'pawfollow_request'</i> à l'enum + metadata avec "
+                        "status (pending/accepted/refused), direction, "
+                        "requesterId, requesterRole, responderRole, expiresAt."))
+    story.append(bullet("<b>Backend routes</b> : POST /bookings/:id/follow-request "
+                        "accepte maintenant owner|sitter|walker (sens "
+                        "bi-directionnel). Crée un Message chat + envoie push "
+                        "notif. Nouvelle route POST /bookings/pawfollow-request/"
+                        ":messageId/respond { action: 'accept' | 'refuse' } qui "
+                        "met à jour le statut + broadcast via socket."))
+    story.append(bullet("<b>Frontend Flutter</b> : ChatMessage + SitterChatMessage "
+                        "exposent désormais <i>type</i> et <i>metadata</i>. "
+                        "Le builder _buildMessageItem détecte type='pawfollow_request' "
+                        "et render <i>PawfollowRequestCard</i> (widget partagé) "
+                        "avec boutons Accepter/Refuser visibles uniquement pour "
+                        "le responder en status pending."))
+    story.append(bullet("<b>Ruban URGENT 🚀 sur post</b> (Daniel : « le cadre "
+                        "boost urgent naparait pas ») : le banner URGENT en haut "
+                        "de la post card s'affichait uniquement avec "
+                        "<i>boostExpiry</i> (Boost annonce). Si Daniel avait "
+                        "juste un PawSpot Gold (<i>mapBoostExpiry</i>) → ruban "
+                        "invisible. Fix : <i>isOwnerBoosted</i> est maintenant "
+                        "TRUE si N'IMPORTE QUEL boost est actif (annonce OR "
+                        "map boost). Appliqué dans listPosts ET getRequestPosts."))
+    story.append(bullet("<b>15 nouvelles clés i18n × 6 langues</b> : "
+                        "pawfollow_request_*, pawfollow_status_*, "
+                        "pawfollow_accept/refuse, pawfollow_accepted/refused_*."))
 
     story.append(p("v23.1.175 — Fix achat Famille + crashs Uri + cadre Boost + invoice i18n + web", H3))
     story.append(bullet("<b>Achat Famille bloqué (root cause)</b> : enum "

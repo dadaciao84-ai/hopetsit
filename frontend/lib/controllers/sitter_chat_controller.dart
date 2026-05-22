@@ -25,6 +25,10 @@ class SitterChatMessage {
   // v19.1.3 — soft-delete flag, mirrors ChatMessage.
   final bool isDeleted;
   final String senderRole;
+  // v23.1.176 — Daniel : carte chat pour les demandes "Suivre" entre
+  // owner et walker/sitter. Type 'pawfollow_request' + metadata.
+  final String type;
+  final Map<String, dynamic> metadata;
 
   SitterChatMessage({
     required this.id,
@@ -37,9 +41,18 @@ class SitterChatMessage {
     this.attachments = const [],
     this.isDeleted = false,
     this.senderRole = '',
+    this.type = 'text',
+    this.metadata = const {},
   });
 
   bool get isSystem => senderRole.toLowerCase() == 'system';
+  bool get isPawfollowRequest => type == 'pawfollow_request';
+  String get pawfollowStatus =>
+      (metadata['status'] ?? 'pending').toString();
+  String get pawfollowResponderRole =>
+      (metadata['responderRole'] ?? '').toString();
+  String get pawfollowRequesterRole =>
+      (metadata['requesterRole'] ?? '').toString();
 }
 
 class SitterChatConversation {
@@ -694,6 +707,15 @@ class SitterChatController extends GetxController {
 
     final senderRoleStr = (data['senderRole'] ?? data['sender_role'] ?? '').toString();
 
+    // v23.1.176 — type + metadata pour la carte pawfollow_request.
+    final typeStr = (data['type'] ?? 'text').toString();
+    Map<String, dynamic> metadataMap = const {};
+    if (data['metadata'] is Map) {
+      try {
+        metadataMap = Map<String, dynamic>.from(data['metadata'] as Map);
+      } catch (_) {/* defensive */}
+    }
+
     return SitterChatMessage(
       id: id,
       senderId: senderId,
@@ -705,6 +727,8 @@ class SitterChatController extends GetxController {
       attachments: attachments,
       isDeleted: isDeleted,
       senderRole: senderRoleStr,
+      type: typeStr,
+      metadata: metadataMap,
     );
   }
 

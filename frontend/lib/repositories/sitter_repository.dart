@@ -270,6 +270,25 @@ class SitterRepository {
     );
   }
 
+  /// v23.1.176 — POST /bookings/pawfollow-request/:messageId/respond
+  /// body: { action: 'accept' | 'refuse' }
+  Future<Map<String, dynamic>> respondPawfollowRequest({
+    required String messageId,
+    required String action,
+  }) async {
+    final response = await _apiClient.post(
+      '/bookings/pawfollow-request/$messageId/respond',
+      body: {'action': action},
+      requiresAuth: true,
+    );
+    if (response is Map<String, dynamic>) return response;
+    if (response is Map) return Map<String, dynamic>.from(response);
+    throw ApiException(
+      'Unexpected pawfollow-respond response.',
+      details: response,
+    );
+  }
+
   /// Requests cancellation for a booking (rejects the booking request).
   Future<Map<String, dynamic>> requestBookingCancellation({
     required String bookingId,

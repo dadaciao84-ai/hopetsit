@@ -3,12 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:hopetsit/controllers/sitter_chat_controller.dart';
 import 'package:hopetsit/repositories/sitter_repository.dart';
 import 'package:hopetsit/utils/app_colors.dart';
 import 'package:hopetsit/utils/app_images.dart';
+import 'package:hopetsit/utils/storage_keys.dart';
 import 'package:hopetsit/widgets/app_text.dart';
 import 'package:hopetsit/widgets/custom_snackbar_widget.dart';
+import 'package:hopetsit/widgets/pawfollow_request_card.dart';
 import 'package:hopetsit/widgets/translate_message_button.dart';
 
 class SitterIndividualChatScreen extends StatefulWidget {
@@ -101,6 +104,40 @@ class _SitterIndividualChatScreenState
     }
     _localMessageController.dispose();
     super.dispose();
+  }
+
+  // v23.1.176 — handler des boutons Accepter / Refuser sur la carte
+  // pawfollow_request. Appelle le repo + refresh la conversation.
+  Future<void> _respondPawfollow(
+    SitterChatMessage message,
+    String action,
+  ) async {
+    try {
+      final repo = Get.find<SitterRepository>();
+      await repo.respondPawfollowRequest(
+        messageId: message.id,
+        action: action,
+      );
+      if (!mounted) return;
+      CustomSnackbar.showSuccess(
+        title: action == 'accept'
+            ? 'pawfollow_accepted_title'.tr
+            : 'pawfollow_refused_title'.tr,
+        message: action == 'accept'
+            ? 'pawfollow_accepted_msg'.tr
+            : 'pawfollow_refused_msg'.tr,
+      );
+      await chatController.loadChatMessages(
+        widget.conversationId,
+        contactName: widget.contactName,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      CustomSnackbar.showError(
+        title: 'common_error'.tr,
+        message: e.toString().replaceAll('ApiException:', '').trim(),
+      );
+    }
   }
 
   // v23.1.170 — handler du bouton "Suis-moi" miroir côté sitter/walker.
@@ -350,6 +387,22 @@ class _SitterIndividualChatScreenState
     SitterChatMessage message,
     SitterChatController controller,
   ) {
+    // v23.1.176 — Daniel : carte avec boutons Accepter/Refuser quand
+    // l'owner demande à suivre OU quand on a déjà demandé soi-même.
+    if (message.isPawfollowRequest) {
+      final myRole = Get.find<GetStorage>()
+              .read<String>(StorageKeys.userRole) ??
+          'sitter';
+      return PawfollowRequestCard(
+        messageId: message.id,
+        requesterRole: message.pawfollowRequesterRole,
+        responderRole: message.pawfollowResponderRole,
+        status: message.pawfollowStatus,
+        myRole: myRole.toLowerCase(),
+        onAccept: () => _respondPawfollow(message, 'accept'),
+        onRefuse: () => _respondPawfollow(message, 'refuse'),
+      );
+    }
     if (message.isSystem) {
       return Padding(
         padding: EdgeInsets.symmetric(vertical: 6.h, horizontal: 24.w),

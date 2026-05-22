@@ -1322,4 +1322,44 @@ class OwnerRepository {
     }
   }
 
+  /// v23.1.176 — POST /bookings/:id/follow-request avec lat/lng optionnel.
+  /// Côté OWNER : envoie une demande au walker/sitter via message chat
+  /// type 'pawfollow_request'. Retourne { success, chatMessageId, ... }.
+  Future<Map<String, dynamic>> requestLiveTracking({
+    required String bookingId,
+    double? lat,
+    double? lng,
+  }) async {
+    final body = <String, dynamic>{};
+    if (lat != null && lng != null) {
+      body['lat'] = lat;
+      body['lng'] = lng;
+    }
+    final response = await _apiClient.post(
+      '/bookings/$bookingId/follow-request',
+      body: body,
+      requiresAuth: true,
+    );
+    if (response is Map<String, dynamic>) return response;
+    if (response is Map) return Map<String, dynamic>.from(response);
+    throw ApiException('Unexpected follow-request response.', details: response);
+  }
+
+  /// v23.1.176 — POST /bookings/pawfollow-request/:messageId/respond
+  /// body: { action: 'accept' | 'refuse' }
+  /// Utilisé par le bouton Accepter/Refuser sur la carte pawfollow_request.
+  Future<Map<String, dynamic>> respondPawfollowRequest({
+    required String messageId,
+    required String action, // 'accept' | 'refuse'
+  }) async {
+    final response = await _apiClient.post(
+      '/bookings/pawfollow-request/$messageId/respond',
+      body: {'action': action},
+      requiresAuth: true,
+    );
+    if (response is Map<String, dynamic>) return response;
+    if (response is Map) return Map<String, dynamic>.from(response);
+    throw ApiException('Unexpected pawfollow-respond response.', details: response);
+  }
+
 }

@@ -4296,17 +4296,23 @@ const getProviderLocation = async (req, res) => {
 const requestLiveTracking = async (req, res) => {
   try {
     const userId = req.user.id;
-    const userRole = req.user.role; // 'sitter' or 'walker'
+    const userRole = req.user.role; // 'owner', 'sitter' or 'walker'
     const { id: bookingId } = req.params;
 
     const booking = await Booking.findById(bookingId).lean();
     if (!booking) return res.status(404).json({ error: 'Booking not found.' });
 
-    // Vérifie que l'utilisateur est bien le provider du booking.
+    // v23.1.176 — Daniel : "demande suivre votre animale ds le chat ya
+    // pas". On accepte maintenant les 3 rôles : owner ET provider.
+    //   - owner → demande au walker/sitter de partager sa position
+    //   - sitter/walker → demande à l'owner d'autoriser le suivi
+    // Direction de la demande déduite du rôle appelant.
+    const isOwner =
+      userRole === 'owner' && String(booking.ownerId) === String(userId);
     const isProvider =
       (userRole === 'sitter' && String(booking.sitterId) === String(userId)) ||
       (userRole === 'walker' && String(booking.walkerId) === String(userId));
-    if (!isProvider) {
+    if (!isOwner && !isProvider) {
       return res.status(403).json({ error: 'Not your booking.' });
     }
 
@@ -4350,7 +4356,88 @@ const requestLiveTracking = async (req, res) => {
       logger.warn('[booking.requestLiveTracking] location update failed', e);
     }
 
-    // Push notif à l'owner avec deep-link vers la LiveWalkMapScreen.
+    // v23.1.176 — Daniel : "demande suivre votre animale ds le chat ya
+    // pas". On crée un message chat type 'pawfollow_request' dans la
+    // conversation du booking, pour que l'owner voie une carte avec
+    // boutons Accepter / Refuser DIRECTEMENT dans le chat.
+    let pawfollowMessageId = null;
+    try {
+      const Conversation = require('../models/Conversation');
+      const Message = require('../models/Message');
+      // On cherche la conversation liée au booking. Si pas trouvée, on
+      // saute (la conversation est normalement créée au moment du paiement).
+      const conversation = await Conversation.findOne({
+        bookingId: bookingId,
+      }).lean();
+      if (conversation) {
+        // Anti-spam : si une demande pending existe < 5 min, on ne crée
+        // pas de doublon.
+        const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000);
+        const existing = await Message.findOne({
+          conversationId: conversation._id,
+          type: 'pawfollow_request',
+          'metadata.status': 'pending',
+          createdAt: { $gt: fiveMinAgo },
+        });
+        if (!existing) {
+          // v23.1.176 — Direction calculée selon le rôle appelant.
+          // - owner appelle → owner_to_provider (le walker/sitter doit
+          //   répondre via accept/refuse)
+          // - provider appelle → walker_to_owner OR sitter_to_owner
+          let direction;
+          let providerRoleForBooking = null;
+          if (booking.walkerId) providerRoleForBooking = 'walker';
+          else if (booking.sitterId) providerRoleForBooking = 'sitter';
+          let responderRole;
+          if (userRole === 'owner') {
+            direction = `owner_to_${providerRoleForBooking || 'provider'}`;
+            responderRole = providerRoleForBooking || 'sitter';
+          } else if (userRole === 'walker') {
+            direction = 'walker_to_owner';
+            responderRole = 'owner';
+          } else {
+            direction = 'sitter_to_owner';
+            responderRole = 'owner';
+          }
+          const msg = await Message.create({
+            conversationId: conversation._id,
+            senderId: userId,
+            senderRole: userRole,
+            type: 'pawfollow_request',
+            body: '', // pas de texte, la carte UI render direct
+            metadata: {
+              status: 'pending',
+              direction,
+              bookingId: String(bookingId),
+              requesterId: String(userId),
+              requesterRole: userRole,
+              responderRole,
+              expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+            },
+          });
+          pawfollowMessageId = msg._id;
+          // Met à jour lastMessageAt de la conversation.
+          await Conversation.findByIdAndUpdate(conversation._id, {
+            lastMessageAt: new Date(),
+          });
+          // Broadcast via socket si dispo.
+          try {
+            const { getIo } = require('../sockets/io');
+            const io = getIo && getIo();
+            if (io) {
+              io.to(`conversation_${conversation._id}`).emit('message:new', {
+                conversationId: String(conversation._id),
+                message: msg.toObject(),
+              });
+            }
+          } catch (_) {/* defensive */}
+        }
+      }
+    } catch (e) {
+      logger.warn('[booking.requestLiveTracking] chat msg failed', e);
+    }
+
+    // Push notif à l'owner avec deep-link vers la conversation.
     try {
       const { sendNotification } = require('../services/notificationSender');
       const buildEmailLink = require('../utils/emailLinkBuilder').buildEmailLink;
@@ -4375,10 +4462,94 @@ const requestLiveTracking = async (req, res) => {
       success: true,
       bookingId: String(bookingId),
       ownerNotified: true,
+      chatMessageId: pawfollowMessageId ? String(pawfollowMessageId) : null,
     });
   } catch (e) {
     logger.error('[booking.requestLiveTracking]', e);
     return res.status(500).json({ error: 'Unable to request live tracking.' });
+  }
+};
+
+/**
+ * v23.1.176 — POST /pawfollow-request/:messageId/respond
+ * body: { action: 'accept' | 'refuse' }
+ *
+ * Daniel : "[Accepter] [Refuser]" dans la carte chat. Cette route met à
+ * jour metadata.status du message et broadcast la mise à jour aux 2
+ * parties via socket. Si action='accept', on déclenche le suivi live
+ * (le provider doit déjà avoir broadcasté sa position via le flow normal).
+ */
+const respondToPawfollowRequest = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const userRole = req.user.role;
+    const { messageId } = req.params;
+    const { action } = req.body || {};
+
+    if (!['accept', 'refuse'].includes(action)) {
+      return res.status(400).json({
+        error: 'action must be "accept" or "refuse".',
+      });
+    }
+
+    const Message = require('../models/Message');
+    const Conversation = require('../models/Conversation');
+    const message = await Message.findById(messageId);
+    if (!message) {
+      return res.status(404).json({ error: 'Message not found.' });
+    }
+    if (message.type !== 'pawfollow_request') {
+      return res.status(400).json({ error: 'Not a pawfollow request.' });
+    }
+    if (message.metadata?.status !== 'pending') {
+      return res.status(409).json({
+        error: 'Request already responded to.',
+        currentStatus: message.metadata?.status,
+      });
+    }
+    // Seul le responder (la partie qui doit répondre) peut accept/refuse.
+    if (message.metadata.responderRole !== userRole) {
+      return res.status(403).json({
+        error: 'You are not allowed to respond to this request.',
+      });
+    }
+    // Vérifie aussi que le user est bien dans la conversation.
+    const conv = await Conversation.findById(message.conversationId).lean();
+    if (!conv) {
+      return res.status(404).json({ error: 'Conversation not found.' });
+    }
+
+    message.metadata = {
+      ...message.metadata,
+      status: action === 'accept' ? 'accepted' : 'refused',
+      respondedAt: new Date(),
+      respondedBy: String(userId),
+    };
+    message.markModified('metadata');
+    await message.save();
+
+    // Broadcast via socket aux 2 parties.
+    try {
+      const { getIo } = require('../sockets/io');
+      const io = getIo && getIo();
+      if (io) {
+        io.to(`conversation_${conv._id}`).emit('message:updated', {
+          conversationId: String(conv._id),
+          message: message.toObject(),
+        });
+      }
+    } catch (_) {/* defensive */}
+
+    return res.json({
+      success: true,
+      messageId: String(message._id),
+      status: message.metadata.status,
+    });
+  } catch (e) {
+    logger.error('[booking.respondToPawfollowRequest]', e);
+    return res
+      .status(500)
+      .json({ error: 'Unable to respond to pawfollow request.' });
   }
 };
 
@@ -4416,4 +4587,5 @@ module.exports = {
   // v23.1 part 66 — PawFollow live tracking
   getProviderLocation,
   requestLiveTracking,
+  respondToPawfollowRequest,
 };

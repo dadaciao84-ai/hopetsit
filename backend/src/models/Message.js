@@ -50,9 +50,13 @@ const messageSchema = new mongoose.Schema(
     },
     // Special content types; 'text' is the default, 'phone_share' marks an
     // explicit post-payment phone-number share (see sprint3/step6).
+    // v23.1.176 — Daniel : "demande suivre votre animale ds le chat ya pas".
+    // Ajout du type 'pawfollow_request' pour les cartes Accepter/Refuser
+    // dans le chat. metadata contient { status, direction, bookingId,
+    // requesterId, requesterRole, responderRole, expiresAt }.
     type: {
       type: String,
-      enum: ['text', 'attachment', 'phone_share'],
+      enum: ['text', 'attachment', 'phone_share', 'pawfollow_request'],
       default: 'text',
     },
     // v19.1.3 — soft-delete so history stays available for admin moderation

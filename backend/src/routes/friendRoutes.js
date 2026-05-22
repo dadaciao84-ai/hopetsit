@@ -207,6 +207,11 @@ router.post('/request', requireAuth, async (req, res) => {
     }
 
     // Avoid duplicates in either direction.
+    // v23.1.177 — Daniel : "demande amis erreur une demande est deja en
+    // attente alors que sa marche pas". Cause : une vieille demande
+    // pending (>7 jours) bloque toute nouvelle demande. On considère
+    // expirée une demande pending de >7 jours et on la supprime avant
+    // de créer la nouvelle.
     const existing = await Friendship.findOne({
       $or: [
         {
@@ -224,9 +229,21 @@ router.post('/request', requireAuth, async (req, res) => {
       ],
     });
     if (existing) {
-      return res
-        .status(409)
-        .json({ error: `Already in state "${existing.status}".`, id: existing._id });
+      const ageDays = existing.createdAt
+        ? (Date.now() - new Date(existing.createdAt).getTime()) /
+          (1000 * 60 * 60 * 24)
+        : 0;
+      if (existing.status === 'pending' && ageDays > 7) {
+        // Pending vieille → on supprime et on continue pour créer une fresh.
+        await Friendship.findByIdAndDelete(existing._id);
+        logger.info(
+          `[friends/request] cleaned expired pending ${existing._id} (${ageDays.toFixed(1)} days)`,
+        );
+      } else {
+        return res
+          .status(409)
+          .json({ error: `Already in state "${existing.status}".`, id: existing._id });
+      }
     }
 
     const friendship = new Friendship({
@@ -241,6 +258,33 @@ router.post('/request', requireAuth, async (req, res) => {
     logger.info(
       `[friends] ${user.model} ${user.id} → ${targetModel} ${targetId} (pending)`,
     );
+
+    // v23.1.177 — Daniel : "demande amis erreur une demande est deja en
+    // attente alors que sa marche pas". Cause racine : la route N'ENVOIE
+    // PAS de notif au destinataire → il ne savait jamais qu'une demande
+    // arrivait. Maintenant on envoie un push notif + le destinataire peut
+    // refresh sa friends_screen pour voir la demande dans l'onglet
+    // "Demandes".
+    try {
+      const { sendNotification } = require('../services/notificationSender');
+      const buildEmailLink = require('../utils/emailLinkBuilder').buildEmailLink;
+      await sendNotification({
+        userId: targetId,
+        userRole: (targetRole || '').toLowerCase(),
+        type: 'friend_request_received',
+        title: 'friend_request_received_title',
+        body: 'friend_request_received_body',
+        data: {
+          friendshipId: String(friendship._id),
+          fromUserId: String(user.id),
+          fromUserRole: req.user?.role || user.model.toLowerCase(),
+          emailLink: buildEmailLink('notifications'),
+        },
+      });
+    } catch (notifErr) {
+      logger.warn('[friends/request] notif failed', notifErr);
+    }
+
     res.status(201).json({ friendship: await enrichFriendship(friendship, user.id) });
   } catch (e) {
     logger.error('[friends/request]', e);

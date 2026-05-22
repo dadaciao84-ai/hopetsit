@@ -8,6 +8,7 @@ import 'package:hopetsit/repositories/chat_repository.dart';
 import 'package:hopetsit/repositories/owner_repository.dart';
 import 'package:hopetsit/utils/app_colors.dart';
 import 'package:hopetsit/utils/app_images.dart';
+import 'package:hopetsit/utils/storage_keys.dart';
 import 'package:hopetsit/views/boost/coin_shop_screen.dart';
 import 'package:hopetsit/views/pet_owner/walk/live_walk_map_screen.dart';
 import 'package:hopetsit/widgets/app_text.dart';
@@ -161,6 +162,175 @@ class _IndividualChatScreenState extends State<IndividualChatScreen> {
   //   204      → snackbar "Le prestataire n'a pas encore partagé sa
   //              position"
   //   no book  → snackbar "Aucune réservation active à suivre"
+  // v23.1.176 — Daniel : "demande suivre votre animale ds le chat ya pas".
+  // Carte custom pour les messages type='pawfollow_request' qui affiche :
+  //  - Icône + texte explicatif
+  //  - Statut courant (pending / accepted / refused)
+  //  - Si pending ET je suis le responder → boutons Accepter / Refuser
+  Widget _buildPawfollowRequestCard(
+    ChatMessage message,
+    ChatController controller,
+  ) {
+    final status = message.pawfollowStatus;
+    final myRole = (Get.find<GetStorage>().read<String>(StorageKeys.userRole) ??
+            'owner')
+        .toLowerCase();
+    final isResponder = message.pawfollowResponderRole == myRole;
+    final isRequester = message.pawfollowRequesterRole == myRole;
+
+    // Couleur selon rôle responder (rappel halo : vert walker, bleu sitter,
+    // orange owner).
+    Color accent;
+    final responderRole = message.pawfollowResponderRole;
+    if (responderRole == 'walker') {
+      accent = const Color(0xFF16A34A);
+    } else if (responderRole == 'sitter') {
+      accent = const Color(0xFF2563EB);
+    } else {
+      accent = AppColors.primaryColor;
+    }
+
+    String headerText;
+    if (isRequester) {
+      headerText = 'pawfollow_request_sent_header'.tr;
+    } else if (isResponder) {
+      headerText = message.pawfollowRequesterRole == 'owner'
+          ? 'pawfollow_request_owner_wants_to_follow'.tr
+          : 'pawfollow_request_provider_wants_to_share'.tr;
+    } else {
+      headerText = 'pawfollow_request_generic'.tr;
+    }
+
+    String statusBadge;
+    Color statusColor;
+    if (status == 'accepted') {
+      statusBadge = 'pawfollow_status_accepted'.tr;
+      statusColor = const Color(0xFF16A34A);
+    } else if (status == 'refused') {
+      statusBadge = 'pawfollow_status_refused'.tr;
+      statusColor = AppColors.errorColor;
+    } else {
+      statusBadge = 'pawfollow_status_pending'.tr;
+      statusColor = const Color(0xFFF59E0B);
+    }
+
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 6.h, horizontal: 16.w),
+      child: Container(
+        padding: EdgeInsets.all(14.w),
+        decoration: BoxDecoration(
+          color: accent.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(14.r),
+          border: Border.all(color: accent.withValues(alpha: 0.35), width: 1),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.location_on_rounded, color: accent, size: 22.sp),
+                SizedBox(width: 8.w),
+                Expanded(
+                  child: InterText(
+                    text: headerText,
+                    fontSize: 13.sp,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary(context),
+                  ),
+                ),
+                Container(
+                  padding: EdgeInsets.symmetric(
+                      horizontal: 8.w, vertical: 3.h),
+                  decoration: BoxDecoration(
+                    color: statusColor.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(10.r),
+                  ),
+                  child: InterText(
+                    text: statusBadge,
+                    fontSize: 10.sp,
+                    fontWeight: FontWeight.w700,
+                    color: statusColor,
+                  ),
+                ),
+              ],
+            ),
+            if (status == 'pending' && isResponder) ...[
+              SizedBox(height: 12.h),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.errorColor,
+                        side: BorderSide(color: AppColors.errorColor),
+                        padding: EdgeInsets.symmetric(vertical: 10.h),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10.r),
+                        ),
+                      ),
+                      onPressed: () =>
+                          _respondPawfollow(message, 'refuse'),
+                      child: Text('pawfollow_refuse'.tr),
+                    ),
+                  ),
+                  SizedBox(width: 8.w),
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: accent,
+                        foregroundColor: Colors.white,
+                        padding: EdgeInsets.symmetric(vertical: 10.h),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10.r),
+                        ),
+                      ),
+                      onPressed: () =>
+                          _respondPawfollow(message, 'accept'),
+                      child: Text('pawfollow_accept'.tr),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _respondPawfollow(
+    ChatMessage message,
+    String action,
+  ) async {
+    try {
+      final repo = Get.find<OwnerRepository>();
+      await repo.respondPawfollowRequest(
+        messageId: message.id,
+        action: action,
+      );
+      if (!mounted) return;
+      CustomSnackbar.showSuccess(
+        title: action == 'accept'
+            ? 'pawfollow_accepted_title'.tr
+            : 'pawfollow_refused_title'.tr,
+        message: action == 'accept'
+            ? 'pawfollow_accepted_msg'.tr
+            : 'pawfollow_refused_msg'.tr,
+      );
+      // Refresh la conversation pour récupérer le statut mis à jour.
+      await chatController.loadChatMessages(
+        widget.conversationId,
+        contactName: widget.contactName,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      CustomSnackbar.showError(
+        title: 'common_error'.tr,
+        message: e.toString().replaceAll('ApiException:', '').trim(),
+      );
+    }
+  }
+
   // v23.1.170 — résout le rôle du provider à partir des bookings actifs
   // pour pouvoir afficher dynamiquement "Suivre walker" / "Suivre sitter".
   Future<void> _resolveProviderRole() async {
@@ -238,7 +408,33 @@ class _IndividualChatScreenState extends State<IndividualChatScreen> {
         return;
       }
 
-      // 2. Call the provider-location endpoint.
+      // v23.1.176 — Daniel : "demande suivre votre animale ds le chat ya
+      // pas". Le tap "Suivre en direct mon animal" doit créer une carte
+      // pawfollow_request dans le chat (que le walker/sitter verra avec
+      // boutons Accepter/Refuser). On envoie la demande AVANT d'essayer
+      // d'ouvrir la map.
+      try {
+        await repo.requestLiveTracking(bookingId: bookingId);
+        if (mounted) {
+          CustomSnackbar.showSuccess(
+            title: 'pawfollow_request_sent_title'.tr,
+            message: 'pawfollow_request_sent_msg'.tr,
+          );
+          // Refresh la conversation pour afficher la nouvelle carte direct.
+          await chatController.loadChatMessages(
+            widget.conversationId,
+            contactName: widget.contactName,
+          );
+        }
+      } catch (e) {
+        // Non bloquant : si la création de la demande échoue, on continue
+        // quand même à essayer la map (cas où le provider a déjà accepté).
+        // (silently)
+      }
+
+      // 2. Call the provider-location endpoint pour le cas où le provider
+      //    a déjà partagé sa position (accepté la demande dans une session
+      //    antérieure). Si oui, on ouvre direct la live map.
       final result = await repo.getProviderLocationForBooking(bookingId: bookingId);
       final code = (result['code'] ?? '').toString();
       final coords = result['coordinates'];
@@ -454,6 +650,12 @@ class _IndividualChatScreenState extends State<IndividualChatScreen> {
   }
 
   Widget _buildMessageItem(ChatMessage message, ChatController controller) {
+    // v23.1.176 — Daniel : "demande suivre votre animale ds le chat ya pas".
+    // Carte avec boutons Accepter/Refuser quand un walker/sitter demande
+    // à suivre ou inversement quand l'owner demande à suivre.
+    if (message.isPawfollowRequest) {
+      return _buildPawfollowRequestCard(message, controller);
+    }
     if (message.isSystem) {
       return Padding(
         padding: EdgeInsets.symmetric(vertical: 6.h, horizontal: 24.w),

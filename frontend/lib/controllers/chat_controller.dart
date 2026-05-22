@@ -25,6 +25,11 @@ class ChatMessage {
   // v19.1.3 — soft-delete flag, backend hides body+attachments for deleted.
   final bool isDeleted;
   final String senderRole;
+  // v23.1.176 — Daniel : "demande suivre votre animale ds le chat ya pas".
+  // Type spécial qui change le rendu : 'pawfollow_request' affiche une
+  // carte avec boutons Accepter/Refuser au lieu du texte normal.
+  final String type;
+  final Map<String, dynamic> metadata;
 
   ChatMessage({
     required this.id,
@@ -37,9 +42,18 @@ class ChatMessage {
     this.attachments = const [],
     this.isDeleted = false,
     this.senderRole = '',
+    this.type = 'text',
+    this.metadata = const {},
   });
 
   bool get isSystem => senderRole.toLowerCase() == 'system';
+  bool get isPawfollowRequest => type == 'pawfollow_request';
+  String get pawfollowStatus =>
+      (metadata['status'] ?? 'pending').toString();
+  String get pawfollowResponderRole =>
+      (metadata['responderRole'] ?? '').toString();
+  String get pawfollowRequesterRole =>
+      (metadata['requesterRole'] ?? '').toString();
 }
 
 class ChatConversation {
@@ -715,6 +729,15 @@ class ChatController extends GetxController {
 
     final senderRoleStr = (data['senderRole'] ?? data['sender_role'] ?? '').toString();
 
+    // v23.1.176 — type + metadata pour pawfollow_request card.
+    final typeStr = (data['type'] ?? 'text').toString();
+    Map<String, dynamic> metadataMap = const {};
+    if (data['metadata'] is Map) {
+      try {
+        metadataMap = Map<String, dynamic>.from(data['metadata'] as Map);
+      } catch (_) {/* defensive */}
+    }
+
     return ChatMessage(
       id: id,
       senderId: senderId,
@@ -726,6 +749,8 @@ class ChatController extends GetxController {
       attachments: attachments,
       isDeleted: isDeleted,
       senderRole: senderRoleStr,
+      type: typeStr,
+      metadata: metadataMap,
     );
   }
 

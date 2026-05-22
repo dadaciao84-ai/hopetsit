@@ -283,10 +283,28 @@ const listPosts = async (req, res) => {
 
         // v23.1 part 116 — owner boost annotation. On lit les champs
         // boostExpiry/boostTier directement sur le doc owner populé.
+        // v23.1.176 — Daniel : "le cadre boost urgent naparait pas".
+        // Le ruban URGENT s'affichait UNIQUEMENT avec boostExpiry (Boost
+        // annonce €X). Si Daniel a un PawSpot Gold (mapBoostExpiry) ou
+        // un Map Boost, le ruban URGENT n'apparaissait pas sur son post.
+        // Fix : on considère isOwnerBoosted TRUE si N'IMPORTE QUEL boost
+        // est actif (boost annonce OR map boost).
         const ownerBoostExpiry = owner?.boostExpiry || null;
         const ownerBoostTier = owner?.boostTier || null;
-        const isOwnerBoosted =
+        const ownerMapBoostExpiry = owner?.mapBoostExpiry || null;
+        const ownerMapBoostTier = owner?.mapBoostTier || null;
+        const isBoostActive =
           ownerBoostExpiry && new Date(ownerBoostExpiry) > now;
+        const isMapBoostActive =
+          ownerMapBoostExpiry && new Date(ownerMapBoostExpiry) > now;
+        const isOwnerBoosted = Boolean(isBoostActive || isMapBoostActive);
+        // Tier affiché : on priorise le boost annonce (tier explicite) ;
+        // sinon le map boost. Sinon null.
+        const effectiveBoostTier = isBoostActive
+          ? ownerBoostTier
+          : isMapBoostActive
+            ? ownerMapBoostTier
+            : null;
 
         // Get all pets for this owner
         const pets = await Pet.find({ ownerId: owner?._id || owner }).sort({ createdAt: -1 });
@@ -310,8 +328,9 @@ const listPosts = async (req, res) => {
           likesCount: sanitizedPost.likesCount || 0,
           commentsCount: sanitizedPost.commentsCount || 0,
           // v23.1 part 116 — boost owner annotation.
-          isOwnerBoosted: Boolean(isOwnerBoosted),
-          ownerBoostTier: isOwnerBoosted ? ownerBoostTier : null,
+          // v23.1.176 — isOwnerBoosted OR mapBoost.
+          isOwnerBoosted: isOwnerBoosted,
+          ownerBoostTier: effectiveBoostTier,
           ownerBoostExpiry: isOwnerBoosted ? ownerBoostExpiry : null,
         };
       })
@@ -462,10 +481,22 @@ const getRequestPosts = async (req, res) => {
         };
 
         // v23.1 part 120 — owner Boost annotation (boostExpiry/Tier).
+        // v23.1.176 — Daniel : ruban URGENT s'affiche aussi pour le map_boost
+        // (PawSpot Gold/Silver/Platinum), pas seulement le boost annonce.
         const ownerBoostExpiry = owner?.boostExpiry || null;
         const ownerBoostTier = owner?.boostTier || null;
-        const isOwnerBoosted =
+        const ownerMapBoostExpiry = owner?.mapBoostExpiry || null;
+        const ownerMapBoostTier = owner?.mapBoostTier || null;
+        const isBoostActive =
           ownerBoostExpiry && new Date(ownerBoostExpiry) > now;
+        const isMapBoostActive =
+          ownerMapBoostExpiry && new Date(ownerMapBoostExpiry) > now;
+        const isOwnerBoosted = Boolean(isBoostActive || isMapBoostActive);
+        const effectiveBoostTier = isBoostActive
+          ? ownerBoostTier
+          : isMapBoostActive
+            ? ownerMapBoostTier
+            : null;
 
         // Get all pets for this owner
         const pets = await Pet.find({ ownerId: owner?._id || owner }).sort({ createdAt: -1 });
@@ -487,9 +518,14 @@ const getRequestPosts = async (req, res) => {
           owner: ownerData,
           pets: petsData,
           // v23.1 part 120 — surface boost flags pour ruban URGENT côté front.
-          isOwnerBoosted: Boolean(isOwnerBoosted),
-          ownerBoostTier: isOwnerBoosted ? ownerBoostTier : null,
-          ownerBoostExpiry: isOwnerBoosted ? ownerBoostExpiry : null,
+          // v23.1.176 — applique aussi mapBoost.
+          isOwnerBoosted: isOwnerBoosted,
+          ownerBoostTier: effectiveBoostTier,
+          ownerBoostExpiry: isBoostActive
+            ? ownerBoostExpiry
+            : isMapBoostActive
+              ? ownerMapBoostExpiry
+              : null,
         };
       })
     );

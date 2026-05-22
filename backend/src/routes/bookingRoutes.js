@@ -1001,8 +1001,19 @@ router.get(
 router.post(
   '/:id/follow-request',
   requireAuth,
-  requireRole('sitter', 'walker'),
+  // v23.1.176 — owner peut aussi initier la demande (sens owner → provider).
+  requireRole('owner', 'sitter', 'walker'),
   require('../controllers/bookingController').requestLiveTracking,
+);
+
+// v23.1.176 — Daniel : "[Accepter] [Refuser]" sur la carte chat. Le owner
+// (qui reçoit la demande de suivi) appelle cette route avec
+// body: { action: 'accept' | 'refuse' }. Le backend met à jour le message
+// pour que les 2 parties voient le statut final via socket.
+router.post(
+  '/pawfollow-request/:messageId/respond',
+  requireAuth,
+  require('../controllers/bookingController').respondToPawfollowRequest,
 );
 
 module.exports = router;
