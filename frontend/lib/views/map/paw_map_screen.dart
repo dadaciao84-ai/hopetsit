@@ -239,7 +239,15 @@ class _PawMapScreenState extends State<PawMapScreen> {
 
     final img = await recorder.endRecording().toImage(size.toInt(), size.toInt());
     final bytes = await img.toByteData(format: ui.ImageByteFormat.png);
-    return BitmapDescriptor.bytes(bytes!.buffer.asUint8List());
+    // v23.1.193 (verifie 3x) — Daniel : "emoji du chat en enorme". Sans
+    // width explicite, BitmapDescriptor.bytes rend a 1:1 logical pixels
+    // (56 raw → 56 logical = ENORME a cote des markers natifs ~30px).
+    // On passe width: 36 pour forcer un rendu compact comparable aux
+    // pins Google Maps natifs. height suit le ratio 1:1.
+    return BitmapDescriptor.bytes(
+      bytes!.buffer.asUint8List(),
+      width: 36,
+    );
   }
 
   @override

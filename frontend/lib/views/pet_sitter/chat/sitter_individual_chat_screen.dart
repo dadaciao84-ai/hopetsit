@@ -496,8 +496,33 @@ class _SitterIndividualChatScreenState
                   Material(
                     color: Colors.transparent,
                     child: InkWell(
-                      onTap: () =>
-                          _showSitterDeleteSheet(message, controller),
+                      // v23.1.193 (verifie 3x) — 1 tap → dialog confirm
+                      // (au lieu de Sheet → Dialog = 3 taps).
+                      onTap: () async {
+                        final confirmed = await Get.dialog<bool>(
+                          AlertDialog(
+                            title: Text('chat_delete_message'.tr),
+                            content: Text('chat_delete_message_confirm'.tr),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Get.back(result: false),
+                                child: Text('common_cancel'.tr),
+                              ),
+                              TextButton(
+                                onPressed: () => Get.back(result: true),
+                                child: Text(
+                                  'chat_delete_message'.tr,
+                                  style: TextStyle(
+                                      color: AppColors.errorColor),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                        if (confirmed == true) {
+                          await controller.deleteMessage(message.id);
+                        }
+                      },
                       borderRadius: BorderRadius.circular(10.r),
                       child: Container(
                         padding: EdgeInsets.symmetric(
@@ -517,7 +542,7 @@ class _SitterIndividualChatScreenState
                                 size: 12.sp, color: Colors.red),
                             SizedBox(width: 3.w),
                             InterText(
-                              text: 'chat_delete_message'.tr,
+                              text: 'chat_delete_short'.tr,
                               fontSize: 10.sp,
                               fontWeight: FontWeight.w700,
                               color: Colors.red,

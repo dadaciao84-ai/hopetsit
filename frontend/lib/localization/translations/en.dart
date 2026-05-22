@@ -158,6 +158,8 @@ const Map<String, String> enUSTranslations = <String, String>{
       'tracking_sheet_contact_via_chat': 'Use the conversation to contact them. Their phone & address stay private.',
       'tracking_sheet_trust_title': 'Transparency & trust',
       'tracking_sheet_trust_msg': 'Live tracking strengthens safety and trust between you.',
+      // v23.1.193 — short label for inline "Delete" pill button.
+      'chat_delete_short': 'Delete',
       // v23.1.187 — "Around you" floating card.
       'pawmap_around_you': 'Around you',
       'pawmap_around_you_see_all': 'See all',

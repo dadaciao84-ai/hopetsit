@@ -159,6 +159,8 @@ const Map<String, String> frFRTranslations = <String, String>{
       'tracking_sheet_contact_via_chat': 'Pour le contacter, utilisez la conversation. Ses coordonnees restent privees.',
       'tracking_sheet_trust_title': 'Transparence & confiance',
       'tracking_sheet_trust_msg': 'Le suivi en direct renforce la securite et la confiance entre vous.',
+      // v23.1.193 — version courte du label pour le pill "Effacer" inline.
+      'chat_delete_short': 'Effacer',
       // v23.1.187 — "Autour de vous" floating card.
       'pawmap_around_you': 'Autour de vous',
       'pawmap_around_you_see_all': 'Voir tout',
