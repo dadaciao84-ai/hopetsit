@@ -79,7 +79,7 @@ const Map<String, String> ptPTTranslations = <String, String>{
       'family_header_title': 'PawFollow Família ativo',
       'family_slots': '@used / @total membros adicionados',
       'family_empty_msg': 'Ainda não adicionaste nenhum membro. Toca em « Adicionar um amigo » abaixo.',
-      'family_full_msg': 'Família cheia (4 membros + tu).',
+      'family_full_msg': 'Família cheia (5 membros + tu).',
       'family_add_member_btn': '+ Convidar um amigo para a minha família',
       'family_add_member_title': 'Adicionar à minha família',
       'family_add_member_pick': 'Escolhe um amigo da tua lista de amigos aceites.',

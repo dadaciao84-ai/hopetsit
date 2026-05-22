@@ -367,7 +367,7 @@ const Map<String, String> enUSTranslations = <String, String>{
       'family_header_title': 'PawFollow Family active',
       'family_slots': '@used / @total members added',
       'family_empty_msg': 'You haven\'t added any member yet. Tap « Add a friend » below.',
-      'family_full_msg': 'Family full (4 members + you).',
+      'family_full_msg': 'Family full (5 members + you).',
       'family_add_member_btn': '+ Add a friend to my family',
       'family_add_member_title': 'Add to my family',
       'family_add_member_pick': 'Choose a friend from your accepted friends list.',

@@ -36,18 +36,27 @@ class PawfollowRequestCard extends StatelessWidget {
     final isResponder = responderRole == myRole;
     final isRequester = requesterRole == myRole;
 
-    // Couleur halo correspondante :
-    //   - responder=walker → vert (walker en prestation, suivi par owner)
-    //   - responder=sitter → bleu
-    //   - responder=owner  → orange (owner suivi par provider)
-    Color accent;
+    // v23.1.179 — Daniel : "faire beau bouton orange clair et respecter
+    // les traduction par langues". On unifie sur un orange clair brand
+    // pour TOUS les rôles (cohérent avec le reste de l'app), tout en
+    // gardant une discrète couleur halo en fond pour différencier qui
+    // est le responder.
+    const orangeBrand = Color(0xFFEF4324);
+    const orangeLight = Color(0xFFFF8E5C);
+    // Couleur fond/halo correspondante :
+    //   - responder=walker → vert pâle (walker en prestation)
+    //   - responder=sitter → bleu pâle
+    //   - responder=owner  → orange pâle
+    Color haloAccent;
     if (responderRole == 'walker') {
-      accent = const Color(0xFF16A34A);
+      haloAccent = const Color(0xFF16A34A);
     } else if (responderRole == 'sitter') {
-      accent = const Color(0xFF2563EB);
+      haloAccent = const Color(0xFF2563EB);
     } else {
-      accent = AppColors.primaryColor;
+      haloAccent = AppColors.primaryColor;
     }
+    final accent = orangeBrand; // bouton/icone toujours orange brand
+    final accentLight = orangeLight;
 
     String headerText;
     if (isRequester) {
@@ -74,76 +83,140 @@ class PawfollowRequestCard extends StatelessWidget {
     }
 
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: 6.h, horizontal: 16.w),
+      padding: EdgeInsets.symmetric(vertical: 8.h, horizontal: 16.w),
       child: Container(
-        padding: EdgeInsets.all(14.w),
+        padding: EdgeInsets.all(16.w),
         decoration: BoxDecoration(
-          color: accent.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(14.r),
-          border: Border.all(color: accent.withValues(alpha: 0.35), width: 1),
+          gradient: LinearGradient(
+            colors: [
+              accentLight.withValues(alpha: 0.18),
+              accent.withValues(alpha: 0.08),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(18.r),
+          border: Border.all(
+            color: accent.withValues(alpha: 0.45),
+            width: 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: accent.withValues(alpha: 0.12),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.location_on_rounded, color: accent, size: 22.sp),
-                SizedBox(width: 8.w),
+                Container(
+                  padding: EdgeInsets.all(8.w),
+                  decoration: BoxDecoration(
+                    color: accent,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(Icons.pets_rounded,
+                      color: Colors.white, size: 18.sp),
+                ),
+                SizedBox(width: 10.w),
                 Expanded(
-                  child: InterText(
-                    text: headerText,
-                    fontSize: 13.sp,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.textPrimary(context),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      InterText(
+                        text: headerText,
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textPrimary(context),
+                      ),
+                      SizedBox(height: 4.h),
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                            horizontal: 10.w, vertical: 3.h),
+                        decoration: BoxDecoration(
+                          color: statusColor.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(10.r),
+                          border: Border.all(
+                            color: statusColor.withValues(alpha: 0.35),
+                            width: 0.8,
+                          ),
+                        ),
+                        child: InterText(
+                          text: statusBadge,
+                          fontSize: 10.sp,
+                          fontWeight: FontWeight.w700,
+                          color: statusColor,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
+                // Pastille couleur halo pour visualiser qui est le responder.
                 Container(
-                  padding: EdgeInsets.symmetric(
-                      horizontal: 8.w, vertical: 3.h),
+                  width: 10.w,
+                  height: 10.w,
                   decoration: BoxDecoration(
-                    color: statusColor.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(10.r),
-                  ),
-                  child: InterText(
-                    text: statusBadge,
-                    fontSize: 10.sp,
-                    fontWeight: FontWeight.w700,
-                    color: statusColor,
+                    color: haloAccent,
+                    shape: BoxShape.circle,
                   ),
                 ),
               ],
             ),
             if (status == 'pending' && isResponder) ...[
-              SizedBox(height: 12.h),
+              SizedBox(height: 14.h),
               Row(
                 children: [
                   Expanded(
-                    child: OutlinedButton(
+                    flex: 1,
+                    child: OutlinedButton.icon(
+                      icon: Icon(Icons.close_rounded,
+                          color: AppColors.errorColor, size: 16.sp),
+                      label: Text('pawfollow_refuse'.tr),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.errorColor,
-                        side: BorderSide(color: AppColors.errorColor),
-                        padding: EdgeInsets.symmetric(vertical: 10.h),
+                        side: BorderSide(
+                            color: AppColors.errorColor, width: 1.5),
+                        padding: EdgeInsets.symmetric(vertical: 12.h),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10.r),
+                          borderRadius: BorderRadius.circular(12.r),
+                        ),
+                        textStyle: TextStyle(
+                          fontSize: 13.sp,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                       onPressed: onRefuse,
-                      child: Text('pawfollow_refuse'.tr),
                     ),
                   ),
-                  SizedBox(width: 8.w),
+                  SizedBox(width: 10.w),
                   Expanded(
-                    child: ElevatedButton(
+                    flex: 2,
+                    child: ElevatedButton.icon(
+                      icon: const Icon(
+                        Icons.check_circle_rounded,
+                        color: Colors.white,
+                      ),
+                      label: Text('pawfollow_accept'.tr),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: accent,
                         foregroundColor: Colors.white,
-                        padding: EdgeInsets.symmetric(vertical: 10.h),
+                        elevation: 3,
+                        shadowColor: accent.withValues(alpha: 0.5),
+                        padding: EdgeInsets.symmetric(vertical: 12.h),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10.r),
+                          borderRadius: BorderRadius.circular(12.r),
+                        ),
+                        textStyle: TextStyle(
+                          fontSize: 13.sp,
+                          fontWeight: FontWeight.w800,
                         ),
                       ),
                       onPressed: onAccept,
-                      child: Text('pawfollow_accept'.tr),
                     ),
                   ),
                 ],

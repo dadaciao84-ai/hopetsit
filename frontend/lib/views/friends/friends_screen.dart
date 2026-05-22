@@ -905,9 +905,10 @@ class _FamilyTab extends StatelessWidget {
                         ),
                         SizedBox(height: 2.h),
                         InterText(
+                          // v23.1.179 — Daniel : "c 5 membres" (pas 4).
                           text: 'family_slots'.trParams({
                             'used': members.length.toString(),
-                            'total': '4',
+                            'total': '5',
                           }),
                           fontSize: 11.sp,
                           color: AppColors.textSecondary(context),

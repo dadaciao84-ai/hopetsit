@@ -452,7 +452,7 @@ const Map<String, String> deDETranslations = <String, String>{
       'family_header_title': 'PawFollow Familie aktiv',
       'family_slots': '@used / @total Mitglieder hinzugefügt',
       'family_empty_msg': 'Du hast noch kein Mitglied hinzugefügt. Tippe unten auf « Freund hinzufügen ».',
-      'family_full_msg': 'Familie voll (4 Mitglieder + du).',
+      'family_full_msg': 'Familie voll (5 Mitglieder + du).',
       'family_add_member_btn': '+ Freund zu meiner Familie hinzufügen',
       'family_add_member_title': 'Zu meiner Familie hinzufügen',
       'family_add_member_pick': 'Wähle einen Freund aus deiner Liste akzeptierter Freunde.',

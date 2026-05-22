@@ -507,7 +507,7 @@ router.get('/family/members', requireAuth, async (req, res) => {
     res.json({
       hasActiveFamilyPlan: true,
       members: enriched,
-      remainingSlots: Math.max(0, 4 - enriched.length),
+      remainingSlots: Math.max(0, 5 - enriched.length),
     });
   } catch (e) {
     logger.error('[friends/family/members]', e);
@@ -548,9 +548,12 @@ router.post('/family/invite-member', requireAuth, async (req, res) => {
       });
     }
     sub.familyMembers = sub.familyMembers || [];
-    if (sub.familyMembers.length >= 4) {
+    // v23.1.179 — Daniel : "c 5 membres" (pas 4). Le plan PawFollow Famille
+    // permet jusqu'à 5 membres en plus du titulaire (5 emplacements
+    // d'invités, total 6 personnes dans la famille avec le titulaire).
+    if (sub.familyMembers.length >= 5) {
       return res.status(422).json({
-        error: 'Family is full (4 members max in addition to you).',
+        error: 'Family is full (5 members max in addition to you).',
         code: 'FAMILY_FULL',
       });
     }
@@ -581,7 +584,7 @@ router.post('/family/invite-member', requireAuth, async (req, res) => {
     res.status(201).json({
       success: true,
       familyMembersCount: sub.familyMembers.length,
-      remainingSlots: 4 - sub.familyMembers.length,
+      remainingSlots: 5 - sub.familyMembers.length,
     });
   } catch (e) {
     logger.error('[friends/family/invite-member]', e);
@@ -622,7 +625,8 @@ router.post('/family/invite-by-email', requireAuth, async (req, res) => {
       });
     }
     sub.familyMembers = sub.familyMembers || [];
-    if (sub.familyMembers.length >= 4) {
+    // v23.1.179 — max 5 membres invités (cohérence avec invite-member).
+    if (sub.familyMembers.length >= 5) {
       return res.status(422).json({
         error: 'Family is full.',
         code: 'FAMILY_FULL',
@@ -664,7 +668,7 @@ router.post('/family/invite-by-email', requireAuth, async (req, res) => {
         success: true,
         mode: 'existing_user',
         familyMembersCount: sub.familyMembers.length,
-        remainingSlots: 4 - sub.familyMembers.length,
+        remainingSlots: 5 - sub.familyMembers.length,
       });
     }
 
@@ -729,7 +733,7 @@ router.delete('/family/member/:userId', requireAuth, async (req, res) => {
     res.json({
       success: true,
       familyMembersCount: sub.familyMembers.length,
-      remainingSlots: 4 - sub.familyMembers.length,
+      remainingSlots: 5 - sub.familyMembers.length,
     });
   } catch (e) {
     logger.error('[friends/family/member DELETE]', e);

@@ -462,7 +462,7 @@ const Map<String, String> itITTranslations = <String, String>{
       'family_header_title': 'PawFollow Famiglia attivo',
       'family_slots': '@used / @total membri aggiunti',
       'family_empty_msg': 'Non hai ancora aggiunto alcun membro. Tocca « Aggiungi un amico » qui sotto.',
-      'family_full_msg': 'Famiglia piena (4 membri + tu).',
+      'family_full_msg': 'Famiglia piena (5 membri + tu).',
       'family_add_member_btn': '+ Invita un amico nella mia famiglia',
       'family_add_member_title': 'Aggiungi alla mia famiglia',
       'family_add_member_pick': 'Scegli un amico dalla lista degli amici accettati.',

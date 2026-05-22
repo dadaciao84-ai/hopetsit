@@ -297,14 +297,40 @@ const listPosts = async (req, res) => {
           ownerBoostExpiry && new Date(ownerBoostExpiry) > now;
         const isMapBoostActive =
           ownerMapBoostExpiry && new Date(ownerMapBoostExpiry) > now;
-        const isOwnerBoosted = Boolean(isBoostActive || isMapBoostActive);
+        // v23.1.179 — Daniel : "toujour le meme bug de boost naparait pa".
+        // Cause racine : Daniel pense avoir un boost actif parce qu'il a
+        // pris l'abo PawFollow Famille, mais l'abo est sur UserSubscription,
+        // pas sur Owner.boostExpiry. On ajoute le check de la sub active
+        // pour que TOUT abo PawFollow / PawPass active déclenche aussi le
+        // ruban URGENT (= "compte premium, post mis en avant").
+        let isSubscriptionActive = false;
+        try {
+          if (owner?._id) {
+            const UserSubscription = require('../models/UserSubscription');
+            const sub = await UserSubscription.findOne({
+              userId: owner._id,
+              userModel: 'Owner',
+              status: 'active',
+            }).select('currentPeriodEnd').lean();
+            isSubscriptionActive = Boolean(
+              sub &&
+              sub.currentPeriodEnd &&
+              new Date(sub.currentPeriodEnd) > now,
+            );
+          }
+        } catch (_) {/* defensive */}
+        const isOwnerBoosted = Boolean(
+          isBoostActive || isMapBoostActive || isSubscriptionActive,
+        );
         // Tier affiché : on priorise le boost annonce (tier explicite) ;
-        // sinon le map boost. Sinon null.
+        // sinon le map boost ; sinon 'subscription' si juste l'abo actif.
         const effectiveBoostTier = isBoostActive
           ? ownerBoostTier
           : isMapBoostActive
             ? ownerMapBoostTier
-            : null;
+            : isSubscriptionActive
+              ? 'subscription'
+              : null;
 
         // Get all pets for this owner
         const pets = await Pet.find({ ownerId: owner?._id || owner }).sort({ createdAt: -1 });
@@ -483,6 +509,9 @@ const getRequestPosts = async (req, res) => {
         // v23.1 part 120 — owner Boost annotation (boostExpiry/Tier).
         // v23.1.176 — Daniel : ruban URGENT s'affiche aussi pour le map_boost
         // (PawSpot Gold/Silver/Platinum), pas seulement le boost annonce.
+        // v23.1.179 — Daniel : "toujour le meme bug de boost naparait pa".
+        // On ajoute aussi le check UserSubscription active (PawFollow/PawPass)
+        // pour que les comptes premium voient leurs annonces avec le ruban.
         const ownerBoostExpiry = owner?.boostExpiry || null;
         const ownerBoostTier = owner?.boostTier || null;
         const ownerMapBoostExpiry = owner?.mapBoostExpiry || null;
@@ -491,12 +520,32 @@ const getRequestPosts = async (req, res) => {
           ownerBoostExpiry && new Date(ownerBoostExpiry) > now;
         const isMapBoostActive =
           ownerMapBoostExpiry && new Date(ownerMapBoostExpiry) > now;
-        const isOwnerBoosted = Boolean(isBoostActive || isMapBoostActive);
+        let isSubscriptionActive = false;
+        try {
+          if (owner?._id) {
+            const UserSubscription = require('../models/UserSubscription');
+            const sub = await UserSubscription.findOne({
+              userId: owner._id,
+              userModel: 'Owner',
+              status: 'active',
+            }).select('currentPeriodEnd').lean();
+            isSubscriptionActive = Boolean(
+              sub &&
+              sub.currentPeriodEnd &&
+              new Date(sub.currentPeriodEnd) > now,
+            );
+          }
+        } catch (_) {/* defensive */}
+        const isOwnerBoosted = Boolean(
+          isBoostActive || isMapBoostActive || isSubscriptionActive,
+        );
         const effectiveBoostTier = isBoostActive
           ? ownerBoostTier
           : isMapBoostActive
             ? ownerMapBoostTier
-            : null;
+            : isSubscriptionActive
+              ? 'subscription'
+              : null;
 
         // Get all pets for this owner
         const pets = await Pet.find({ ownerId: owner?._id || owner }).sort({ createdAt: -1 });

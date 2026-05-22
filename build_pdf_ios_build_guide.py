@@ -36,7 +36,7 @@ from reportlab.platypus import (
 OUTPUT = os.path.join(
     os.path.expanduser("~"),
     "Downloads",
-    "HopeTSIT_iOS_Build_Guide_v23.1.177.pdf",
+    "HopeTSIT_iOS_Build_Guide_v23.1.179.pdf",
 )
 
 # ─── Brand colors ──────────────────────────────────────────────────────────
@@ -137,7 +137,7 @@ def build():
         rightMargin=2 * cm,
         topMargin=2 * cm,
         bottomMargin=2 * cm,
-        title="HopeTSIT — iOS Build Guide v23.1.177",
+        title="HopeTSIT — iOS Build Guide v23.1.179",
         author="HopeTSIT",
     )
     story = []
@@ -185,12 +185,43 @@ def build():
     # ─── Changelog v146 → v170 ─────────────────────────────────────────────
     story.append(p("Nouveautés depuis v23.1.146", H1))
     story.append(p(
-        "Ce build iOS doit être généré sur la base du code source <b>v23.1.177</b>. "
+        "Ce build iOS doit être généré sur la base du code source <b>v23.1.179</b>. "
         "Voici les corrections et améliorations majeures introduites entre les "
         "deux versions. Toutes sont déjà appliquées dans le ZIP source que tu "
         "as reçu : tu n'as rien à modifier côté code, juste à rebuilder.",
         BODY,
     ))
+
+    story.append(p("v23.1.179 — 5 membres famille + ruban URGENT pour sub active + carte chat orange clair", H3))
+    story.append(bullet("<b>Limite famille passée à 5 membres</b> (Daniel : "
+                        "« c 5 membres »). Avant : 4 max (titulaire + 4 = 5). "
+                        "Maintenant : 5 max (titulaire + 5 = 6). Modifié backend "
+                        "friendRoutes (invite-member, invite-by-email, "
+                        "GET /family/members) + frontend friends_screen "
+                        "(slots display) + 6 langues family_full_msg."))
+    story.append(bullet("<b>Ruban URGENT 🚀 sur post pour sub active</b> (Daniel "
+                        "« toujour le meme bug de boost naparait pa ») : "
+                        "auparavant isOwnerBoosted = TRUE uniquement avec un "
+                        "boost annonce (boostExpiry) ou map boost (PawSpot). "
+                        "Daniel pensait avoir un boost parce qu'il avait pris "
+                        "l'abo PawFollow Famille, mais l'abo est sur "
+                        "UserSubscription, pas sur Owner.boostExpiry. Fix : "
+                        "isOwnerBoosted = TRUE si NÎMPORTE QUEL boost actif "
+                        "OU UserSubscription active. Appliqué dans listPosts "
+                        "ET getRequestPosts."))
+    story.append(bullet("<b>Carte chat « Demande suivre » restylée</b> (Daniel "
+                        "« faire beau bouton orange clair et respecter les "
+                        "traduction par langues ») : gradient orange clair, "
+                        "pastille 🐾 brand, bouton Accepter orange #EF4324 "
+                        "avec ombre et icône ✓, bouton Refuser outlined rouge "
+                        "avec icône ✗. Pastille couleur halo (vert walker / "
+                        "bleu sitter / orange owner) pour visualiser qui "
+                        "doit répondre. Badge statut coloré (pending orange / "
+                        "accepted vert / refused rouge)."))
+    story.append(bullet("<b>v178 backend déjà déployé sur Render</b> : "
+                        "pre-save hook normalise plan 'family' → 'famille' "
+                        "à l'écriture + auto-cancel ma propre pending dans "
+                        "friend request (seamless retry, anti-blocage)."))
 
     story.append(p("v23.1.177 — Fix abo Famille (enum FR/EN) + notif friend request + cleanup pending", H3))
     story.append(bullet("<b>Abonnement Famille ne fait rien</b> (Daniel : "
