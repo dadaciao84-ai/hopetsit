@@ -151,7 +151,30 @@ router.get('/', requireAuth, async (req, res) => {
     const enriched = await Promise.all(
       friendships.map((f) => enrichFriendship(f, user.id)),
     );
-    res.json({ friends: enriched.filter((f) => f.other !== null) });
+    // v23.1.201 — Daniel : "deja amis mais liste vide". Cause : filtrait
+    // les friendships avec other=null (comptes supprimes/orphelins) → user
+    // voyait "deja amis" mais rien dans la liste. Maintenant on garde
+    // ces friendships avec un placeholder pour permettre la cleanup
+    // (unfriend) cote user. Log pour debug.
+    const orphaned = enriched.filter((f) => f.other === null);
+    if (orphaned.length > 0) {
+      logger.warn(`[friends/list] ${orphaned.length} orphan friendship(s) for user ${user.id} (deleted accounts?)`);
+    }
+    res.json({
+      friends: enriched.map((f) => f.other === null
+          ? {
+              ...f,
+              other: {
+                id: '',
+                model: '',
+                name: 'Utilisateur supprimé',
+                avatar: '',
+                city: '',
+              },
+              orphan: true,
+            }
+          : f),
+    });
   } catch (e) {
     logger.error('[friends/list]', e);
     res.status(500).json({ error: e.message });

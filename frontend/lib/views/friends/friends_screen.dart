@@ -11,6 +11,7 @@ import 'package:hopetsit/utils/storage_keys.dart';
 import 'package:hopetsit/views/boost/coin_shop_screen.dart';
 import 'package:hopetsit/views/friends/blocked_users_screen.dart';
 import 'package:hopetsit/views/map/paw_map_screen.dart';
+import 'package:hopetsit/views/pet_owner/chat/individual_chat_screen.dart';
 import 'package:hopetsit/widgets/app_text.dart';
 import 'package:hopetsit/widgets/custom_snackbar_widget.dart';
 import 'package:get_storage/get_storage.dart';
@@ -550,6 +551,41 @@ class _FriendTile extends StatelessWidget {
             ],
           ),
           SizedBox(width: 4.w),
+          // v23.1.201 — Daniel : "PawFollow → chat amis famille". Bouton
+          // Message visible pour ouvrir le chat avec cet ami (cree la
+          // conversation friendChat si elle n'existe pas).
+          GestureDetector(
+            onTap: () async {
+              final convId = await controller.startFriendChat(
+                  other.id, other.model.toLowerCase());
+              if (convId == null || convId.isEmpty) {
+                CustomSnackbar.showError(
+                  title: 'common_error'.tr,
+                  message: 'Impossible d\'ouvrir le chat. Verifie que tu as PawFollow famille ou que vous êtes amis.',
+                );
+                return;
+              }
+              // Ouvre l'IndividualChatScreen avec ce conversationId.
+              Get.to(() => IndividualChatScreen(
+                    conversationId: convId,
+                    contactName: other.name.isEmpty ? 'Ami' : other.name,
+                    contactImage: other.avatar,
+                  ));
+            },
+            child: Container(
+              padding: EdgeInsets.all(8.w),
+              decoration: BoxDecoration(
+                color: AppColors.primaryColor.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(20.r),
+              ),
+              child: Icon(
+                Icons.chat_bubble_outline_rounded,
+                size: 18.sp,
+                color: AppColors.primaryColor,
+              ),
+            ),
+          ),
+          SizedBox(width: 6.w),
           // v23.1.174 — Daniel : "Manque boutons Bloquer et Supprimer dans
           // la liste d'amis". On a maintenant 3 actions au lieu d'une.
           PopupMenuButton<String>(
@@ -1962,7 +1998,16 @@ class _PendingRequestsBanner extends StatelessWidget {
     return Obx(() {
       final friendReqs = controller.incomingRequests;
       final familyInvites = controller.incomingFamilyInvitations;
-      if (friendReqs.isEmpty && familyInvites.isEmpty) {
+      // v23.1.198 — Daniel : "ya ni ou voir les demande damis ni jai
+      // accepter et la liste damis et vide alors que les invitations
+      // sont envoyer". Le banner montrait seulement les requests RECUES.
+      // Maintenant on affiche aussi les requests ENVOYEES (outgoing)
+      // avec un label "Demande en attente" pour que l'user voie ses
+      // invitations en cours.
+      final outgoingReqs = controller.outgoingRequests
+          .where((f) => f.status == 'pending')
+          .toList();
+      if (friendReqs.isEmpty && familyInvites.isEmpty && outgoingReqs.isEmpty) {
         return const SizedBox.shrink();
       }
       return Container(
@@ -1997,14 +2042,79 @@ class _PendingRequestsBanner extends StatelessWidget {
               ],
             ),
             SizedBox(height: 8.h),
-            // Demandes d'amis pending.
+            // Demandes d'amis recues pending.
             ...friendReqs.map((f) => _buildFriendRow(context, f)),
-            // Invitations Famille pending.
+            // Invitations Famille recues pending.
             ...familyInvites.map((i) => _buildFamilyRow(context, i)),
+            // v23.1.198 — Demandes envoyees pending (visible avec
+            // statut "Demande en attente", non actionnable mais visible).
+            ...outgoingReqs.map((f) => _buildOutgoingRow(context, f)),
           ],
         ),
       );
     });
+  }
+
+  // v23.1.198 — Nouvelle row pour les demandes ENVOYEES (outgoing pending).
+  Widget _buildOutgoingRow(BuildContext context, Friendship f) {
+    final other = f.other;
+    final name = other?.name ?? 'Utilisateur';
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 4.h),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 16.r,
+            backgroundColor: const Color(0xFFEF4324).withValues(alpha: 0.18),
+            child: Icon(Icons.hourglass_top_rounded,
+                color: const Color(0xFFEF4324), size: 16.sp),
+          ),
+          SizedBox(width: 10.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                InterText(
+                  text: name,
+                  fontSize: 12.sp,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary(context),
+                  maxLines: 1,
+                ),
+                InterText(
+                  text: 'Demande en attente',
+                  fontSize: 10.sp,
+                  color: AppColors.greyText,
+                ),
+              ],
+            ),
+          ),
+          SizedBox(width: 6.w),
+          // Bouton pour annuler la demande envoyee (unfriend = DELETE /friends/:id).
+          GestureDetector(
+            onTap: () async {
+              await controller.unfriend(f.id);
+            },
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8.r),
+                border: Border.all(
+                  color: AppColors.greyText.withValues(alpha: 0.4),
+                ),
+              ),
+              child: InterText(
+                text: 'Annuler',
+                fontSize: 11.sp,
+                fontWeight: FontWeight.w600,
+                color: AppColors.greyText,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildFriendRow(BuildContext context, Friendship f) {

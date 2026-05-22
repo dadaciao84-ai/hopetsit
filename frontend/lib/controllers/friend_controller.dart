@@ -394,6 +394,32 @@ class FriendController extends GetxController {
     }
   }
 
+  // v23.1.201 — Daniel : "PawFollow → chat amis famille". Cree (ou
+  // retourne) la conversation friendChat avec un ami. Retourne le
+  // conversationId pour pouvoir ouvrir le chat ensuite.
+  Future<String?> startFriendChat(String friendUserId, String friendUserRole) async {
+    try {
+      final api = Get.find<ApiClient>();
+      final r = await api.post(
+        '/conversations/friend',
+        body: {
+          'targetUserId': friendUserId,
+          'targetUserRole': friendUserRole,
+        },
+        requiresAuth: true,
+      );
+      if (r is Map && r['conversation'] is Map) {
+        final conv = r['conversation'] as Map;
+        final id = conv['_id'] ?? conv['id'];
+        return id?.toString();
+      }
+      return null;
+    } catch (e) {
+      debugPrint('[Friends] startFriendChat error: $e');
+      return null;
+    }
+  }
+
   Future<bool> unfriend(String friendshipId) async {
     try {
       final api = Get.find<ApiClient>();

@@ -215,8 +215,11 @@ class OnboardingScreen extends StatelessWidget {
                           label: 'onboarding_continue_with_google'.tr,
                           isOutlined: true,
                           imagePath: AppImages.googleIcon,
-                          isLoading:
-                              authController.isSocialLoginLoading.value,
+                          // v23.1.199 — spinner uniquement sur le bouton
+                          // cliqué (avant : les 2 boutons tournaient).
+                          isLoading: authController
+                                  .currentSocialLoginProvider.value ==
+                              'google',
                           isDark: isDark,
                         ),
                       ),
@@ -231,8 +234,9 @@ class OnboardingScreen extends StatelessWidget {
                             icon: Icons.apple,
                             label: 'onboarding_continue_with_apple'.tr,
                             isOutlined: false,
-                            isLoading:
-                                authController.isSocialLoginLoading.value,
+                            isLoading: authController
+                                    .currentSocialLoginProvider.value ==
+                                'apple',
                             isDark: isDark,
                           ),
                         ),

@@ -45,6 +45,11 @@ class _IndividualChatScreenState extends State<IndividualChatScreen> {
   // Avant la résolution, on garde "Suivre" générique.
   String? _providerRole;
 
+  // v23.1.200 — Daniel : "les beau bouton dans le chat exactement comme
+  // sur la photo". On stocke le booking associé pour que la card
+  // pawfollow_request affiche pet+dates+contact comme dans le mockup.
+  BookingModel? _associatedBooking;
+
   @override
   void initState() {
     super.initState();
@@ -216,84 +221,274 @@ class _IndividualChatScreenState extends State<IndividualChatScreen> {
       statusColor = const Color(0xFFF59E0B);
     }
 
+    // v23.1.200 — Daniel mockup : "les beau bouton dans le chat exactement
+    // comme sur la photo". Redesign de la card avec pet info + dates +
+    // Suivi en direct section + gros bouton.
+    final b = _associatedBooking;
+    final petName = b != null
+        ? (b.pets.isNotEmpty ? b.pets.first.petName : b.petName)
+        : '';
+    final petBreed = b != null && b.pets.isNotEmpty ? b.pets.first.breed : '';
+    final petAvatar =
+        b != null && b.pets.isNotEmpty ? b.pets.first.avatar.url : '';
+    final dateText = b != null
+        ? [b.date, b.timeSlot].where((s) => s.isNotEmpty).join(' • ')
+        : '';
+
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: 6.h, horizontal: 16.w),
+      padding: EdgeInsets.symmetric(vertical: 8.h, horizontal: 12.w),
       child: Container(
-        padding: EdgeInsets.all(14.w),
         decoration: BoxDecoration(
-          color: accent.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(14.r),
-          border: Border.all(color: accent.withValues(alpha: 0.35), width: 1),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20.r),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 14,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Icon(Icons.location_on_rounded, color: accent, size: 22.sp),
-                SizedBox(width: 8.w),
-                Expanded(
-                  child: InterText(
-                    text: headerText,
-                    fontSize: 13.sp,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.textPrimary(context),
-                  ),
+            // ── Section pet info (si booking dispo) ─────────────────
+            if (b != null) ...[
+              Padding(
+                padding: EdgeInsets.fromLTRB(14.w, 14.h, 14.w, 0),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 22.r,
+                      backgroundColor: AppColors.primaryColor
+                          .withValues(alpha: 0.12),
+                      backgroundImage: petAvatar.isNotEmpty
+                          ? CachedNetworkImageProvider(petAvatar)
+                          : null,
+                      child: petAvatar.isEmpty
+                          ? Icon(Icons.pets,
+                              color: AppColors.primaryColor, size: 22.sp)
+                          : null,
+                    ),
+                    SizedBox(width: 10.w),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Flexible(
+                                child: InterText(
+                                  text: petName.isNotEmpty
+                                      ? petName
+                                      : 'Animal',
+                                  fontSize: 16.sp,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.textPrimary(context),
+                                  maxLines: 1,
+                                ),
+                              ),
+                              SizedBox(width: 4.w),
+                              Text('🐾',
+                                  style: TextStyle(fontSize: 14.sp)),
+                            ],
+                          ),
+                          if (petBreed.isNotEmpty)
+                            InterText(
+                              text: petBreed,
+                              fontSize: 11.sp,
+                              color: AppColors.greyText,
+                            ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: EdgeInsets.symmetric(
+                          horizontal: 10.w, vertical: 4.h),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryColor.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(20.r),
+                      ),
+                      child: InterText(
+                        text: 'En garde',
+                        fontSize: 10.sp,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.primaryColor,
+                      ),
+                    ),
+                  ],
                 ),
-                Container(
-                  padding: EdgeInsets.symmetric(
-                      horizontal: 8.w, vertical: 3.h),
-                  decoration: BoxDecoration(
-                    color: statusColor.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(10.r),
-                  ),
-                  child: InterText(
-                    text: statusBadge,
-                    fontSize: 10.sp,
-                    fontWeight: FontWeight.w700,
-                    color: statusColor,
+              ),
+              if (dateText.isNotEmpty) ...[
+                SizedBox(height: 10.h),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 14.w),
+                  child: Container(
+                    padding: EdgeInsets.symmetric(
+                        horizontal: 10.w, vertical: 8.h),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryColor.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(10.r),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.calendar_today_rounded,
+                            color: AppColors.primaryColor, size: 14.sp),
+                        SizedBox(width: 8.w),
+                        Flexible(
+                          child: InterText(
+                            text: dateText,
+                            fontSize: 11.sp,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary(context),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
-            ),
-            if (status == 'pending' && isResponder) ...[
-              SizedBox(height: 12.h),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.errorColor,
-                        side: BorderSide(color: AppColors.errorColor),
-                        padding: EdgeInsets.symmetric(vertical: 10.h),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10.r),
-                        ),
-                      ),
-                      onPressed: () =>
-                          _respondPawfollow(message, 'refuse'),
-                      child: Text('pawfollow_refuse'.tr),
-                    ),
-                  ),
-                  SizedBox(width: 8.w),
-                  Expanded(
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: accent,
-                        foregroundColor: Colors.white,
-                        padding: EdgeInsets.symmetric(vertical: 10.h),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10.r),
-                        ),
-                      ),
-                      onPressed: () =>
-                          _respondPawfollow(message, 'accept'),
-                      child: Text('pawfollow_accept'.tr),
-                    ),
-                  ),
-                ],
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 14.w),
+                child: Divider(
+                  height: 20.h,
+                  color: AppColors.grey300Color.withValues(alpha: 0.5),
+                ),
               ),
             ],
+            // ── Section "Suivi en direct" ───────────────────────────
+            Padding(
+              padding: EdgeInsets.fromLTRB(
+                  14.w, b != null ? 0 : 14.h, 14.w, 14.h),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.location_on_rounded,
+                          color: accent, size: 18.sp),
+                      SizedBox(width: 6.w),
+                      Expanded(
+                        child: InterText(
+                          text: 'Suivi en direct',
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.textPrimary(context),
+                        ),
+                      ),
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                            horizontal: 10.w, vertical: 4.h),
+                        decoration: BoxDecoration(
+                          color: statusColor.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(20.r),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 6.w,
+                              height: 6.w,
+                              decoration: BoxDecoration(
+                                color: statusColor,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            SizedBox(width: 5.w),
+                            InterText(
+                              text: status == 'pending'
+                                  ? 'Demande en attente'
+                                  : statusBadge,
+                              fontSize: 10.sp,
+                              fontWeight: FontWeight.w700,
+                              color: statusColor,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 6.h),
+                  InterText(
+                    text: headerText,
+                    fontSize: 12.sp,
+                    color: AppColors.greyText,
+                    maxLines: 2,
+                  ),
+                  // ── Bouton(s) action ──────────────────────────────
+                  if (status == 'pending' && isResponder) ...[
+                    SizedBox(height: 12.h),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppColors.errorColor,
+                              side: BorderSide(color: AppColors.errorColor),
+                              padding: EdgeInsets.symmetric(vertical: 12.h),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12.r),
+                              ),
+                            ),
+                            onPressed: () =>
+                                _respondPawfollow(message, 'refuse'),
+                            child: Text('pawfollow_refuse'.tr),
+                          ),
+                        ),
+                        SizedBox(width: 8.w),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            icon: Icon(Icons.location_on_rounded,
+                                size: 18.sp),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: accent,
+                              foregroundColor: Colors.white,
+                              padding: EdgeInsets.symmetric(vertical: 12.h),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12.r),
+                              ),
+                            ),
+                            onPressed: () =>
+                                _respondPawfollow(message, 'accept'),
+                            label: Text('pawfollow_accept'.tr),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ] else if (status == 'pending' && isRequester) ...[
+                    SizedBox(height: 12.h),
+                    Container(
+                      width: double.infinity,
+                      padding: EdgeInsets.symmetric(vertical: 14.h),
+                      decoration: BoxDecoration(
+                        color: statusColor.withValues(alpha: 0.10),
+                        borderRadius: BorderRadius.circular(12.r),
+                        border: Border.all(
+                          color: statusColor.withValues(alpha: 0.40),
+                          width: 1.2,
+                        ),
+                      ),
+                      child: Center(
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.hourglass_top_rounded,
+                                color: statusColor, size: 16.sp),
+                            SizedBox(width: 8.w),
+                            InterText(
+                              text: 'Demande en attente',
+                              fontSize: 13.sp,
+                              fontWeight: FontWeight.w800,
+                              color: statusColor,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
           ],
         ),
       ),
@@ -350,8 +545,15 @@ class _IndividualChatScreenState extends State<IndividualChatScreen> {
             wantedName.contains(norm(b.sitter.name));
       });
       final role = match?.providerRole;
-      if (mounted && role != null && role.isNotEmpty) {
-        setState(() => _providerRole = role);
+      if (mounted) {
+        setState(() {
+          if (role != null && role.isNotEmpty) {
+            _providerRole = role;
+          }
+          // v23.1.200 — On garde le booking pour rendre la card en chat
+          // avec toutes les infos (pet, dates, sitter contact, etc.).
+          _associatedBooking = match;
+        });
       }
     } catch (_) {
       // silently fail — generic "Suivre" label remains

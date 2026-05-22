@@ -86,11 +86,11 @@ const getChatList = async (req, res) => {
     // rôle courant.
     let query;
     if (normalizedRole === 'owner') {
-      query = { ownerId: userId };
+      query = { ownerId: userId, friendChat: { $ne: true } };
     } else if (normalizedRole === 'walker') {
-      query = { walkerId: userId };
+      query = { walkerId: userId, friendChat: { $ne: true } };
     } else {
-      query = { sitterId: userId };
+      query = { sitterId: userId, friendChat: { $ne: true } };
     }
 
     const conversations = await Conversation.find(query)
@@ -98,6 +98,14 @@ const getChatList = async (req, res) => {
       .populate('ownerId', 'name email avatar')
       .populate('sitterId', 'name email avatar')
       .populate('walkerId', 'name email avatar');
+
+    // v23.1.201 — Daniel : friend chats (any-role↔any-role) inclus dans
+    // la chat list. On query les conversations friendChat ou l'user est
+    // dans participants[].
+    const friendConversations = await Conversation.find({
+      friendChat: true,
+      'participants.userId': userId,
+    }).sort({ updatedAt: -1 });
 
     // Enhance conversations with user details
     const enhancedConversations = conversations.map((conversation) => {
@@ -140,9 +148,62 @@ const getChatList = async (req, res) => {
       };
     });
 
-    res.json({ 
-      conversations: enhancedConversations,
-      count: enhancedConversations.length,
+    // v23.1.201 — Enrichit les friend chats avec l'otherParty.
+    const Owner = require('../models/Owner');
+    const Sitter = require('../models/Sitter');
+    const Walker = require('../models/Walker');
+    const modelByName = { Owner, Sitter, Walker };
+    const enhancedFriendChats = [];
+    for (const conv of friendConversations) {
+      try {
+        const other = (conv.participants || []).find(
+          (p) => String(p.userId) !== String(userId),
+        );
+        if (!other) continue;
+        const OtherModel = modelByName[other.userModel];
+        if (!OtherModel) continue;
+        const u = await OtherModel.findById(other.userId)
+          .select('firstName lastName name email avatar profilePicture')
+          .lean();
+        if (!u) continue;
+        const fullName =
+          u.name ||
+          [u.firstName, u.lastName].filter(Boolean).join(' ').trim();
+        const me = (conv.participants || []).find(
+          (p) => String(p.userId) === String(userId),
+        );
+        enhancedFriendChats.push({
+          _id: conv._id,
+          id: conv._id?.toString() || '',
+          friendChat: true,
+          lastMessage: conv.lastMessage || '',
+          lastMessageAt: conv.lastMessageAt,
+          updatedAt: conv.updatedAt,
+          createdAt: conv.createdAt,
+          otherParty: {
+            id: u._id?.toString() || '',
+            name: fullName,
+            email: u.email || '',
+            avatar: u.profilePicture || u.avatar?.url || u.avatar || '',
+            role: (other.userModel || 'Owner').toLowerCase(),
+          },
+          unreadCount: me?.unreadCount || 0,
+        });
+      } catch (_) { /* skip */ }
+    }
+
+    const allConversations = [
+      ...enhancedConversations,
+      ...enhancedFriendChats,
+    ].sort((a, b) => {
+      const aT = new Date(a.lastMessageAt || a.updatedAt || 0).getTime();
+      const bT = new Date(b.lastMessageAt || b.updatedAt || 0).getTime();
+      return bT - aT;
+    });
+
+    res.json({
+      conversations: allConversations,
+      count: allConversations.length,
     });
   } catch (error) {
     logger.error('Get chat list error', error);
@@ -177,10 +238,18 @@ const getConversationMessages = async (req, res) => {
     const sitterIdValue = idToString(conversation.sitterId);
     const walkerIdValue = idToString(conversation.walkerId);
 
-    const accessOk =
-      (role === 'owner' && ownerIdValue === userId) ||
-      (role === 'sitter' && sitterIdValue === userId) ||
-      (role === 'walker' && walkerIdValue === userId);
+    // v23.1.201 — friendChat : access OK si user est participant.
+    let accessOk;
+    if (conversation.friendChat === true) {
+      accessOk = (conversation.participants || []).some(
+        (p) => String(p.userId) === String(userId),
+      );
+    } else {
+      accessOk =
+        (role === 'owner' && ownerIdValue === userId) ||
+        (role === 'sitter' && sitterIdValue === userId) ||
+        (role === 'walker' && walkerIdValue === userId);
+    }
 
     if (!accessOk) {
       return res.status(403).json({ error: 'Access denied for this conversation.' });

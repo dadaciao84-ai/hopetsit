@@ -48,10 +48,65 @@ const evaluateChatAccess = async ({ ownerId, sitterId, walkerId }) => {
 const requirePaidBooking = async (req, res, next) => {
   try {
     const conversation = await Conversation.findById(req.params.id)
-      .select('ownerId sitterId walkerId')
+      .select('ownerId sitterId walkerId friendChat participants')
       .lean();
     if (!conversation) {
       return res.status(404).json({ error: 'Conversation not found.' });
+    }
+
+    // v23.1.201 — Friend chats : autorisation differente du booking chat.
+    // Une conversation friendChat est ouverte si l'user est un des
+    // participants ET (a) friendship 'accepted' existe OU (b) meme famille.
+    if (conversation.friendChat === true) {
+      const userId = String(req.user?.id || '');
+      const isParticipant = (conversation.participants || []).some(
+        (p) => String(p.userId) === userId,
+      );
+      if (!isParticipant) {
+        return res.status(403).json({ error: 'Not a participant.' });
+      }
+      // Trouve l'autre participant.
+      const other = (conversation.participants || []).find(
+        (p) => String(p.userId) !== userId,
+      );
+      // Verifie friendship accepted OU meme famille.
+      try {
+        const Friendship = require('../models/Friendship');
+        const userRole = (req.user?.role || 'owner').toLowerCase();
+        const userModel =
+          userRole === 'walker'
+            ? 'Walker'
+            : userRole === 'sitter'
+              ? 'Sitter'
+              : 'Owner';
+        const friendship = await Friendship.findOne({
+          status: 'accepted',
+          $or: [
+            {
+              requesterId: userId,
+              requesterModel: userModel,
+              addresseeId: other.userId,
+              addresseeModel: other.userModel,
+            },
+            {
+              requesterId: other.userId,
+              requesterModel: other.userModel,
+              addresseeId: userId,
+              addresseeModel: userModel,
+            },
+          ],
+        });
+        if (friendship) return next();
+        const { isInSameFamily } = require('../models/UserSubscription');
+        const sameFamily = await isInSameFamily(userId, other.userId);
+        if (sameFamily) return next();
+      } catch (e) {
+        logger.warn?.('[requirePaidBooking] friend chat check failed', e?.message);
+      }
+      return res.status(403).json({
+        error: 'Friend chat requires accepted friendship or same family.',
+        code: 'NOT_FRIENDS',
+      });
     }
 
     // v20.0.18 — bypass pour Staff (Daniel + employés) et pour les users

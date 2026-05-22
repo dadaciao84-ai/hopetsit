@@ -166,6 +166,91 @@ router.post('/start-by-sitter', requireAuth, requireRole('sitter'), startConvers
 // "Discuter avec le propriétaire" depuis sa fiche booking.
 router.post('/start-by-walker', requireAuth, requireRole('walker'), startConversationByWalker);
 
+// v23.1.201 — Daniel : "PawFollow → chat se debloque ds amis famille".
+// Cree (ou retourne si existe) une conversation friendChat entre l'user
+// connecte et son ami (any-role↔any-role). chatAccess autorisera l'acces
+// si une friendship 'accepted' lie les 2, ou s'ils sont dans la meme
+// famille PawFollow.
+router.post('/friend', requireAuth, async (req, res) => {
+  try {
+    const Conversation = require('../models/Conversation');
+    const Friendship = require('../models/Friendship');
+    const { targetUserId, targetUserRole } = req.body || {};
+    if (!targetUserId || !targetUserRole) {
+      return res
+        .status(400)
+        .json({ error: 'targetUserId and targetUserRole are required.' });
+    }
+    const role = req.user.role;
+    const userId = req.user.id;
+    const userModel =
+      role === 'walker' ? 'Walker' : role === 'sitter' ? 'Sitter' : 'Owner';
+    const targetModel =
+      targetUserRole === 'walker'
+        ? 'Walker'
+        : targetUserRole === 'sitter'
+          ? 'Sitter'
+          : 'Owner';
+
+    if (String(targetUserId) === String(userId) && targetModel === userModel) {
+      return res.status(400).json({ error: 'Cannot chat with yourself.' });
+    }
+
+    // Verifie qu'une friendship 'accepted' existe (sinon refuse la creation).
+    const friendship = await Friendship.findOne({
+      status: 'accepted',
+      $or: [
+        {
+          requesterId: userId,
+          requesterModel: userModel,
+          addresseeId: targetUserId,
+          addresseeModel: targetModel,
+        },
+        {
+          requesterId: targetUserId,
+          requesterModel: targetModel,
+          addresseeId: userId,
+          addresseeModel: userModel,
+        },
+      ],
+    });
+    if (!friendship) {
+      return res.status(403).json({
+        error: 'Friendship required to start a friend chat.',
+        code: 'NOT_FRIENDS',
+      });
+    }
+
+    // Cherche une conversation friendChat existante entre les 2 participants.
+    let conv = await Conversation.findOne({
+      friendChat: true,
+      participants: {
+        $all: [
+          { $elemMatch: { userId, userModel } },
+          { $elemMatch: { userId: targetUserId, userModel: targetModel } },
+        ],
+      },
+    });
+    if (!conv) {
+      conv = await Conversation.create({
+        friendChat: true,
+        participants: [
+          { userId, userModel, unreadCount: 0 },
+          { userId: targetUserId, userModel: targetModel, unreadCount: 0 },
+        ],
+        lastMessageAt: new Date(),
+      });
+      logger.info(
+        `[conversations/friend] created friendChat ${conv._id} between ${userModel}:${userId} and ${targetModel}:${targetUserId}`,
+      );
+    }
+    res.json({ conversation: conv });
+  } catch (e) {
+    logger.error('[conversations/friend]', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 /**
  * @swagger
  * /conversations/list:

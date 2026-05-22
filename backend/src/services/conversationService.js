@@ -169,6 +169,73 @@ const hasValidPaidBooking = async (ownerId, sitterId, walkerId) => {
   return !!validPaidBooking;
 };
 
+// v23.1.201 — Friend chat message send. Logique simplifiee :
+//   - pas de booking gating, pas de owner/sitter unread fields
+//   - met a jour participant.unreadCount du destinataire
+//   - envoie une notif type new_message au destinataire
+const sendFriendMessage = async ({
+  conversation,
+  senderRole,
+  senderId,
+  body,
+  attachments,
+}) => {
+  // Verifie que le sender est bien participant.
+  const isParticipant = (conversation.participants || []).some(
+    (p) => String(p.userId) === String(senderId),
+  );
+  if (!isParticipant) {
+    throw new HttpError(403, 'You are not a participant of this conversation.');
+  }
+  const trimmedBody = typeof body === 'string' ? body.trim() : '';
+  const normalizedAttachments = sanitizeAttachmentsPayload(attachments);
+  if (!trimmedBody && normalizedAttachments.length === 0) {
+    throw new HttpError(400, 'Message body or attachments are required.');
+  }
+  // v19.1.3 — emails toujours masques en chat (anti contact off-platform).
+  const effectiveBody = maskEmailsInText(trimmedBody);
+  const message = await Message.create({
+    conversationId: conversation._id,
+    senderRole,
+    senderId,
+    body: effectiveBody,
+    attachments: normalizedAttachments,
+  });
+  conversation.lastMessage = buildLastMessagePreview({
+    body: trimmedBody,
+    attachments: normalizedAttachments,
+  });
+  conversation.lastMessageAt = new Date();
+  // Incremente unreadCount du destinataire.
+  for (const p of conversation.participants || []) {
+    if (String(p.userId) !== String(senderId)) {
+      p.unreadCount = (p.unreadCount || 0) + 1;
+    }
+  }
+  await conversation.save();
+  // Notif au destinataire.
+  try {
+    const other = (conversation.participants || []).find(
+      (p) => String(p.userId) !== String(senderId),
+    );
+    if (other) {
+      const { sendNotification } = require('./notificationSender');
+      await sendNotification({
+        userId: String(other.userId),
+        role: String(other.userModel || 'Owner').toLowerCase(),
+        type: 'new_message',
+        title: 'new_message_title',
+        body: trimmedBody.substring(0, 80) || 'Pièce jointe',
+        data: {
+          conversationId: String(conversation._id),
+          friendChat: true,
+        },
+      });
+    }
+  } catch (_) { /* non-critical */ }
+  return { message: sanitizeMessage(message), conversation };
+};
+
 const sendMessage = async ({ conversationId, senderRole, senderId, body, attachments }) => {
   ensureNonEmpty(conversationId, 'Conversation id is required.');
   ensureNonEmpty(senderRole, 'senderRole is required.');
@@ -177,6 +244,19 @@ const sendMessage = async ({ conversationId, senderRole, senderId, body, attachm
   ensureRole(senderRole);
 
   const conversation = await getConversationOrThrow(conversationId, { populate: true });
+
+  // v23.1.201 — Daniel : friend chats (any-role↔any-role). Branche tot
+  // pour eviter le pipeline owner-sitter qui ne s'applique pas. La
+  // validation d'acces a deja eu lieu dans le middleware chatAccess.
+  if (conversation.friendChat === true) {
+    return sendFriendMessage({
+      conversation,
+      senderRole,
+      senderId,
+      body,
+      attachments,
+    });
+  }
 
   assertParticipant(conversation, senderRole, senderId);
 

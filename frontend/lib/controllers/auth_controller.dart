@@ -60,6 +60,10 @@ class AuthController extends GetxController {
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final RxBool isSocialLoginLoading = false.obs;
+  // v23.1.199 — indique QUEL provider est en cours (Google ou Apple) pour
+  // que seul le bouton concerné affiche son spinner. Sans ça, les 2
+  // boutons tournent en même temps car ils écoutent isSocialLoginLoading.
+  final RxString currentSocialLoginProvider = ''.obs; // 'google' | 'apple' | ''
 
   GoogleSignInAccount? _user;
   late GoogleSignIn _googleSignIn;
@@ -289,6 +293,7 @@ class AuthController extends GetxController {
   Future<void> loginWithGoogle({String? role}) async {
     try {
       isSocialLoginLoading.value = true;
+      currentSocialLoginProvider.value = 'google';
       // v23.1 part 142 — Daniel : 'verifie pkoi sitter creer un compte
       // seul'. Avant : roleToSend = role ?? userRole.value → si un user
       // avait fait un signup Sitter PRÉCÉDEMMENT, userRole.value=='sitter'
@@ -540,6 +545,7 @@ class AuthController extends GetxController {
       );
     } finally {
       isSocialLoginLoading.value = false;
+      currentSocialLoginProvider.value = '';
     }
   }
 
@@ -549,6 +555,7 @@ class AuthController extends GetxController {
   Future<void> loginWithApple({String? role}) async {
     try {
       isSocialLoginLoading.value = true;
+      currentSocialLoginProvider.value = 'apple';
       // v23.1 part 142 — idem Google : pas de fallback userRole.value,
       // sinon un Sitter stocké d'une session précédente force la
       // création d'un compte Sitter au lieu de demander le rôle.
@@ -716,6 +723,7 @@ class AuthController extends GetxController {
       );
     } finally {
       isSocialLoginLoading.value = false;
+      currentSocialLoginProvider.value = '';
     }
   }
 
