@@ -4364,10 +4364,20 @@ const requestLiveTracking = async (req, res) => {
     try {
       const Conversation = require('../models/Conversation');
       const Message = require('../models/Message');
-      // On cherche la conversation liée au booking. Si pas trouvée, on
-      // saute (la conversation est normalement créée au moment du paiement).
+      // v23.1.201 — BUG FIX CRITIQUE : Daniel "popup vert mais rien dans
+      // le chat". Le code cherchait Conversation.findOne({ bookingId })
+      // mais le schema Conversation N'A PAS de champ bookingId — la
+      // query retournait toujours null → le message pawfollow_request
+      // n'etait JAMAIS cree. Maintenant on match par ownerId + provider
+      // (sitter XOR walker) qui correspond au schema.
+      const providerKey = booking.walkerId
+        ? { walkerId: booking.walkerId }
+        : booking.sitterId
+          ? { sitterId: booking.sitterId }
+          : {};
       const conversation = await Conversation.findOne({
-        bookingId: bookingId,
+        ownerId: booking.ownerId,
+        ...providerKey,
       }).lean();
       if (conversation) {
         // Anti-spam : si une demande pending existe < 5 min, on ne crée
