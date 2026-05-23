@@ -196,7 +196,8 @@ router.post('/friend', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'Cannot chat with yourself.' });
     }
 
-    // Verifie qu'une friendship 'accepted' existe (sinon refuse la creation).
+    // Verifie qu'une friendship 'accepted' existe OU que les 2 sont
+    // dans la meme famille PawFollow (v23.1.201).
     const friendship = await Friendship.findOne({
       status: 'accepted',
       $or: [
@@ -214,10 +215,17 @@ router.post('/friend', requireAuth, async (req, res) => {
         },
       ],
     });
-    if (!friendship) {
+    let allowed = !!friendship;
+    if (!allowed) {
+      try {
+        const { isInSameFamily } = require('../models/UserSubscription');
+        allowed = await isInSameFamily(userId, targetUserId);
+      } catch (_) { /* defensive */ }
+    }
+    if (!allowed) {
       return res.status(403).json({
-        error: 'Friendship required to start a friend chat.',
-        code: 'NOT_FRIENDS',
+        error: 'Friendship or same PawFollow Famille required to start chat.',
+        code: 'NOT_FRIENDS_OR_FAMILY',
       });
     }
 

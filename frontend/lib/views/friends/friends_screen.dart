@@ -1344,6 +1344,40 @@ class _FamilyMemberTile extends StatelessWidget {
               ],
             ),
           ),
+          // v23.1.201 — Daniel : "chat dans le bouton famille bloquer".
+          // Bouton Message pour les membres famille (chat owner-to-owner ou
+          // any-role) qui sera autorise par chatAccess (meme famille).
+          GestureDetector(
+            onTap: () async {
+              final convId = await controller.startFriendChat(
+                id, role.toLowerCase());
+              if (convId == null || convId.isEmpty) {
+                CustomSnackbar.showError(
+                  title: 'common_error'.tr,
+                  message: 'Impossible d\'ouvrir le chat famille.',
+                );
+                return;
+              }
+              Get.to(() => IndividualChatScreen(
+                    conversationId: convId,
+                    contactName: name.isEmpty ? 'Famille' : name,
+                    contactImage: avatar,
+                  ));
+            },
+            child: Container(
+              padding: EdgeInsets.all(8.w),
+              decoration: BoxDecoration(
+                color: AppColors.primaryColor.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(20.r),
+              ),
+              child: Icon(
+                Icons.chat_bubble_outline_rounded,
+                size: 18.sp,
+                color: AppColors.primaryColor,
+              ),
+            ),
+          ),
+          SizedBox(width: 6.w),
           IconButton(
             icon: Icon(Icons.person_remove_rounded,
                 color: AppColors.errorColor, size: 20.sp),
